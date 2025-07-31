@@ -79,7 +79,8 @@ su - editorial-ai
 python3 -m venv /home/editorial-ai/venv
 source /home/editorial-ai/venv/bin/activate
 
-# Instalacja podstawowych pakietów Python
+# Instalacja podstawowych pakietów Python (wykonano na droplecie)
+# W lokalnym środowisku używaj tylko venv!
 pip install --upgrade pip
 pip install \
   crewai \

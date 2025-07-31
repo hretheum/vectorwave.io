@@ -17,15 +17,16 @@ Event-driven microservices z Clean Architecture, gdzie każdy domain service jes
 
 #### Atomic Tasks:
 
-- [ ] **Task 1.0**: Setup Digital Ocean droplet infrastructure
+- [x] **Task 1.0**: Setup Digital Ocean droplet infrastructure ✅ [COMPLETED 2025-01-17]
   - **Agent**: deployment-specialist
   - **Time**: 2h
   - **Dependencies**: none
   - **Success**: 
-    - Droplet (46.101.156.14) dostępny przez SSH
-    - Docker + Docker Compose zainstalowane
-    - Basic firewall rules (22, 80, 443, 8000-8010)
-    - Non-root user 'editorial' created
+    - Droplet (46.101.156.14) dostępny przez SSH ✅
+    - Docker + Docker Compose zainstalowane ✅
+    - Basic firewall rules (22, 80, 443, 8000-8010) ✅
+    - Non-root user 'editorial-ai' created ✅
+    - Python venv with crewai, fastapi, redis ✅
   - **Files**: `/docs/digital-ocean-setup.md` (existing)
 
 - [ ] **Task 1.1**: Implementacja Clean Architecture structure

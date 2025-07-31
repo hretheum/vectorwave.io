@@ -2,60 +2,28 @@
 
 ## 📋 Bloki Zadań Atomowych
 
-### Blok 0: Infrastructure Setup
-**Czas**: 2h | **Agent**: deployment-specialist
+### Blok 0: Infrastructure Setup ✅ [WYKONANY]
+**Czas**: 2h | **Agent**: deployment-specialist | **Status**: COMPLETED 2025-01-17
 
 **Task 1.0**: Setup Digital Ocean droplet infrastructure
 
-#### Execution Steps:
-1. **SSH do droplet (46.101.156.14)**
-   ```bash
-   ssh root@46.101.156.14
-   ```
+#### Execution Summary:
+Droplet został już skonfigurowany i działa:
+- **Droplet ID**: 511009535
+- **IP**: 46.101.156.14
+- **Użytkownik**: editorial-ai (dostęp SSH: `ssh crew`)
+- **System**: Ubuntu 22.04 (4 vCPU, 8GB RAM, 160GB SSD)
+- **Docker**: Zainstalowany i skonfigurowany
+- **Python venv**: /home/editorial-ai/venv z crewai 0.152.0, fastapi, redis, celery
+- **Firewall**: Porty otwarte: SSH, HTTP, HTTPS, 8000-8010
+- **docker-compose.yml**: Utworzony w /home/editorial-ai/
 
-2. **Basic system update**
-   ```bash
-   apt update && apt upgrade -y
-   apt install -y curl wget git vim htop ufw
-   ```
-
-3. **Install Docker & Docker Compose**
-   ```bash
-   curl -fsSL https://get.docker.com -o get-docker.sh
-   sh get-docker.sh
-   
-   curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-   chmod +x /usr/local/bin/docker-compose
-   ```
-
-4. **Create editorial user**
-   ```bash
-   useradd -m -s /bin/bash editorial
-   usermod -aG docker editorial
-   usermod -aG sudo editorial
-   
-   # Setup SSH keys for editorial user
-   mkdir -p /home/editorial/.ssh
-   cp /root/.ssh/authorized_keys /home/editorial/.ssh/
-   chown -R editorial:editorial /home/editorial/.ssh
-   chmod 700 /home/editorial/.ssh
-   chmod 600 /home/editorial/.ssh/authorized_keys
-   ```
-
-5. **Configure firewall**
-   ```bash
-   ufw allow ssh
-   ufw allow 80
-   ufw allow 443
-   ufw allow 8000:8010/tcp
-   ufw --force enable
-   ```
-
-**Success Criteria**:
-- [ ] SSH access as editorial user works
-- [ ] Docker runs without sudo for editorial user
-- [ ] Firewall rules active
-- [ ] Basic monitoring tools installed
+**Success Criteria** ✅:
+- [x] SSH access as editorial-ai user works
+- [x] Docker runs without sudo for editorial-ai user
+- [x] Firewall rules active
+- [x] Basic monitoring tools installed
+- [x] Python environment setup complete
 
 ---
 
@@ -65,11 +33,12 @@
 **Task 1.1**: Implementacja Clean Architecture structure
 
 #### Execution Steps:
-1. **Create project structure**
+1. **Clone existing repository** (repozytorium już istnieje)
    ```bash
-   mkdir -p /home/editorial/kolegium
-   cd /home/editorial/kolegium
-   git init
+   # Na droplecie jako editorial-ai user
+   cd /home/editorial-ai
+   git clone https://github.com/username/kolegium.git
+   cd kolegium
    ```
 
 2. **Setup directory structure**
@@ -146,7 +115,29 @@
            pass
    ```
 
-5. **Setup dependency injection**
+5. **Setup dependency injection and requirements**
+   ```python
+   # requirements.txt
+   fastapi==0.109.0
+   uvicorn[standard]==0.27.0
+   pydantic==2.5.3
+   dependency-injector==4.41.0
+   sqlalchemy==2.0.25
+   alembic==1.13.1
+   asyncpg==0.29.0
+   redis==5.0.1
+   python-multipart==0.0.6
+   python-jose[cryptography]==3.3.0
+   passlib[bcrypt]==1.7.4
+   prometheus-client==0.19.0
+   opentelemetry-api==1.22.0
+   opentelemetry-sdk==1.22.0
+   opentelemetry-instrumentation-fastapi==0.43b0
+   pytest==7.4.4
+   pytest-asyncio==0.23.3
+   pytest-cov==4.1.0
+   ```
+   
    ```python
    # src/shared/infrastructure/container.py
    from dependency_injector import containers, providers
@@ -657,8 +648,11 @@
            
        - name: Install dependencies
          run: |
+           cd services/api-gateway
+           python -m venv .venv
+           source .venv/bin/activate
            python -m pip install --upgrade pip
-           pip install -r services/api-gateway/requirements.txt
+           pip install -r requirements.txt
            pip install pytest pytest-cov pytest-asyncio
            
        - name: Run tests
@@ -727,10 +721,10 @@
          uses: appleboy/ssh-action@v0.1.5
          with:
            host: 46.101.156.14
-           username: editorial
+           username: editorial-ai
            key: ${{ secrets.DO_SSH_KEY }}
            script: |
-             cd /home/editorial/kolegium
+             cd /home/editorial-ai/kolegium
              git pull origin main
              docker-compose -f docker-compose.prod.yml pull api-gateway
              docker-compose -f docker-compose.prod.yml up -d api-gateway

@@ -195,7 +195,7 @@ jobs:
         if [ "${{ matrix.service }}" = "frontend" ]; then
           cd frontend && npm ci
         else
-          cd services/${{ matrix.service }} && pip install -r requirements.txt
+          cd services/${{ matrix.service }} && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
         fi
         
     - name: Run tests
