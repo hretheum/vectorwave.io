@@ -27,141 +27,175 @@ Droplet został już skonfigurowany i działa:
 
 ---
 
-### Blok 1: Clean Architecture Foundation  
-**Czas**: 3h | **Agent**: project-coder | **Dependencies**: Blok 0
+### Blok 1: CrewAI Project Scaffolding
+**Czas**: 2h | **Agent**: project-coder | **Dependencies**: Blok 0
 
-**Task 1.1**: Implementacja Clean Architecture structure
+**Task 1.1**: CrewAI project scaffolding i basic setup
 
 #### Execution Steps:
-1. **Work in local repository** (pracujemy LOKALNIE, nie na droplecie!)
+1. **Setup CrewAI CLI and create project** (LOKALNIE w development)
    ```bash
    # W lokalnym środowisku deweloperskim
    cd /Users/hretheum/dev/bezrobocie/vector-wave/kolegium
-   # Cały kod będzie budowany w GitHub Actions i deployowany jako kontenery
+   
+   # Install CrewAI CLI
+   pip install crewai[tools]
+   
+   # Create project using scaffolding
+   crewai create ai-kolegium-redakcyjne
+   cd ai-kolegium-redakcyjne
+   
+   # This creates standard CrewAI structure:
+   # src/ai_kolegium_redakcyjne/
+   # ├── __init__.py
+   # ├── main.py              # Entry point
+   # ├── crew.py              # Main crew definition
+   # ├── agents.py            # Agent definitions
+   # ├── tasks.py             # Task definitions
+   # └── tools/               # Custom tools
+   #     ├── __init__.py
+   #     └── custom_tool.py
+   # config/
+   # ├── agents.yaml          # Agent configurations
+   # └── tasks.yaml           # Task configurations
+   # tests/
+   # pyproject.toml
+   # README.md
+   # .env.example
    ```
 
-2. **Setup directory structure**
+2. **Configure environment and dependencies**
    ```bash
-   mkdir -p src/{domains/{content,analytics,editorial,quality,orchestration},shared,interfaces}
-   mkdir -p src/domains/content/{domain/{entities,value_objects,repositories,services},application/{use_cases,handlers,dto},infrastructure/{repositories,services,agents}}
-   mkdir -p src/shared/{domain/{events,exceptions,value_objects},infrastructure/{agui,database,cache,monitoring,security},application/{events,services}}
-   mkdir -p src/interfaces/{api/{controllers,websockets,dto},events/handlers,jobs/schedulers}
-   mkdir -p tests/{unit,integration,e2e}
-   mkdir -p docs/{api,user-guides,operations}
+   # Copy and setup environment
+   cp .env.example .env
+   # Edit .env - add API keys:
+   # OPENAI_API_KEY=sk-...
+   # ANTHROPIC_API_KEY=claude-...
+   # SERPER_API_KEY=...
    ```
 
-3. **Create basic domain entities**
-   ```python
-   # src/domains/content/domain/entities/topic.py
-   from dataclasses import dataclass
-   from datetime import datetime
-   from typing import List, Optional
-   from uuid import UUID, uuid4
-   
-   @dataclass
-   class Topic:
-       id: UUID
-       title: str
-       description: str
-       url: str
-       source: str
-       discovered_at: datetime
-       keywords: List[str]
-       initial_score: float
-       category: str
-       sentiment: Optional[float] = None
-       
-       @classmethod
-       def create(cls, title: str, description: str, url: str, source: str, 
-                  keywords: List[str], category: str) -> 'Topic':
-           return cls(
-               id=uuid4(),
-               title=title,
-               description=description,
-               url=url,
-               source=source,
-               discovered_at=datetime.utcnow(),
-               keywords=keywords,
-               initial_score=0.0,
-               category=category
-           )
-   ```
-
-4. **Create repository interfaces**
-   ```python
-   # src/domains/content/domain/repositories/topic_repository.py
-   from abc import ABC, abstractmethod
-   from typing import List, Optional
-   from uuid import UUID
-   
-   from ..entities.topic import Topic
-   
-   class ITopicRepository(ABC):
-       @abstractmethod
-       async def save(self, topic: Topic) -> None:
-           pass
-           
-       @abstractmethod
-       async def find_by_id(self, topic_id: UUID) -> Optional[Topic]:
-           pass
-           
-       @abstractmethod
-       async def find_by_url(self, url: str) -> Optional[Topic]:
-           pass
-           
-       @abstractmethod
-       async def find_recent(self, limit: int = 50) -> List[Topic]:
-           pass
-   ```
-
-5. **Setup dependency injection and requirements**
-   ```python
-   # requirements.txt
+3. **Setup Vector Wave specific dependencies**
+   ```bash
+   # Add Vector Wave dependencies to requirements.txt
+   echo "
+   # Vector Wave specific
    fastapi==0.109.0
    uvicorn[standard]==0.27.0
-   pydantic==2.5.3
-   dependency-injector==4.41.0
-   sqlalchemy==2.0.25
-   alembic==1.13.1
-   asyncpg==0.29.0
    redis==5.0.1
-   python-multipart==0.0.6
-   python-jose[cryptography]==3.3.0
-   passlib[bcrypt]==1.7.4
+   asyncpg==0.29.0
+   sqlalchemy==2.0.25
+   websockets==12.0
+   pydantic==2.5.3
    prometheus-client==0.19.0
-   opentelemetry-api==1.22.0
-   opentelemetry-sdk==1.22.0
-   opentelemetry-instrumentation-fastapi==0.43b0
-   pytest==7.4.4
-   pytest-asyncio==0.23.3
-   pytest-cov==4.1.0
+   " >> requirements.txt
+   
+   # Install all dependencies
+   pip install -r requirements.txt
    ```
-   
+
+4. **Configure Content Scout agent**
    ```python
-   # src/shared/infrastructure/container.py
-   from dependency_injector import containers, providers
-   from dependency_injector.wiring import Provide, inject
+   # src/ai_kolegium_redakcyjne/agents.py
+   from crewai import Agent
+   from crewai_tools import SerperDevTool, ScrapeWebsiteTool
+   from langchain_openai import ChatOpenAI
    
-   class Container(containers.DeclarativeContainer):
-       # Configuration
-       config = providers.Configuration()
-       
-       # Database
-       database = providers.Singleton(
-           # Will be implemented in next task
+   def content_scout():
+       return Agent(
+           role='Content Scout',
+           goal='Discover trending AI and tech topics with viral potential',
+           backstory="""You are an expert content scout with deep knowledge of 
+           digital trends, social media patterns, and viral content mechanics. 
+           You excel at finding emerging topics before they go mainstream.""",
+           verbose=True,
+           allow_delegation=False,
+           tools=[
+               SerperDevTool(),  # Google Search
+               ScrapeWebsiteTool()  # Web scraping
+           ],
+           llm=ChatOpenAI(model="gpt-4-turbo", temperature=0.1),
+           max_iter=3,
+           memory=True
        )
-       
-       # Repositories
-       topic_repository = providers.Factory(
-           # Will be implemented in task 1.5
+   ```
+
+5. **Configure Trend Analyst agent**
+   ```python
+   # Continue in src/ai_kolegium_redakcyjne/agents.py
+   
+   def trend_analyst():
+       return Agent(
+           role='Trend Analyst',
+           goal='Analyze viral potential and engagement prediction for discovered topics',
+           backstory="""You are a data-driven analyst specialized in viral content 
+           patterns, social media analytics, and engagement prediction. You excel 
+           at quantifying content potential.""",
+           verbose=True,
+           allow_delegation=False,
+           tools=[SerperDevTool()],
+           llm=ChatOpenAI(model="gpt-4", temperature=0.2),
+           memory=True
        )
+   ```
+
+6. **Setup tasks with Pydantic models**
+   ```python
+   # src/ai_kolegium_redakcyjne/tasks.py
+   from crewai import Task
+   from pydantic import BaseModel
+   from typing import List, Dict, Any
+   
+   class TopicDiscovery(BaseModel):
+       topics: List[Dict[str, Any]]
+       total_found: int
+       categories: List[str]
+       discovery_timestamp: str
+   
+   class ViralAnalysis(BaseModel):
+       topic_id: str
+       viral_score: float  # 0-1
+       engagement_prediction: Dict[str, int]
+       recommendation: str  # approve/reject/review
+       reasoning: str
+   
+   def topic_discovery_task(agent):
+       return Task(
+           description="""Search for trending topics in AI, technology, and digital culture. 
+           Focus on topics that have potential for viral spread and high engagement.""",
+           expected_output="List of 5-10 trending topics with metadata",
+           agent=agent,
+           output_pydantic=TopicDiscovery
+       )
+   
+   def viral_analysis_task(agent):
+       return Task(
+           description="""Analyze the discovered topics for viral potential and engagement prediction.""",
+           expected_output="Viral analysis with scores and recommendations",
+           agent=agent,
+           output_pydantic=ViralAnalysis,
+           context=[topic_discovery_task]  # Depends on discovery results
+       )
+   ```
+
+7. **Test basic CrewAI setup**
+   ```bash
+   # Test that everything works
+   crewai run
+   
+   # You should see:
+   # [Content Scout] Starting topic discovery...
+   # [Content Scout] Found X trending topics...
+   # [Trend Analyst] Analyzing viral potential...
+   # [Trend Analyst] Topic Y has viral score Z...
    ```
 
 **Success Criteria**:
-- [ ] Clean folder structure created
-- [ ] Basic domain entities defined with proper typing
-- [ ] Repository interfaces following DIP
-- [ ] Dependency injection container setup
+- [ ] CrewAI project scaffolding complete
+- [ ] Content Scout + Trend Analyst agents configured
+- [ ] Pydantic output models defined
+- [ ] Basic crew execution successful (`crewai run`)
+- [ ] Environment configured with API keys
+- [ ] Vector Wave dependencies installed
 
 ---
 

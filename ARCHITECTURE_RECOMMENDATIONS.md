@@ -2,7 +2,18 @@
 
 ## 📊 Executive Summary
 
-Na podstawie szczegółowej analizy projektu AI Kolegium Redakcyjne przedstawiam kluczowe rekomendacje architektoniczne, które przekształcą obecny system w production-ready, skalowalne rozwiązanie enterprise-grade.
+Na podstawie analizy najnowszych discoverów CrewAI (scaffolding, Flows, Knowledge Sources) przedstawiam zaktualizowane rekomendacje architektoniczne dla production-ready systemu redakcyjnego.
+
+## 🔄 **MAJOR UPDATES (2025-01-31)**
+
+**Zmiana paradygmatu**: Od custom Clean Architecture → CrewAI-native approach
+
+**Kluczowe discoveries**:
+- CrewAI scaffolding (`crewai create`) zamiast custom struktur
+- CrewAI Flows dla decision-making zamiast basic Crews
+- Knowledge Sources dla editorial guidelines
+- 4 typy pamięci (short-term, long-term, entity, contextual)
+- Built-in tools zamiast custom implementations
 
 ## 🎯 Strategiczne Rekomendacje
 
@@ -19,34 +30,37 @@ Na podstawie szczegółowej analizy projektu AI Kolegium Redakcyjne przedstawiam
 - Implementować event replay dla debugging
 - Rozszerzyć o business-specific events (EDITORIAL_DECISION, QUALITY_ASSESSMENT)
 
-### 2. Microservices Architecture - REQUIRED ⚡
-**Rekomendacja**: Przekształcić z monolitu na domain-driven microservices
+### 2. CrewAI-Native Architecture - UPDATED ⭐
+**Rekomendacja**: Single CrewAI application z Flows orchestration
 **Uzasadnienie**:
-- Każdy agent = osobny bounded context
-- Niezależne skalowanie i deployment
-- Fault isolation (błąd w jednym agencie nie zabije systemu)
-- Team autonomy (różne zespoły mogą pracować nad różnymi agentami)
+- CrewAI scaffolding zapewnia standardową strukturę
+- CrewAI Flows umożliwiają sophisticated orchestration w jednym procesie
+- Built-in memory system eliminuje potrzebę external state management
+- Simplified deployment i monitoring
 
 **Implementacja**:
 ```yaml
-Services Architecture:
-├── api-gateway          # Entry point + routing
-├── content-scout        # Content discovery domain
-├── trend-analyst        # Analytics domain  
-├── editorial-strategist # Editorial decisions domain
-├── quality-assessor     # Quality assurance domain
-├── decision-coordinator # Orchestration domain
-├── event-store         # Event sourcing
-└── read-model-service  # CQRS read side
+CrewAI Application Architecture:
+├── ai-kolegium-redakcyjne/     # CrewAI scaffolded project
+│   ├── agents.py               # All 5 agents
+│   ├── tasks.py                # Sequential tasks
+│   ├── flows/                  # CrewAI Flows dla decisions
+│   │   ├── editorial_flow.py
+│   │   └── human_review_flow.py
+│   ├── tools/                  # Custom AG-UI tools
+│   └── knowledge/              # Editorial guidelines
+├── fastapi-wrapper/            # AG-UI endpoints
+├── react-dashboard/            # Frontend
+└── infrastructure/             # PostgreSQL, Redis
 ```
 
-### 3. Event Sourcing + CQRS - CRITICAL 🔥
-**Rekomendacja**: Implementować event sourcing dla decyzji redakcyjnych
+### 3. CrewAI Memory + Event Sourcing - HYBRID 🔄
+**Rekomendacja**: CrewAI memory jako primary + AG-UI events dla audit
 **Uzasadnienie**:
-- Pełna audytowalność AI decisions
-- Replay capability dla debugging
-- Regulatory compliance
-- Time-travel debugging
+- CrewAI 4 memory types zapewniają agent consistency
+- AG-UI events dla real-time communication z frontend
+- PostgreSQL jako storage dla obu systemów
+- Simplified architecture vs full CQRS
 
 **Schema**:
 ```sql

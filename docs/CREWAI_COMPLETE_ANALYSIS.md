@@ -1066,6 +1066,13 @@ crewai validate
 4. **Multi-LLM setup** with OpenAI primary, Claude fallback
 5. **Knowledge sources** for editorial guidelines and strategies
 
+### 10.2 Implementation Path
+
+1. **Start with QUICK_START.md** - 30-minute setup guide
+2. **Follow ROADMAP.md** - Updated with CrewAI scaffolding approach
+3. **Reference this document** for all CrewAI feature details
+4. **Use tasks/phase-*.md** for atomic task execution
+
 ### 10.2 Development Best Practices
 
 1. **Start with Sequential Process** → Migrate to Hierarchical → Eventually Flows
@@ -1099,9 +1106,14 @@ CrewAI jest idealnym wyborem dla Vector Wave - AI Kolegium Redakcyjne. Framework
 Rekomendowana implementacja w 4 tygodnie z wykorzystaniem CrewAI Flows dla decision-making i pełną integracją z existing Vector Wave architecture przez AG-UI events i Event Sourcing.
 
 **Next Steps**: 
-1. Wykonaj project scaffolding
-2. Zaimplementuj Content Scout agent
-3. Skonfiguruj AG-UI integration
-4. Deploy minimal crew na Digital Ocean
+1. **[Follow QUICK_START.md](../QUICK_START.md)** - 30-minute onboarding
+2. **[Execute ROADMAP.md](../ROADMAP.md)** - Phase-by-phase implementation
+3. **[Reference ARCHITECTURE_RECOMMENDATIONS.md](../ARCHITECTURE_RECOMMENDATIONS.md)** - Technical decisions
+4. **Deploy using updated [DEPLOYMENT.md](../DEPLOYMENT.md)**
+
+**Related Documentation**:
+- **[PROJECT_CONTEXT.md](../PROJECT_CONTEXT.md)** - Current status and tech stack
+- **[CREWAI_FLOWS_DECISION_SYSTEM.md](./CREWAI_FLOWS_DECISION_SYSTEM.md)** - Specialized Flows guide
+- **[Phase 1 Tasks](../tasks/phase-1-foundation.md)** - Start implementation here
 
 CrewAI + Vector Wave = Powerful Editorial AI System! 🚀

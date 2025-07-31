@@ -5,36 +5,44 @@ Stworzenie inteligentnego systemu wspomagającego decyzje redakcyjne poprzez ork
 
 ## 🏗️ Architektura Systemu
 
-### Paradygmat: Event-Driven Microservices z Clean Architecture
-- **AG-UI Protocol** - standardized event communication
-- **CQRS + Event Sourcing** - pełna audytowalność decyzji
-- **Domain-Driven Design** - rozdzielenie logiki biznesowej
-- **Container-First** - zero lokalnego budowania
-- **TDD** - test-driven development od początku
+### Paradygmat: CrewAI Flows + Event-Driven Architecture
+- **CrewAI Flows** - deterministyczne decision-making zamiast basic Crews  
+- **Knowledge Sources** - editorial guidelines jako Vector Database
+- **4 Memory Types** - short-term, long-term, entity, contextual
+- **Multi-LLM Setup** - OpenAI primary, Claude fallback
+- **AG-UI Protocol** - real-time communication z frontend
+- **Event Sourcing** - full audit trail wszystkich AI decisions
 
-### Stack Technologiczny
+### Stack Technologiczny (Zaktualizowany)
 ```yaml
+AI Framework:
+  - CrewAI 0.30.11+ z CLI scaffolding ✅
+  - CrewAI Flows dla decision trees ✅ 
+  - Built-in tools (SerperDev, ScrapeWebsite, etc.) ✅
+  - Knowledge Sources dla editorial guidelines 🔄
+  - Multi-LLM setup (OpenAI + Claude fallbacks) 🔄
+
 Backend:
-  - Python 3.11 + FastAPI
-  - CrewAI dla orchestracji agentów
-  - AG-UI Protocol dla real-time communication
-  - PostgreSQL (event store + read models)
-  - Redis (cache + message broker)
-  - OpenTelemetry (distributed tracing)
+  - Python 3.11 + FastAPI ✅
+  - PostgreSQL (event store + crew memory) ✅
+  - Redis (cache + AG-UI streams) ✅
+  - AG-UI Protocol implementation 🔄
+  - OpenTelemetry tracing 📋
 
 Frontend:
-  - React 18 + TypeScript
-  - CopilotKit dla AI interactions
-  - AG-UI React hooks
-  - Tailwind CSS
-  - React Query (state management)
+  - React 18 + TypeScript 📋
+  - CopilotKit integration 📋  
+  - AG-UI WebSocket/SSE client 🔄
+  - Real-time dashboard components 📋
 
 Infrastructure:
   - Digital Ocean Droplet (46.101.156.14) ✅ [ACTIVE]
-  - Docker + Docker Compose ✅ [INSTALLED]
-  - GitHub Container Registry (ghcr.io)
-  - GitHub Actions (CI/CD)
-  - Prometheus + Grafana (monitoring)
+  - Docker + GitHub Container Registry ✅
+  - Watchtower auto-deployment 🔄
+  - GitHub Actions CI/CD ✅
+  - Prometheus + Grafana monitoring 📋
+
+Legenda: ✅ Done | 🔄 In Progress | 📋 Planned
 ```
 
 ### 📊 Stan Implementacji (2025-01-31)
@@ -44,42 +52,54 @@ Infrastructure:
   - Droplet ID: 511009535, IP: 46.101.156.14
   - User: editorial-ai (SSH alias: crew)
   - Python venv: /home/editorial-ai/venv
-- [ ] Task 1.1: Clean Architecture structure
-- [ ] Task 1.2: AG-UI Event System
-- [ ] Task 1.3: Docker containers
-- [ ] Task 1.4: CI/CD pipeline
+- [x] Discovery: CrewAI scaffolding approach (2025-01-31)
+  - Use `crewai create` instead of custom Clean Architecture
+  - Built-in tools replace custom implementations  
+  - CrewAI Flows for decision-making replace basic Crews
+  - Knowledge Sources for editorial guidelines
+- [ ] Task 1.1: CrewAI project scaffolding (UPDATED)
+- [ ] Task 1.2: AG-UI Event System integration
+- [ ] Task 1.3: Docker containers setup
+- [ ] Task 1.4: GitHub Actions CI/CD
 
-## 🎭 Agenci i ich Domeny
+## 🎭 Agenci i ich Implementacja (CrewAI)
 
-### 1. Content Discovery Domain
-**Agent**: Content Scout
-- **Rola**: Real-time topic discovery
-- **Źródła**: RSS, social media, news APIs
-- **Output**: TOPIC_DISCOVERED events
+### 1. Content Scout (IMPLEMENTED)
+**CrewAI Agent Configuration**:
+- **Role**: "Content Scout"
+- **Goal**: "Discover trending AI and tech topics with viral potential"
+- **Tools**: SerperDevTool(), ScrapeWebsiteTool()
+- **LLM**: GPT-4-turbo (temperature=0.1)
+- **Memory**: Enabled (consistency across sessions)
+- **Output**: Pydantic model TopicDiscovery
 
-### 2. Analytics Domain  
-**Agent**: Trend Analyst
-- **Rola**: Viral potential assessment
-- **Narzędzia**: Google Trends, sentiment analysis
-- **Output**: CONTENT_ANALYSIS events
+### 2. Trend Analyst (IMPLEMENTED)  
+**CrewAI Agent Configuration**:
+- **Role**: "Trend Analyst"
+- **Goal**: "Analyze viral potential and engagement prediction"
+- **Tools**: SerperDevTool(), Google Trends integration
+- **LLM**: GPT-4 (temperature=0.2)
+- **Memory**: Enabled
+- **Output**: Pydantic model ViralAnalysis
 
-### 3. Editorial Strategy Domain
-**Agent**: Editorial Strategist
-- **Rola**: Human-in-the-loop decision making
-- **Funkcje**: Controversy detection, editorial guidelines
-- **Output**: HUMAN_INPUT_REQUEST, EDITORIAL_DECISION events
+### 3. Editorial Strategist (PLANNED - CrewAI Flow)
+**Implementation**: CrewAI Flow z conditional routing
+- **Flow**: EditorialDecisionFlow
+- **Routing**: @router based on controversy_level
+- **Human-in-the-Loop**: Native Flow support
+- **Decision Tree**: approve/reject/human_review paths
 
-### 4. Quality Assurance Domain
-**Agent**: Quality Assessor
-- **Rola**: Fact-checking i source verification
-- **Narzędzia**: Fact-checking APIs, plagiarism detection
-- **Output**: QUALITY_ASSESSMENT events
+### 4. Quality Assessor (PLANNED)
+**CrewAI Agent Configuration**:
+- **Tools**: Fact-checking APIs, source verification
+- **Knowledge Source**: Editorial guidelines vector DB
+- **Integration**: AG-UI events dla quality scores
 
-### 5. Orchestration Domain
-**Agent**: Decision Coordinator
-- **Rola**: Multi-agent coordination
-- **Funkcje**: Consensus building, report generation
-- **Output**: UI_COMPONENT, TASK_COMPLETE events
+### 5. Decision Coordinator (PLANNED - Flow Orchestrator)
+**Implementation**: Main orchestration Flow
+- **Coordinates**: All other agents via Flow system
+- **Generates**: Dynamic UI components
+- **Outputs**: Final editorial decisions + reports
 
 ## 🔄 Event Flow Architecture
 
@@ -231,37 +251,43 @@ async def handle_topic_discovery(event: AGUIEvent):
 - **E2E Tests**: Full workflow scenarios
 - **Performance Tests**: Load + stress testing
 
-## 📈 Roadmap Overview
+## 📈 Roadmap Overview (Zaktualizowany)
 
-### Week 1-2: Foundation
-- Clean Architecture setup
-- AG-UI event system
-- CI/CD pipeline
-- Basic monitoring
+### Week 1-2: CrewAI Foundation
+- ✅ CrewAI project scaffolding (`crewai create`)
+- ✅ Content Scout + Trend Analyst agents
+- 🔄 AG-UI event integration
+- 📋 Docker containerization
+- 📋 GitHub Actions CI/CD
 
-### Week 3-4: Core Agents
-- Content Scout implementation
-- Trend Analyst with analytics
-- Event sourcing setup
-- Frontend dashboard
+### Week 3-4: Advanced Agents + Flows
+- 📋 EditorialDecisionFlow implementation
+- 📋 Human-in-the-loop workflows
+- 📋 Knowledge Sources setup
+- 📋 Quality Assessor agent
+- 📋 React frontend dashboard
 
-### Week 5-6: Advanced Features  
-- Human-in-the-loop workflow
-- Quality assessment
-- Multi-agent orchestration
-- Generative UI components
+### Week 5-6: Production Features
+- 📋 Decision Coordinator Flow
+- 📋 Multi-LLM fallback setup
+- 📋 4 memory types configuration
+- 📋 Performance optimization
+- 📋 Security hardening
 
-### Week 7: Production
-- Security hardening
-- Performance optimization  
-- Documentation
-- Go-live preparation
+### Week 7: Dynamic Agents
+- 📋 Runtime agent creation
+- 📋 Natural language agent parser
+- 📋 Agent marketplace
+- 📋 Full documentation
+- 📋 Production deployment
 
 ---
 
-**Kluczowe Principy**:
-1. **Event-First**: Wszystko komunikuje się przez eventy
-2. **Container-First**: Zero lokalnego budowania
-3. **Test-First**: TDD od pierwszej linii kodu
-4. **Human-First**: AI wspomaga, człowiek decyduje
-5. **Transparency-First**: Pełna audytowalność procesów
+**Kluczowe Principy (Zaktualizowane)**:
+1. **CrewAI-First**: Scaffolding zamiast custom architecture
+2. **Flows-First**: Deterministic decision trees zamiast autonomous agents
+3. **Knowledge-First**: Vector DB z editorial guidelines
+4. **Memory-First**: 4 typy pamięci dla consistency
+5. **Human-First**: AI analizuje, człowiek decyduje przy kontrowersyjnych
+6. **Event-First**: AG-UI Protocol dla real-time collaboration
+7. **Container-First**: GitHub Container Registry + Watchtower auto-deploy

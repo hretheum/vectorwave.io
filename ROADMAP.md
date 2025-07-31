@@ -32,27 +32,28 @@ Event-driven microservices z Clean Architecture, gdzie każdy domain service jes
     - Python venv with crewai, fastapi, redis ✅
   - **Files**: `/docs/digital-ocean-setup.md` (existing)
 
-- [ ] **Task 1.1**: Implementacja Clean Architecture structure
+- [ ] **Task 1.1**: CrewAI project scaffolding i setup
   - **Agent**: project-coder
-  - **Time**: 3h
+  - **Time**: 2h
   - **Dependencies**: Task 1.0
   - **Success**:
-    - Folder structure zgodna z DDD patterns
-    - Basic domain entities dla content domain
-    - Repository interfaces zdefiniowane
-    - Dependency injection setup
-  - **Files**: `src/domains/content/domain/entities/topic.py`, `src/shared/domain/`
+    - `crewai create kolegium-redakcyjne` executed
+    - Basic agents.py i tasks.py configured
+    - requirements.txt z Vector Wave dependencies
+    - .env setup z API keys
+    - First test run successful (`crewai run`)
+  - **Files**: Complete CrewAI project structure, custom agents/tasks
 
-- [ ] **Task 1.2**: AG-UI Event System podstawowy
-  - **Agent**: project-coder
-  - **Time**: 4h
+- [ ] **Task 1.2**: AG-UI integration z CrewAI agents
+  - **Agent**: project-coder  
+  - **Time**: 3h
   - **Dependencies**: Task 1.1
   - **Success**:
-    - AGUIEvent classes z full typing
-    - Event emitter z WebSocket/SSE support
-    - Basic event store w PostgreSQL
-    - Event serialization/deserialization
-  - **Files**: `src/shared/infrastructure/agui/`, `src/shared/domain/events/`
+    - Custom tools emitują AG-UI events
+    - Event emitter integration w agent callbacks
+    - WebSocket endpoint dla real-time communication
+    - TOPIC_DISCOVERED + CONTENT_ANALYSIS events working
+  - **Files**: `src/tools/agui_tools.py`, FastAPI websocket endpoints
 
 - [ ] **Task 1.3**: Docker containers setup
   - **Agent**: deployment-specialist
@@ -129,43 +130,45 @@ Event-driven microservices z Clean Architecture, gdzie każdy domain service jes
 ---
 
 ### Phase 2: Core Agent Implementation (2 tygodnie)
-**Objective**: Implementacja pierwszych 2 agentów z pełną AG-UI integracją
-**Success Criteria**: Content Scout i Trend Analyst działają end-to-end
+**Objective**: Enhanced Content Scout + Trend Analyst z pełną AG-UI integracją
+**Success Criteria**: 2 agenty działają end-to-end z real-time events
 
 #### Atomic Tasks:
 
-- [ ] **Task 2.0**: Content Scout domain implementation
-  - **Agent**: project-coder
-  - **Time**: 4h
-  - **Dependencies**: Phase 1 complete
-  - **Success**:
-    - Topic, Source, Keyword entities
-    - ContentDiscoveryService z business logic
-    - Repository interfaces i implementations
-    - Unit tests >85% coverage
-  - **Files**: `src/domains/content/domain/`, `tests/domains/content/`
-
-- [ ] **Task 2.1**: RSS Feed scraping service
+- [ ] **Task 2.0**: Enhanced Content Scout z built-in tools  
   - **Agent**: project-coder
   - **Time**: 3h
+  - **Dependencies**: Phase 1 complete
+  - **Success**:
+    - SerperDevTool dla Google Search integrated
+    - ScrapeWebsiteTool dla content extraction
+    - Custom RSS monitoring tool
+    - Social media monitoring tools
+    - Pydantic output models (TopicDiscovery)
+  - **Files**: Enhanced `agents.py`, `tasks.py`, custom tools
+
+- [ ] **Task 2.1**: Memory system setup dla agent consistency
+  - **Agent**: project-coder
+  - **Time**: 2h
   - **Dependencies**: Task 2.0
   - **Success**:
-    - RSS parser z error handling
-    - Duplicate detection
-    - Rate limiting per source
-    - Integration tests
-  - **Files**: `src/domains/content/infrastructure/services/rss_service.py`
+    - PostgreSQL memory storage configured
+    - 4 memory types enabled (short-term, long-term, entity, contextual)
+    - Memory persistence across agent sessions
+    - Embedding model setup dla similarity search
+  - **Files**: Database config, memory configuration w Crew setup
 
-- [ ] **Task 2.2**: Content Scout agent z AG-UI events
+- [ ] **Task 2.2**: Multi-LLM setup z fallback chains
   - **Agent**: project-coder
-  - **Time**: 4h
+  - **Time**: 2h
   - **Dependencies**: Task 2.1
   - **Success**:
-    - CrewAI agent integration
-    - Real-time TOPIC_DISCOVERED events
-    - Progress tracking events
-    - Error handling i retry logic
-  - **Files**: `src/domains/content/infrastructure/agents/content_scout.py`
+    - OpenAI GPT-4 jako primary LLM
+    - Claude jako fallback LLM
+    - Per-agent LLM customization
+    - Automatic fallback on API errors
+    - Cost optimization per use case
+  - **Files**: LLM provider configuration, agent LLM assignments
 
 - [ ] **Task 2.3**: Social media monitoring integration
   - **Agent**: project-coder
@@ -178,16 +181,17 @@ Event-driven microservices z Clean Architecture, gdzie każdy domain service jes
     - Rate limiting compliance
   - **Files**: `src/domains/content/infrastructure/services/social_service.py`
 
-- [ ] **Task 2.4**: Analytics domain implementation
+- [ ] **Task 2.4**: Knowledge Sources dla editorial guidelines
   - **Agent**: project-coder
-  - **Time**: 4h
-  - **Dependencies**: Task 2.0
+  - **Time**: 3h
+  - **Dependencies**: Task 2.2
   - **Success**:
-    - TrendAnalysis, SentimentScore entities
-    - ViralPotential value object
-    - TrendAnalysisService business logic
-    - Repository implementation
-  - **Files**: `src/domains/analytics/domain/`, `tests/domains/analytics/`
+    - Editorial guidelines jako TextFileKnowledgeSource
+    - Content strategies knowledge base
+    - Controversial topics detection database
+    - Vector embeddings dla knowledge retrieval
+    - Knowledge integration w agent decisions
+  - **Files**: `knowledge/` folder, knowledge source configurations
 
 - [ ] **Task 2.5**: Google Trends API integration
   - **Agent**: project-coder
@@ -241,22 +245,23 @@ Event-driven microservices z Clean Architecture, gdzie każdy domain service jes
 
 ---
 
-### Phase 3: Human-in-the-Loop & Advanced Features (2 tygodnie)
-**Objective**: Editorial Strategy agent z human collaboration + Quality Assessor
-**Success Criteria**: Redaktorzy mogą ingerować w AI decisions
+### Phase 3: CrewAI Flows & Human-in-the-Loop (2 tygodnie)
+**Objective**: EditorialDecisionFlow z human collaboration patterns
+**Success Criteria**: Deterministic decision tree z human input support
 
 #### Atomic Tasks:
 
-- [ ] **Task 3.0**: Editorial domain implementation
+- [ ] **Task 3.0**: EditorialDecisionFlow implementation
   - **Agent**: project-coder
   - **Time**: 4h
   - **Dependencies**: Phase 2 complete
   - **Success**:
-    - EditorialDecision, Guidelines entities
-    - ControversyLevel value object
-    - EditorialDecisionService
-    - Human input request logic
-  - **Files**: `src/domains/editorial/domain/`
+    - CrewAI Flow z @start, @listen, @router decorators
+    - Conditional routing based on controversy/viral scores
+    - State management z EditorialState Pydantic model
+    - Flow execution paths: approve/reject/human_review
+    - Integration z existing agents jako flow steps
+  - **Files**: `flows/editorial_decision_flow.py`, state models
 
 - [ ] **Task 3.1**: Controversy detection algorithm
   - **Agent**: project-coder
@@ -269,16 +274,17 @@ Event-driven microservices z Clean Architecture, gdzie każdy domain service jes
     - False positive minimization
   - **Files**: `src/domains/editorial/infrastructure/services/controversy_detector.py`
 
-- [ ] **Task 3.2**: Editorial Strategist agent
+- [ ] **Task 3.2**: Human-in-the-Loop Flow implementation
   - **Agent**: project-coder
   - **Time**: 4h
   - **Dependencies**: Task 3.1
   - **Success**:
-    - Human-in-the-loop workflow
-    - HUMAN_INPUT_REQUEST events
-    - Decision timeout handling
-    - EDITORIAL_DECISION events
-  - **Files**: `src/domains/editorial/infrastructure/agents/editorial_strategist.py`
+    - HumanReviewFlow jako sub-flow
+    - Native Flow support dla human input
+    - Timeout handling (5 min default)
+    - Escalation do senior editors
+    - AG-UI events dla human interaction
+  - **Files**: `flows/human_review_flow.py`, timeout/escalation logic
 
 - [ ] **Task 3.3**: Human input UI components
   - **Agent**: project-coder
