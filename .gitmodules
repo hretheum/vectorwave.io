@@ -1,0 +1,12 @@
+[submodule "content"]
+	path = content
+	url = git@github.com:hretheum/vector-wave-content.git
+[submodule "ideas"]
+	path = ideas
+	url = git@github.com:hretheum/vector-wave-ideas.git
+[submodule "kolegium"]
+	path = kolegium
+	url = git@github.com:hretheum/vector-wave-editorial-crew.git
+[submodule "n8n"]
+	path = n8n
+	url = git@github.com:hretheum/vector-wave-n8n-workflows.git
