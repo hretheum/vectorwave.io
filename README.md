@@ -1,32 +1,80 @@
-# Plan Projektu: AI Kolegium Redakcyjne z CrewAI + AG-UI Protocol
+# AI Kolegium Redakcyjne - CrewAI + AG-UI Protocol
 
-## 🔄 **Aktualizacja po Analizie AG-UI**
+## 🚀 **Multi-Agent Editorial System Powered by CrewAI**
 
-Po przeanalizowaniu repozytorium [ag-ui-protocol/ag-ui](https://github.com/ag-ui-protocol/ag-ui), znacząco ulepszam pierwotny plan, wykorzystując AG-UI - otwarty, lekki protokół oparty na eventach, który standaryzuje sposób łączenia agentów AI z aplikacjami frontendowymi.
+System wykorzystuje **CrewAI** jako główny framework orkiestracji agentów AI, połączony z **AG-UI Protocol** dla real-time komunikacji z frontendem. To pierwsza w pełni zautomatyzowana redakcja oparta na współpracujących agentach AI.
 
 ## 📋 Spis Treści
 
 - [Przegląd Projektu](#przegląd-projektu)
-- [Nowa Architektura z AG-UI](#nowa-architektura-z-ag-ui)
-- [AG-UI Event Types](#ag-ui-event-types)
-- [CrewAI Agents z AG-UI](#crewai-agents-z-ag-ui)
-- [Frontend Integration](#frontend-integration)
-- [Plan Wdrożenia](#plan-wdrożenia)
-- [Koszty i Zasoby](#koszty-i-zasoby)
-- [Korzyści](#korzyści)
+- [CrewAI - Serce Systemu](#crewai---serce-systemu)
+- [Architektura z AG-UI](#architektura-z-ag-ui)
+- [5 Agentów CrewAI](#5-agentów-crewai)
+- [Implementacja](#implementacja)
+- [Human-in-the-Loop](#human-in-the-loop)
+- [Dynamic Agent Creation](#dynamic-agent-creation)
+- [Deployment](#deployment)
 
 ## 🎯 Przegląd Projektu
 
 ### Cel
-Stworzenie zautomatyzowanego kolegium redakcyjnego wykorzystującego CrewAI do analizy, oceny i wyboru tematów do publikacji z real-time collaboration między AI agentami a redaktorami.
+Stworzenie w pełni zautomatyzowanego kolegium redakcyjnego gdzie **5 wyspecjalizowanych agentów CrewAI** współpracuje w czasie rzeczywistym przy:
+- 🔍 Odkrywaniu trendów (Content Scout)
+- 📊 Analizie viralowości (Trend Analyst)
+- 📝 Decyzjach redakcyjnych (Editorial Strategist)
+- ✅ Kontroli jakości (Quality Assessor)
+- 🎯 Koordynacji zespołu (Decision Coordinator)
 
-### Główne Funkcjonalności
-- ⚡ Real-time streaming od agentów CrewAI do frontend
-- 🔄 Bi-directional state sync - redaktorzy mogą ingerować w proces
-- 🎨 Generative UI dla dynamicznych raportów i wizualizacji
-- 👥 Human-in-the-loop collaboration dla decyzji redakcyjnych
-- 🛠️ Frontend tool use - agenci mogą wywoływać narzędzia frontendowe
-- 📊 16 standardowych typów eventów dla spójnej komunikacji
+### Kluczowe Features
+- **CrewAI Orchestration**: Multi-agent collaboration z task delegation
+- **AG-UI Real-time Events**: Streaming decisions i progress do UI
+- **Human-in-the-Loop**: Interwencja człowieka przy kontrowersyjnych treściach
+- **Dynamic Agent Spawning**: Tworzenie nowych agentów przez natural language
+- **Event Sourcing**: Pełna audytowalność wszystkich decyzji AI
+
+## 🤖 CrewAI - Serce Systemu
+
+### Dlaczego CrewAI?
+- **Role-Based Agents**: Każdy agent ma jasno zdefiniowaną rolę i cel
+- **Tool Integration**: Agenci używają własnych narzędzi (RSS, APIs, ML models)
+- **Task Chaining**: Zadania mogą zależeć od wyników innych zadań
+- **Human Input**: Natywne wsparcie dla ludzkiej interwencji
+- **Delegation**: Agenci mogą delegować zadania do innych agentów
+
+### Przykład CrewAI Agent
+```python
+from crewai import Agent, Task, Crew
+
+content_scout = Agent(
+    role="Content Scout",
+    goal="Discover trending topics with viral potential",
+    backstory="Expert at finding emerging trends across multiple sources",
+    tools=[rss_checker, social_monitor, keyword_extractor],
+    allow_delegation=False
+)
+
+# Task with AG-UI event emission
+discovery_task = Task(
+    description="Find 10 trending AI topics",
+    agent=content_scout,
+    expected_output="List of topics with metadata",
+    callback=lambda result: emit_agui_event("TOPIC_DISCOVERED", result)
+)
+```
+
+### Multi-Agent Orchestration
+```python
+editorial_crew = Crew(
+    agents=[content_scout, trend_analyst, editorial_strategist, 
+            quality_assessor, decision_coordinator],
+    tasks=[discover, analyze, review, assess, coordinate],
+    process="hierarchical",  # Decision Coordinator manages others
+    verbose=True
+)
+
+# Execute full editorial pipeline
+result = editorial_crew.kickoff()
+```
 ## 🏗️ Nowa Architektura z AG-UI
 
 ### Korzyści z AG-UI Integration
@@ -303,6 +351,29 @@ const EditorialDashboard = () => {
 - [CopilotKit Documentation](https://copilotkit.ai/docs)
 - [Digital Ocean Setup Guide](./docs/digital-ocean-setup.md)
 - [Code Examples](./code-examples/)
+
+## 📚 Dokumentacja Projektu
+
+### Główne Dokumenty
+- [**🔥 CrewAI Complete Analysis**](./docs/CREWAI_COMPLETE_ANALYSIS.md) - KOMPLETNA analiza całego framework
+- [**CrewAI Flows Decision System**](./docs/CREWAI_FLOWS_DECISION_SYSTEM.md) - Flows dla decision making
+- [**CrewAI Integration Guide**](./docs/CREWAI_INTEGRATION.md) - Podstawowy przewodnik
+- [**Architecture Recommendations**](./docs/ARCHITECTURE_RECOMMENDATIONS.md) - Decyzje architektoniczne
+- [**Implementation Guide**](./docs/IMPLEMENTATION_GUIDE.md) - Krok po kroku implementacja
+- [**Deployment Guide**](./docs/DEPLOYMENT.md) - Deployment na Digital Ocean
+- [**Roadmap**](./ROADMAP.md) - 8-tygodniowy plan implementacji
+
+### Dekompozycja Zadań
+- [Phase 1: Foundation](./tasks/phase-1-foundation.md) - Bloki 0-4
+- [Phase 2: Core Agents](./tasks/phase-2-core-agents.md) - Bloki 5-8
+- [Phase 3: Human-in-the-Loop](./tasks/phase-3-human-in-the-loop.md) - Bloki 9-12
+- [Phase 4: Production](./tasks/phase-4-production.md) - Bloki 13-17
+- [Phase 5: Dynamic Agents](./tasks/phase-5-dynamic-agents.md) - Bloki 18-21
+
+### Zewnętrzne Zasoby
+- [AG-UI Protocol Documentation](https://github.com/ag-ui-protocol/ag-ui)
+- [CrewAI Documentation](https://crewai.com)
+- [CopilotKit Documentation](https://copilotkit.ai/docs)
 
 ---
 

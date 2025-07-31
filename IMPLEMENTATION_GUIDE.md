@@ -4,6 +4,21 @@
 
 Ten dokument to przewodnik dla agentów AI do szybkiej implementacji systemu zgodnie z roadmapem. Każdy blok zawiera dokładne instrukcje wykonania.
 
+## ⚠️ Ważne: CrewAI to Biblioteka Python!
+
+**CrewAI instalujemy przez pip**, nie klonujemy repo:
+
+```bash
+# ✅ DOBRZE - instalacja przez pip
+cd /Users/hretheum/dev/bezrobocie/vector-wave/kolegium
+pip install -r requirements.txt  # zawiera crewai==0.30.11
+
+# ❌ ŹLE - nie klonujemy CrewAI
+git clone https://github.com/joaomdmoura/crewAI  # NIE!
+```
+
+CrewAI to framework - używamy jego klas do budowania własnych agentów w naszym kodzie.
+
 ## 📁 Docelowa Struktura Projektu
 
 ```

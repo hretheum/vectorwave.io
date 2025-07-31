@@ -11,6 +11,9 @@ Event-driven microservices z Clean Architecture, gdzie każdy domain service jes
 
 ## 📈 Implementation Phases
 
+**Total Timeline**: 8 tygodni (5 phases)
+**Total Atomic Tasks**: 24 (Tasks 1.0 - 5.5)
+
 ### Phase 1: Foundation & Infrastructure (2 tygodnie)
 **Objective**: Stworzenie solid infrastructure z AG-UI, CI/CD i monitoringiem
 **Success Criteria**: Deploy pipeline działa, pierwszy agent emituje eventy
@@ -451,6 +454,86 @@ Event-driven microservices z Clean Architecture, gdzie każdy domain service jes
 - [ ] **Documentation Check**: All critical paths documented
 - [ ] **Go-Live Check**: Production readiness checklist complete
 
+---
+
+### Phase 5: Dynamic Agent System (1 tydzień)
+**Objective**: Runtime agent creation i management przez chat/API
+**Success Criteria**: Użytkownicy mogą tworzyć custom agents przez natural language
+
+#### Atomic Tasks:
+
+- [ ] **Task 5.0**: Agent Factory & Registry implementation
+  - **Agent**: project-coder
+  - **Time**: 4h
+  - **Dependencies**: Phase 4 complete
+  - **Success**:
+    - DynamicAgentFactory class
+    - Agent Registry z persistence
+    - Agent Template system
+    - Runtime tool resolution
+  - **Files**: `src/shared/infrastructure/agents/agent_factory.py`
+
+- [ ] **Task 5.1**: Natural Language Agent Parser
+  - **Agent**: project-coder
+  - **Time**: 4h
+  - **Dependencies**: Task 5.0
+  - **Success**:
+    - NL to agent config parser
+    - Intent extraction z LLM
+    - Capability validation
+    - Security constraints checker
+  - **Files**: `src/shared/infrastructure/agents/nl_parser.py`
+
+- [ ] **Task 5.2**: Chat-based Agent Creation UI
+  - **Agent**: project-coder
+  - **Time**: 3h
+  - **Dependencies**: Task 5.1
+  - **Success**:
+    - /spawn-agent command w UI
+    - Agent creation wizard
+    - Real-time preview
+    - Capability selector
+  - **Files**: `frontend/src/components/agents/AgentCreator.tsx`
+
+- [ ] **Task 5.3**: Agent Lifecycle Management
+  - **Agent**: project-coder
+  - **Time**: 4h
+  - **Dependencies**: Task 5.2
+  - **Success**:
+    - Start/stop/pause agents
+    - Resource monitoring
+    - Performance tracking
+    - Auto-scaling based on load
+  - **Files**: `src/shared/infrastructure/agents/lifecycle_manager.py`
+
+- [ ] **Task 5.4**: Dynamic Agent Security & Limits
+  - **Agent**: deployment-specialist
+  - **Time**: 3h
+  - **Dependencies**: Task 5.3
+  - **Success**:
+    - Resource quotas (CPU/memory)
+    - Tool access control
+    - Rate limiting per agent
+    - Sandboxing execution
+  - **Files**: `src/shared/infrastructure/security/agent_sandbox.py`
+
+- [ ] **Task 5.5**: Agent Marketplace & Sharing
+  - **Agent**: project-coder
+  - **Time**: 4h
+  - **Dependencies**: Task 5.4
+  - **Success**:
+    - Export/import agent templates
+    - Community agent library
+    - Version control for agents
+    - Agent performance ratings
+  - **Files**: `src/domains/agents/marketplace/`
+
+#### Phase 5 Validation:
+- [ ] **Quality Gate**: Dynamic agent creation < 5s
+- [ ] **Security Check**: No privilege escalation possible
+- [ ] **UX Test**: Non-technical users can create agents
+- [ ] **Scale Test**: System handles 50+ dynamic agents
+
 ## 🔧 Tools & Resources
 - **Required Tools**: Docker, GitHub Actions, PostgreSQL, Redis
 - **External Dependencies**: OpenAI API, Google Trends API, Fact-checking APIs
@@ -463,6 +546,7 @@ Event-driven microservices z Clean Architecture, gdzie każdy domain service jes
 - **Phase 2**: 2 agents operational, events flowing end-to-end
 - **Phase 3**: Human decisions influence AI workflow
 - **Phase 4**: Production-ready z <99.9% uptime
+- **Phase 5**: Dynamic agents created via natural language
 
 ### Overall Project KPIs
 - **Decision Accuracy**: >85% human approval rate
@@ -489,6 +573,7 @@ Event-driven microservices z Clean Architecture, gdzie każdy domain service jes
 - **Phase 2**: Disable problematic agents, fallback to manual
 - **Phase 3**: Bypass human-in-the-loop, auto-approve low-risk
 - **Phase 4**: Blue-green deployment z instant rollback
+- **Phase 5**: Disable dynamic agent creation, use only predefined agents
 
 ### Escalation Paths
 - **Technical Issues**: Lead Developer → Senior Architect
