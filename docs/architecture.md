@@ -1,8 +1,175 @@
 # Architektura Systemu - AI Kolegium Redakcyjne
 
-## 🏗️ Szczegółowa Architektura
+## 🏗️ Clean Architecture + Event-Driven Microservices
 
-### Warstwa AG-UI Events
+### Główne Założenia Architektoniczne
+1. **Event-First**: Wszystko komunikuje się przez AG-UI events
+2. **Container-First**: Zero lokalnego budowania, wszystko w kontenerach
+3. **Domain-Driven Design**: Wyraźne bounded contexts
+4. **CQRS + Event Sourcing**: Pełna audytowalność decyzji redakcyjnych
+5. **Microservices**: Loosely coupled, independently deployable
+
+### Architektura na Poziomie Systemowym
+
+```mermaid
+graph TB
+    subgraph "Load Balancer (Nginx)"
+        LB[nginx:latest]
+    end
+    
+    subgraph "API Gateway"
+        GW[FastAPI Gateway]
+    end
+    
+    subgraph "Event Store & Streaming"
+        ES[PostgreSQL Event Store]
+        RS[Redis Streams]
+        WS[WebSocket Manager]
+    end
+    
+    subgraph "Domain Services (Microservices)"
+        CS[Content Scout Service]
+        TA[Trend Analyst Service] 
+        ES_SVC[Editorial Strategy Service]
+        QA[Quality Assurance Service]
+        DC[Decision Coordinator Service]
+    end
+    
+    subgraph "Read Models"
+        RM_TOPICS[Topics Read Model]
+        RM_ANALYTICS[Analytics Read Model]
+        RM_DECISIONS[Decisions Read Model]
+    end
+    
+    subgraph "Frontend Services"
+        FE[React Frontend]
+        AG_UI[AG-UI Components]
+    end
+    
+    subgraph "Infrastructure"
+        PROM[Prometheus]
+        GRAF[Grafana]
+        JAEGER[Jaeger Tracing]
+    end
+
+    LB --> GW
+    GW --> WS
+    GW --> CS
+    GW --> TA
+    GW --> ES_SVC
+    GW --> QA
+    GW --> DC
+    
+    CS --> ES
+    TA --> ES
+    ES_SVC --> ES
+    QA --> ES
+    DC --> ES
+    
+    ES --> RS
+    RS --> RM_TOPICS
+    RS --> RM_ANALYTICS
+    RS --> RM_DECISIONS
+    
+    WS --> FE
+    RM_TOPICS --> FE
+    RM_ANALYTICS --> FE
+    RM_DECISIONS --> FE
+    
+    FE --> AG_UI
+    
+    PROM --> GRAF
+    JAEGER --> GRAF
+```
+
+### Clean Architecture - Struktura Folderów
+
+```
+src/
+├── domains/                    # Domain Layer (Business Logic)
+│   ├── content/
+│   │   ├── domain/
+│   │   │   ├── entities/       # Topic, Source, Keyword
+│   │   │   ├── value_objects/  # TopicScore, SourceReliability
+│   │   │   ├── repositories/   # ITopicRepository
+│   │   │   └── services/       # ContentDiscoveryService
+│   │   ├── application/
+│   │   │   ├── use_cases/      # DiscoverTopicsUseCase
+│   │   │   ├── handlers/       # TopicDiscoveredHandler
+│   │   │   └── dto/           # TopicDTO, DiscoveryRequest
+│   │   └── infrastructure/
+│   │       ├── repositories/   # PostgreSQLTopicRepository
+│   │       ├── services/       # RSSScrapingService
+│   │       └── agents/         # ContentScoutAgent
+│   ├── analytics/
+│   │   ├── domain/
+│   │   │   ├── entities/       # TrendAnalysis, SentimentScore
+│   │   │   ├── value_objects/  # ViralPotential, TrendStrength
+│   │   │   └── services/       # TrendAnalysisService
+│   │   ├── application/
+│   │   │   ├── use_cases/      # AnalyzeTrendUseCase
+│   │   │   └── handlers/       # ContentAnalysisHandler
+│   │   └── infrastructure/
+│   │       ├── apis/          # GoogleTrendsAPI, SocialAPI
+│   │       └── agents/        # TrendAnalystAgent
+│   ├── editorial/
+│   │   ├── domain/
+│   │   │   ├── entities/       # EditorialDecision, Guidelines
+│   │   │   ├── value_objects/  # ControversyLevel, DecisionCriteria
+│   │   │   └── services/       # EditorialDecisionService
+│   │   ├── application/
+│   │   │   ├── use_cases/      # MakeEditorialDecisionUseCase
+│   │   │   └── handlers/       # HumanInputRequestHandler
+│   │   └── infrastructure/
+│   │       └── agents/        # EditorialStrategistAgent
+│   ├── quality/
+│   │   ├── domain/
+│   │   │   ├── entities/       # QualityAssessment, FactCheck
+│   │   │   ├── value_objects/  # QualityScore, CredibilityRating
+│   │   │   └── services/       # QualityAssessmentService
+│   │   ├── application/
+│   │   │   ├── use_cases/      # AssessQualityUseCase
+│   │   │   └── handlers/       # QualityAssessmentHandler
+│   │   └── infrastructure/
+│   │       ├── apis/          # FactCheckingAPI, PlagiarismAPI
+│   │       └── agents/        # QualityAssessorAgent
+│   └── orchestration/
+│       ├── domain/
+│       │   ├── entities/       # Workflow, TaskCoordination
+│       │   ├── value_objects/  # WorkflowStatus, CoordinationResult
+│       │   └── services/       # OrchestrationService
+│       ├── application/
+│       │   ├── use_cases/      # CoordinateDecisionUseCase
+│       │   └── handlers/       # TaskCompleteHandler
+│       └── infrastructure/
+│           └── agents/        # DecisionCoordinatorAgent
+├── shared/                     # Shared Kernel
+│   ├── domain/
+│   │   ├── events/            # Domain Events
+│   │   ├── exceptions/        # Domain Exceptions
+│   │   └── value_objects/     # Money, DateTime, UserId
+│   ├── infrastructure/
+│   │   ├── agui/              # AG-UI Event System
+│   │   ├── database/          # Event Store, Read Models
+│   │   ├── cache/             # Redis Configuration
+│   │   ├── monitoring/        # OpenTelemetry, Metrics
+│   │   └── security/          # JWT, Rate Limiting
+│   └── application/
+│       ├── events/            # Event Bus, Handlers
+│       └── services/          # Cross-cutting Services
+├── interfaces/                 # Interface Layer
+│   ├── api/
+│   │   ├── controllers/       # REST Controllers
+│   │   ├── websockets/        # WebSocket Handlers
+│   │   └── dto/              # API DTOs
+│   ├── events/
+│   │   └── handlers/         # AG-UI Event Handlers
+│   └── jobs/
+│       └── schedulers/       # Background Jobs
+└── main.py                    # Application Entry Point
+```
+
+### Warstwa AG-UI Events (Enhanced)
 
 ```python
 # src/agui/events.py
