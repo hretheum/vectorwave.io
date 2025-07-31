@@ -33,12 +33,11 @@ Droplet został już skonfigurowany i działa:
 **Task 1.1**: Implementacja Clean Architecture structure
 
 #### Execution Steps:
-1. **Clone existing repository** (repozytorium już istnieje)
+1. **Work in local repository** (pracujemy LOKALNIE, nie na droplecie!)
    ```bash
-   # Na droplecie jako editorial-ai user
-   cd /home/editorial-ai
-   git clone https://github.com/username/kolegium.git
-   cd kolegium
+   # W lokalnym środowisku deweloperskim
+   cd /Users/hretheum/dev/bezrobocie/vector-wave/kolegium
+   # Cały kod będzie budowany w GitHub Actions i deployowany jako kontenery
    ```
 
 2. **Setup directory structure**
@@ -724,8 +723,8 @@ Droplet został już skonfigurowany i działa:
            username: editorial-ai
            key: ${{ secrets.DO_SSH_KEY }}
            script: |
-             cd /home/editorial-ai/kolegium
-             git pull origin main
+             cd /home/editorial-ai
+             # NO git operations on droplet! Only pulling Docker images
              docker-compose -f docker-compose.prod.yml pull api-gateway
              docker-compose -f docker-compose.prod.yml up -d api-gateway
              
@@ -747,17 +746,24 @@ Droplet został już skonfigurowany i działa:
    # JWT_SECRET: JWT signing secret
    ```
 
-4. **Create deployment script**
+4. **Create docker-compose.prod.yml on droplet**
+   ```bash
+   # This file needs to be manually placed on droplet ONCE
+   # at /home/editorial-ai/docker-compose.prod.yml
+   # It will reference images from ghcr.io
+   ```
+
+5. **Create deployment verification script**
    ```bash
    #!/bin/bash
-   # scripts/deploy.sh
+   # scripts/verify-deployment.sh
    
    set -e
    
    echo "🚀 Starting deployment..."
    
-   # Pull latest code
-   git pull origin main
+   # NO code pulling! Only Docker images from ghcr.io
+   # All code is built in GitHub Actions and deployed as containers
    
    # Pull latest Docker images
    docker-compose -f docker-compose.prod.yml pull
