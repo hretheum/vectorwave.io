@@ -134,11 +134,11 @@ Content wymaga dopracowania lub jest niszowy. Rozważ:
     console.log('🔄 State updated - isAnalyzing should be true now');
     
     try {
-      console.log('📤 Sending request to /api/analyze-folder');
-      const response = await fetch('/api/analyze-folder', {
+      console.log('📤 Sending request to /api/analyze-content');
+      const response = await fetch('/api/analyze-content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folder_path: `content/raw/${folderName}` })
+        body: JSON.stringify({ folder: folderName })
       });
       
       console.log('📡 Response status:', response.status);
@@ -439,6 +439,37 @@ Content wymaga dopracowania lub jest niszowy. Rozważ:
                   </CardHeader>
                 </Card>
               </div>
+
+              {/* Flow Results */}
+              {analysisResult.flow_results && (
+                <Card className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
+                  <CardHeader>
+                    <div className="flex items-center gap-2 mb-3">
+                      <BarChart3 className="w-5 h-5 text-gray-600" />
+                      <CardTitle className="text-lg">Wyniki CrewAI Flow</CardTitle>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div className="bg-green-100 rounded-lg p-3">
+                        <p className="text-2xl font-bold text-green-600">{analysisResult.flow_results.approved}</p>
+                        <p className="text-sm text-green-700">Zatwierdzono</p>
+                      </div>
+                      <div className="bg-red-100 rounded-lg p-3">
+                        <p className="text-2xl font-bold text-red-600">{analysisResult.flow_results.rejected}</p>
+                        <p className="text-sm text-red-700">Odrzucono</p>
+                      </div>
+                      <div className="bg-yellow-100 rounded-lg p-3">
+                        <p className="text-2xl font-bold text-yellow-600">{analysisResult.flow_results.human_review}</p>
+                        <p className="text-sm text-yellow-700">Do review</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 text-sm text-gray-600">
+                      <p>Ścieżka walidacji: <span className="font-semibold">
+                        {analysisResult.contentOwnership === 'ORIGINAL' ? 'Bez wymagań źródłowych' : 'Pełna weryfikacja źródeł'}
+                      </span></p>
+                    </div>
+                  </CardHeader>
+                </Card>
+              )}
 
               {/* Recommendation */}
               {analysisResult.recommendation && (

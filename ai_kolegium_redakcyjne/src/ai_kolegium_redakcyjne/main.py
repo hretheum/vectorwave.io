@@ -4,8 +4,11 @@ import warnings
 from datetime import datetime
 import asyncio
 import logging
+import os
 
+# Import both implementations
 from ai_kolegium_redakcyjne.crew import AiKolegiumRedakcyjne
+from ai_kolegium_redakcyjne.kolegium_flow import create_kolegium_flow
 
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 
@@ -19,7 +22,55 @@ logger = logging.getLogger(__name__)
 def run():
     """
     Run the AI Kolegium Redakcyjne editorial crew.
+    Now supports both Flow and Crew implementations.
     """
+    # Check if we should use Flow implementation
+    use_flow = os.environ.get('USE_CREWAI_FLOW', 'true').lower() == 'true'
+    
+    if use_flow:
+        return run_flow()
+    else:
+        return run_crew()
+
+def run_flow():
+    """Run using CrewAI Flow implementation with conditional logic"""
+    logger.info("🚀 Starting AI Kolegium Redakcyjne with FLOW implementation...")
+    
+    try:
+        # Create flow instance
+        flow = create_kolegium_flow()
+        
+        # Get content folders to analyze
+        from ai_kolegium_redakcyjne.config import get_content_folders
+        folders = get_content_folders()
+        
+        if not folders:
+            logger.warning("No content folders found in /content/normalized")
+            return None
+        
+        # Process first folder (or could process all)
+        folder = folders[0] if folders else "2025-01-31-sample"
+        logger.info(f"Processing folder: {folder}")
+        
+        # Run flow asynchronously
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        # Set initial state
+        flow.state.folder_path = folder
+        
+        # Kickoff the flow
+        result = loop.run_until_complete(flow.kickoff())
+        
+        logger.info("✅ Flow execution completed successfully!")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ An error occurred while running the flow: {e}")
+        raise
+
+def run_crew():
+    """Run using original Crew implementation"""
     inputs = {
         'categories': ['AI', 'Technology', 'Digital Culture', 'Startups'],
         'current_date': datetime.now().strftime("%Y-%m-%d"),
@@ -27,7 +78,7 @@ def run():
         'controversy_threshold': 0.7
     }
     
-    logger.info("🚀 Starting AI Kolegium Redakcyjne editorial pipeline...")
+    logger.info("🚀 Starting AI Kolegium Redakcyjne with CREW implementation...")
     logger.info(f"Focus categories: {inputs['categories']}")
     
     try:
