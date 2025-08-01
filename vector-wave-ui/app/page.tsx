@@ -42,6 +42,7 @@ export default function Home() {
 
   const analyzeFolder = async (folderName: string) => {
     console.log('🎯 Starting analysis for:', folderName);
+    alert('Analyzing folder: ' + folderName); // Test alert
     setIsAnalyzing(true);
     setAnalysisResult(null);
     setSelectedFolder(folderName);
@@ -171,7 +172,7 @@ export default function Home() {
               </Badge>
             </div>
             
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" onClick={() => console.log('🔥 Grid clicked!')}>
               {folders.map((folder, idx) => (
                 <Card 
                   key={idx} 
@@ -207,8 +208,8 @@ export default function Home() {
                     </div>
                   </CardHeader>
                   <CardFooter className="pt-0 relative z-10">
-                    <Button 
-                      className="w-full group-hover:shadow-lg transition-all relative"
+                    <button 
+                      className="w-full inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all cursor-pointer bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl hover:-translate-y-0.5 h-10 px-4 py-2 group-hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -231,7 +232,7 @@ export default function Home() {
                           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </>
                       )}
-                    </Button>
+                    </button>
                   </CardFooter>
                 </Card>
               ))}
