@@ -53,7 +53,7 @@ export default function Home() {
 
 ## 📊 Podsumowanie
 - **Liczba plików**: ${analysis.filesCount}
-- **Typ contentu**: ${analysis.contentType}
+- **Typ contentu**: ${analysis.contentType === 'SERIES' ? 'Seria artykułów' : 'Materiał pojedynczy'}
 - **Ocena wartości**: ${analysis.valueScore}/10
 - **Data analizy**: ${new Date().toLocaleDateString('pl')}
 
@@ -396,7 +396,7 @@ Content wymaga dopracowania lub jest niszowy. Rozważ:
                   <CardHeader className="pb-3">
                     <CardDescription>Typ contentu</CardDescription>
                     <CardTitle className="text-xl text-green-600">
-                      {analysisResult.contentType}
+                      {analysisResult.contentType === 'SERIES' ? 'Seria artykułów' : 'Materiał pojedynczy'}
                     </CardTitle>
                   </CardHeader>
                 </Card>
