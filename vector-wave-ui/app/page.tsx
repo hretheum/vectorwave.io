@@ -1,6 +1,6 @@
 'use client';
 
-import { useCopilotReadable, useCopilotAction, useCopilotChat } from "@copilotkit/react-core";
+import { useCopilotReadable, useCopilotAction, useCopilotChat, Message } from "@copilotkit/react-core";
 import { useState, useEffect } from "react";
 
 export default function Home() {
@@ -9,6 +9,7 @@ export default function Home() {
   const [styleGuides, setStyleGuides] = useState<Record<string, string>>({});
   const [pipelineOutput, setPipelineOutput] = useState<string[]>([]);
   const [isPipelineRunning, setIsPipelineRunning] = useState(false);
+  const [analysisHistory, setAnalysisHistory] = useState<Record<string, any>>({});
 
   // Load style guides on mount
   useEffect(() => {
@@ -25,9 +26,25 @@ export default function Home() {
 
   // Configure chat behavior
   useCopilotChat({
+    initialMessages: [
+      {
+        role: "system" as const,
+        content: "START_CONVERSATION"
+      }
+    ],
     instructions: `Jesteś doświadczonym redaktorem naczelnym Vector Wave - platformy content marketingowej dla branży tech. 
     
 Twoja rola to pomoc w podejmowaniu decyzji edytorskich i tworzeniu angażującego contentu.
+
+WAŻNE: Gdy otrzymasz wiadomość "START_CONVERSATION" lub na początku rozmowy:
+1. NATYCHMIAST użyj akcji "listContentFolders" aby pokazać dostępne tematy
+2. Pokaż przyjazne powitanie z podsumowaniem tematów
+3. Zaproponuj konkretne akcje (np. "Który folder chcesz przeanalizować?")
+
+Format powitania dostosuj do pory dnia:
+- Rano (6-12): "Dzień dobry! ☕ Mamy X świeżych tematów..."
+- Popołudnie (12-18): "Cześć! Sprawdźmy co mamy do publikacji..."
+- Wieczór (18-24): "Dobry wieczór! Czas przygotować content na jutro..."
 
 TWOJA WIEDZA O VECTOR WAVE:
 - Tworzymy content dla: developerów, tech leaderów, startupów, AI enthusiastów
@@ -49,6 +66,7 @@ STYLE GUIDE - KLUCZOWE ZASADY:
 - Hot takes mile widziane jeśli poparte faktami
 
 WAŻNE zasady wyboru akcji:
+- Na START konwersacji → ZAWSZE użyj "listContentFolders" automatycznie
 - Gdy użytkownik pyta "jakie mamy tematy" lub "co mamy w raw" → użyj akcji "listContentFolders"
 - Gdy użytkownik prosi o "analizę folderu" lub "przeanalizuj" → użyj akcji "analyzeFolder" (NIE pipeline!)
 - Gdy użytkownik prosi o "zapisanie metainformacji" → użyj akcji "saveMetadata"
@@ -68,6 +86,12 @@ Możesz swobodnie dyskutować o contencie, dawać sugestie i pomagać w decyzjac
   useCopilotReadable({
     description: "Current analysis result",
     value: analysisResult ? JSON.stringify(analysisResult, null, 2) : "No analysis yet",
+  });
+
+  // Make analysis history readable
+  useCopilotReadable({
+    description: "Analysis history - which folders were already analyzed",
+    value: JSON.stringify(analysisHistory),
   });
 
   // Vector Wave Style Guides - All documents
@@ -177,6 +201,16 @@ GOLDEN RULES:
         const result = await response.json();
         console.log('Analysis result:', result);
         setAnalysisResult(result);
+        
+        // Save to history
+        setAnalysisHistory(prev => ({
+          ...prev,
+          [folderPath]: {
+            ...result,
+            analyzedAt: new Date().toISOString()
+          }
+        }));
+        
         return `Przeanalizowano folder ${folderPath}. Znaleziono ${result.filesCount} plików typu ${result.contentType}.`;
       } catch (error) {
         console.error('Analysis error:', error);
