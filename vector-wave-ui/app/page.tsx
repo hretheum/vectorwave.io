@@ -1,7 +1,7 @@
 'use client';
 
 import { useCopilotReadable, useCopilotAction, useCopilotChat } from "@copilotkit/react-core";
-import { useCopilotChatSuggestions } from "@copilotkit/react-ui";
+import { CopilotChat, useCopilotChatSuggestions } from "@copilotkit/react-ui";
 import { useState, useEffect } from "react";
 
 export default function Home() {
@@ -11,8 +11,13 @@ export default function Home() {
   const [pipelineOutput, setPipelineOutput] = useState<string[]>([]);
   const [isPipelineRunning, setIsPipelineRunning] = useState(false);
   const [analysisHistory, setAnalysisHistory] = useState<Record<string, any>>({});
-  const [suggestedActions, setSuggestedActions] = useState<string[]>([]);
+  const [suggestedActions, setSuggestedActions] = useState<string[]>([
+    "Pokaż dostępne tematy",
+    "Co nowego w content?", 
+    "Jakie foldery czekają na analizę?"
+  ]);
   const [contentFolders, setContentFolders] = useState<any[]>([]);
+  const [showInteractiveChat, setShowInteractiveChat] = useState(true);
 
   // Load style guides on mount
   useEffect(() => {
@@ -122,13 +127,16 @@ Domyślnie content znajduje się w folderze content/raw/. Zawsze najpierw listuj
 Możesz swobodnie dyskutować o contencie, dawać sugestie i pomagać w decyzjach redakcyjnych.`,
   });
 
-  // Add chat suggestions
+  // Add chat suggestions with initial suggestions
   useCopilotChatSuggestions({
     instructions: `Suggest 3-5 relevant actions based on the current context:
     - If no folders listed yet: "Pokaż dostępne tematy", "Co mamy nowego w content?", "Jakie foldery czekają na analizę?"
     - If folders are listed: "Przeanalizuj [nazwa folderu]", "Pokaż najnowsze tematy", "Który folder ma największy potencjał?"
     - If analysis done: "Zapisz metadane dla kolegium", "Uruchom pipeline redakcyjny", "Przeanalizuj inny folder"
     - Always contextual and actionable suggestions in Polish.`,
+    suggestions: contentFolders.length > 0 
+      ? contentFolders.slice(0, 3).map(f => `Przeanalizuj folder content/raw/${f.name}`)
+      : ["Pokaż dostępne tematy", "Co nowego w content?", "Jakie foldery czekają na analizę?"],
   });
 
   // Make current state readable by Copilot
@@ -495,74 +503,65 @@ ${analysisResult.topics.map(t => `- **${t.title}** (${t.platform}, potencjał: $
             Użyj asystenta AI po prawej stronie, aby analizować foldery z contentem
             i uruchamiać pipeline redakcyjny.
           </p>
-          <div className="flex gap-4">
-            <button
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-              onClick={() => {
-                // Simulate sending "start" message
-                const input = document.querySelector('textarea[placeholder*="Type"]') as HTMLTextAreaElement;
-                if (input) {
-                  input.value = "start";
-                  input.dispatchEvent(new Event('input', { bubbles: true }));
-                  // Try to find and click send button
-                  setTimeout(() => {
-                    const sendButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
-                    if (sendButton) sendButton.click();
-                  }, 100);
-                }
-              }}
-            >
-              🚀 Pokaż listę tematów w czacie
-            </button>
-            <button
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-              onClick={async () => {
-                const response = await fetch('/api/list-content-folders');
-                const data = await response.json();
-                if (data.folders) {
-                  setContentFolders(data.folders);
-                  const topFolders = data.folders.slice(0, 3);
-                  setSuggestedActions(topFolders.map(f => `Przeanalizuj folder content/raw/${f.name}`));
-                }
-              }}
-            >
-              🔄 Odśwież listę folderów
-            </button>
-          </div>
         </div>
 
-        {/* Auto-loaded content folders */}
-        {contentFolders.length > 0 && (
-          <div className="mb-8 bg-white border border-gray-200 p-6 rounded-lg shadow">
-            <h3 className="text-xl font-semibold mb-4">📂 Dostępne tematy ({contentFolders.length})</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {contentFolders.map((folder, idx) => (
-                <div key={idx} className="bg-gray-50 p-3 rounded-lg flex justify-between items-center">
-                  <div>
-                    <p className="font-medium">{folder.name}</p>
-                    <p className="text-sm text-gray-600">{folder.files_count} plików</p>
+        {/* Interactive Chat-like Interface */}
+        {showInteractiveChat && contentFolders.length > 0 && (
+          <div className="mb-8 bg-gray-100 rounded-lg p-6 shadow-lg max-w-2xl mx-auto">
+            <div className="flex items-start space-x-3">
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                AI
+              </div>
+              <div className="flex-1">
+                <div className="bg-white rounded-lg p-4 shadow">
+                  <p className="text-gray-800 mb-4">
+                    Cześć! 👋 Jestem asystentem redakcyjnym Vector Wave.
+                  </p>
+                  <p className="text-gray-800 mb-4">
+                    📂 <strong>Dostępne tematy do analizy ({contentFolders.length}):</strong>
+                  </p>
+                  <div className="space-y-2">
+                    {contentFolders.map((folder, idx) => (
+                      <button
+                        key={idx}
+                        className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200"
+                        onClick={() => {
+                          const command = `Przeanalizuj folder content/raw/${folder.name}`;
+                          // Copy to clipboard
+                          navigator.clipboard.writeText(command);
+                          // Show in CopilotKit chat
+                          const input = document.querySelector('textarea[placeholder*="Type"]') as HTMLTextAreaElement;
+                          if (input) {
+                            input.value = command;
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                            setTimeout(() => {
+                              const sendButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+                              if (sendButton) sendButton.click();
+                            }, 100);
+                          }
+                          // Hide this chat
+                          setShowInteractiveChat(false);
+                        }}
+                      >
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium text-blue-900">{idx + 1}. {folder.name}</p>
+                            <p className="text-sm text-gray-600">{folder.files_count} plików</p>
+                          </div>
+                          <span className="text-blue-600">→</span>
+                        </div>
+                      </button>
+                    ))}
                   </div>
-                  <button
-                    className="text-sm px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                    onClick={() => {
-                      const command = `Przeanalizuj folder content/raw/${folder.name}`;
-                      navigator.clipboard.writeText(command);
-                      // Visual feedback
-                      const btn = event.target as HTMLButtonElement;
-                      const originalText = btn.textContent;
-                      btn.textContent = '✓';
-                      setTimeout(() => {
-                        btn.textContent = originalText;
-                      }, 1000);
-                    }}
-                  >
-                    Analizuj
-                  </button>
+                  <p className="text-sm text-gray-600 mt-4">
+                    💡 Kliknij dowolny temat aby rozpocząć analizę
+                  </p>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         )}
+
 
         {/* Dynamic action buttons */}
         {suggestedActions.length > 0 && (

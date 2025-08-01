@@ -28,9 +28,10 @@ export default function RootLayout({
             defaultOpen={true}
             labels={{
               title: "Vector Wave AI Assistant",
-              initial: "Cześć! 👋 Napisz cokolwiek, a pokażę Ci najświeższą listę tematów do analizy.",
+              initial: "Analiza rozpocznie się po wybraniu tematu z listy.",
             }}
             clickOutsideToClose={false}
+            showSuggestions={true}
           >
             {children}
           </CopilotSidebar>
