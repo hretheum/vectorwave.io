@@ -1,0 +1,125 @@
+{
+  "metadata_entries": [
+    {
+      "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/09-content-types.md",
+      "title": "Workshop #2: Content Framework",
+      "summary": "This outline captures a brainstorming session defining content types for a team workshop. The discussion includes moderators and contributors outlining and clarifying different content types to be used in their framework.",
+      "key_points": [
+        "Definition of different content types with clear criteria",
+        "Team-based discussion format, moving section by section",
+        "Content typology intended for broader framework structuring"
+      ],
+      "data_points": [],
+      "entities": {
+        "people": ["Molly (MW)", "Moderator"],
+        "companies": [],
+        "technologies": [],
+        "products": []
+      },
+      "metrics": {
+        "word_count": 220,
+        "read_time_minutes": 1,
+        "data_density": "low"
+      },
+      "quality_score": 0.7
+    },
+    {
+      "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/03-section-details.md",
+      "title": "03 Section Details",
+      "summary": "The document details an ideation outline for further breaking down the content structure by section. Team members suggest specific elements that should be included within each part, focusing on clarity of sections like mission or anti-mission.",
+      "key_points": [
+        "Expanding main content categories into detailed sections",
+        "Collaborative exchange on content structure specifics",
+        "Emphasis on granular section criteria"
+      ],
+      "data_points": [],
+      "entities": {
+        "people": ["Moderator", "KS"],
+        "companies": [],
+        "technologies": [],
+        "products": []
+      },
+      "metrics": {
+        "word_count": 180,
+        "read_time_minutes": 1,
+        "data_density": "low"
+      },
+      "quality_score": 0.7
+    },
+    {
+      "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/10-quality-standards.md",
+      "title": "10 Quality Standards",
+      "summary": "A framework for measuring and enforcing content quality standards is laid out in this outline. Focus areas include technical accuracy, code verifiability, and consistent referencing of sources or tests.",
+      "key_points": [
+        "Standardization of quality metrics for content",
+        "Framework based on technical verification, reproducibility, and source citing",
+        "Explicit focus on measurable criteria in content production"
+      ],
+      "data_points": [
+        {"value": "every claim", "context": "must be supported by a source or test"},
+        {"value": "version numbers", "context": "required for code"}
+      ],
+      "entities": {
+        "people": ["DL"],
+        "companies": [],
+        "technologies": [],
+        "products": []
+      },
+      "metrics": {
+        "word_count": 170,
+        "read_time_minutes": 1,
+        "data_density": "medium"
+      },
+      "quality_score": 0.8
+    },
+    {
+      "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/12-ethics-corrections.md",
+      "title": "12 Ethics Corrections",
+      "summary": "The outline sets forth ethical standards for content corrections, emphasizing transparency, giving corrections the same visibility as the original errors, and ensuring clear documentation of changes.",
+      "key_points": [
+        "Corrections must be equally prominent as original errors",
+        "Introduce clear labeling and documentation for corrections",
+        "Timestamping and transparent explanations for each correction"
+      ],
+      "data_points": [
+        {"value": "same prominence", "context": "corrections must match original error's visibility"},
+        {"value": "\"CORRECTION:\"", "context": "to be placed in title for corrected items"}
+      ],
+      "entities": {
+        "people": ["MW"],
+        "companies": [],
+        "technologies": [],
+        "products": []
+      },
+      "metrics": {
+        "word_count": 120,
+        "read_time_minutes": 0.5,
+        "data_density": "medium"
+      },
+      "quality_score": 0.8
+    },
+    {
+      "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/04-final-structure.md",
+      "title": "04 Final Structure",
+      "summary": "This outline records the consensus reached on the final content structure after extensive team discussion. It compiles the synthesized vector wave style guide structure as agreed upon by the workshop participants.",
+      "key_points": [
+        "Compiled consensus on content framework structure",
+        "Integration of previous discussions into a finalized style guide",
+        "Team-driven iterative refinement"
+      ],
+      "data_points": [],
+      "entities": {
+        "people": ["Moderator", "BT"],
+        "companies": [],
+        "technologies": [],
+        "products": []
+      },
+      "metrics": {
+        "word_count": 130,
+        "read_time_minutes": 0.5,
+        "data_density": "low"
+      },
+      "quality_score": 0.75
+    }
+  ]
+}
