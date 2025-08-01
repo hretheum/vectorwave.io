@@ -180,7 +180,7 @@ export default function Home() {
                     selectedFolder === folder.name && "ring-2 ring-indigo-500"
                   )}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                   <CardHeader className="pb-4">
                     <div className="flex justify-between items-start">
                       <div>
@@ -206,11 +206,18 @@ export default function Home() {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardFooter className="pt-0">
+                  <CardFooter className="pt-0 relative z-10">
                     <Button 
-                      className="w-full group-hover:shadow-lg transition-all"
-                      onClick={() => analyzeFolder(folder.name)}
-                      disabled={isAnalyzing}
+                      className="w-full group-hover:shadow-lg transition-all relative"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('🔘 Button clicked for folder:', folder.name);
+                        console.log('🔘 isAnalyzing:', isAnalyzing);
+                        analyzeFolder(folder.name);
+                      }}
+                      disabled={isAnalyzing && selectedFolder === folder.name}
+                      type="button"
                     >
                       {isAnalyzing && selectedFolder === folder.name ? (
                         <>
