@@ -10,4 +10,4 @@ source ./venv/bin/activate
 # Run the FastAPI backend
 echo "🚀 Starting FastAPI backend on http://localhost:8001"
 cd ai_publishing_cycle
-python src/ai_publishing_cycle/copilot_backend.py
+python -m src.ai_publishing_cycle.copilot_backend

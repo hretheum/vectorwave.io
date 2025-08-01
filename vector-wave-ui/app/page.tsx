@@ -41,6 +41,7 @@ export default function Home() {
   }, []);
 
   const analyzeFolder = async (folderName: string) => {
+    console.log('🎯 Starting analysis for:', folderName);
     setIsAnalyzing(true);
     setAnalysisResult(null);
     setSelectedFolder(folderName);
@@ -51,10 +52,30 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folder_path: `content/raw/${folderName}` })
       });
+      
+      console.log('📡 Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Analysis error:', errorText);
+        throw new Error(`Analysis failed: ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log('✅ Analysis data:', data);
       setAnalysisResult({ ...data, folder: folderName });
     } catch (error) {
-      console.error('Analysis failed:', error);
+      console.error('❌ Analysis failed:', error);
+      // Show error to user
+      setAnalysisResult({
+        folder: folderName,
+        error: true,
+        message: 'Nie udało się przeanalizować folderu. Sprawdź czy backend działa.',
+        filesCount: 0,
+        contentType: 'ERROR',
+        valueScore: 0,
+        recommendation: 'Spróbuj ponownie za chwilę.'
+      });
     } finally {
       setIsAnalyzing(false);
     }
@@ -218,25 +239,49 @@ export default function Home() {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="p-2 bg-indigo-100 rounded-lg">
-                    <BarChart3 className="w-5 h-5 text-indigo-600" />
+                  <div className={cn(
+                    "p-2 rounded-lg",
+                    analysisResult.error ? "bg-red-100" : "bg-indigo-100"
+                  )}>
+                    {analysisResult.error ? (
+                      <AlertCircle className="w-5 h-5 text-red-600" />
+                    ) : (
+                      <BarChart3 className="w-5 h-5 text-indigo-600" />
+                    )}
                   </div>
                   <div>
                     <CardTitle className="text-2xl mb-1">
-                      Analiza: {analysisResult.folder}
+                      {analysisResult.error ? "Błąd analizy" : "Analiza:"} {analysisResult.folder}
                     </CardTitle>
                     <CardDescription>
-                      Kompleksowa ocena potencjału marketingowego
+                      {analysisResult.error ? analysisResult.message : "Kompleksowa ocena potencjału marketingowego"}
                     </CardDescription>
                   </div>
                 </div>
-                <Badge variant={analysisResult.valueScore >= 8 ? "success" : "default"}>
-                  Score: {analysisResult.valueScore}/10
-                </Badge>
+                {!analysisResult.error && (
+                  <Badge variant={analysisResult.valueScore >= 8 ? "success" : "default"}>
+                    Score: {analysisResult.valueScore}/10
+                  </Badge>
+                )}
               </div>
             </CardHeader>
             
             <CardContent className="space-y-6">
+              {analysisResult.error ? (
+                <div className="text-center py-8">
+                  <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-gray-900 mb-2">Nie udało się przeanalizować folderu</p>
+                  <p className="text-gray-600 mb-4">{analysisResult.message}</p>
+                  <Button 
+                    onClick={() => analyzeFolder(analysisResult.folder)}
+                    variant="outline"
+                  >
+                    <ArrowRight className="w-4 h-4 mr-2" />
+                    Spróbuj ponownie
+                  </Button>
+                </div>
+              ) : (
+                <>
               {/* Metrics Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="border-gray-100 shadow-sm">
@@ -380,6 +425,8 @@ export default function Home() {
                   Szczegółowy raport
                 </Button>
               </div>
+                </>
+              )}
             </CardContent>
           </Card>
         )}

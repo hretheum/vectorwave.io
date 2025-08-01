@@ -23,7 +23,11 @@ from ai_kolegium_redakcyjne.normalizer_crew import ContentNormalizerCrew
 from ai_kolegium_redakcyjne.crew import AiKolegiumRedakcyjne
 
 # Import chat handler
-from .chat_handler import handle_chat
+try:
+    from .chat_handler import handle_chat
+except ImportError:
+    # Fallback for running as script
+    from chat_handler import handle_chat
 
 app = FastAPI(title="Vector Wave CrewAI Backend")
 
