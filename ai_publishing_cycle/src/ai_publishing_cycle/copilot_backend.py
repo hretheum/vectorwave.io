@@ -158,17 +158,24 @@ async def analyze_folder(request: AnalyzeFolderRequest):
         # Check if it's a series
         is_series = len(files) > 5 and any("part" in f.name.lower() or f.name[0].isdigit() for f in files)
         
-        # Read first file for context
+        # Read first file for context and check for sources
         sample_content = ""
+        has_sources = False
         if files:
             with open(files[0], 'r', encoding='utf-8') as f:
-                sample_content = f.read()[:500]
+                full_content = f.read()
+                sample_content = full_content[:500]
+                # Check for common source indicators
+                source_indicators = ['źródło:', 'źródła:', 'source:', 'sources:', 'bibliografia:', 
+                                   'references:', '[1]', 'http://', 'https://', 'według ', 'za:']
+                has_sources = any(indicator in full_content.lower() for indicator in source_indicators)
         
         # Create analysis result
         result = {
             "folder": str(folder),
             "filesCount": len(files),
             "contentType": "SERIES" if is_series else "STANDALONE",
+            "contentOwnership": "EXTERNAL" if has_sources else "ORIGINAL",
             "seriesTitle": folder.name.replace("-", " ").title(),
             "valueScore": 8 if is_series else 6,
             "recommendation": "Wartościowa seria pokazująca proces twórczy" if is_series else "Dobry content do publikacji",

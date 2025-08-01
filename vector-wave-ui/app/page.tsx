@@ -54,6 +54,7 @@ export default function Home() {
 ## 📊 Podsumowanie
 - **Liczba plików**: ${analysis.filesCount}
 - **Typ contentu**: ${analysis.contentType === 'SERIES' ? 'Seria artykułów' : 'Materiał pojedynczy'}
+- **Autorstwo**: ${analysis.contentOwnership === 'ORIGINAL' ? '✍️ Content własny' : '📚 Content ze źródłami'}
 - **Ocena wartości**: ${analysis.valueScore}/10
 - **Data analizy**: ${new Date().toLocaleDateString('pl')}
 
@@ -382,7 +383,7 @@ Content wymaga dopracowania lub jest niszowy. Rozważ:
               ) : (
                 <>
               {/* Metrics Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="border-gray-100 shadow-sm">
                   <CardHeader className="pb-3">
                     <CardDescription>Liczba plików</CardDescription>
@@ -395,8 +396,21 @@ Content wymaga dopracowania lub jest niszowy. Rozważ:
                 <Card className="border-gray-100 shadow-sm">
                   <CardHeader className="pb-3">
                     <CardDescription>Typ contentu</CardDescription>
-                    <CardTitle className="text-xl text-green-600">
+                    <CardTitle className="text-lg text-green-600">
                       {analysisResult.contentType === 'SERIES' ? 'Seria artykułów' : 'Materiał pojedynczy'}
+                    </CardTitle>
+                  </CardHeader>
+                </Card>
+                
+                <Card className="border-gray-100 shadow-sm">
+                  <CardHeader className="pb-3">
+                    <CardDescription>Autorstwo</CardDescription>
+                    <CardTitle className="text-lg">
+                      {analysisResult.contentOwnership === 'ORIGINAL' ? (
+                        <span className="text-purple-600">✍️ Własny</span>
+                      ) : (
+                        <span className="text-blue-600">📚 Ze źródłami</span>
+                      )}
                     </CardTitle>
                   </CardHeader>
                 </Card>
