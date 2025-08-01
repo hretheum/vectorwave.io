@@ -107,6 +107,8 @@ WAŻNE zasady wyboru akcji:
 - Na START konwersacji → ZAWSZE użyj "listContentFolders" automatycznie
 - Gdy użytkownik pyta "jakie mamy tematy" lub "co mamy w raw" → użyj akcji "listContentFolders"
 - Gdy użytkownik prosi o "analizę folderu" lub "przeanalizuj" → użyj akcji "analyzeFolder" (NIE pipeline!)
+- Gdy użytkownik używa naturalnych zdań jak "Przeanalizuj folder z pomysłami o ADHD" → mapuj na właściwy folder (2025-07-31-adhd-ideas-overflow)
+- Gdy użytkownik używa "Sprawdź sesję burzy mózgów" → mapuj na folder 2025-07-31-brainstorm
 - Gdy użytkownik prosi o "zapisanie metainformacji" → użyj akcji "saveMetadata"
 - Gdy użytkownik WYRAŹNIE prosi o "uruchomienie pipeline" lub "kolegium" → dopiero wtedy użyj "runEditorialPipeline"
 
@@ -131,11 +133,15 @@ Możesz swobodnie dyskutować o contencie, dawać sugestie i pomagać w decyzjac
   useCopilotChatSuggestions({
     instructions: `Suggest 3-5 relevant actions based on the current context:
     - If no folders listed yet: "Pokaż dostępne tematy", "Co mamy nowego w content?", "Jakie foldery czekają na analizę?"
-    - If folders are listed: "Przeanalizuj [nazwa folderu]", "Pokaż najnowsze tematy", "Który folder ma największy potencjał?"
+    - If folders are listed: Use full sentences like "Przeanalizuj folder o pomysłach ADHD", "Sprawdź sesję burzy mózgów", "Oceń potencjał najnowszych tematów"
     - If analysis done: "Zapisz metadane dla kolegium", "Uruchom pipeline redakcyjny", "Przeanalizuj inny folder"
-    - Always contextual and actionable suggestions in Polish.`,
+    - Always use full, natural Polish sentences, not abbreviations.`,
     suggestions: contentFolders.length > 0 
-      ? contentFolders.slice(0, 3).map(f => `Przeanalizuj folder content/raw/${f.name}`)
+      ? [
+          contentFolders[0] ? `Przeanalizuj folder z pomysłami o ADHD` : null,
+          contentFolders[1] ? `Sprawdź sesję burzy mózgów z lipca` : null,
+          "Pokaż najnowsze tematy"
+        ].filter(Boolean)
       : ["Pokaż dostępne tematy", "Co nowego w content?", "Jakie foldery czekają na analizę?"],
   });
 
@@ -230,9 +236,12 @@ GOLDEN RULES:
             .map(f => `📁 ${f.name} (${f.files_count} plików)`)
             .join('\n');
           
-          // Set contextual suggestions
-          const topFolders = data.folders.slice(0, 3);
-          setSuggestedActions(topFolders.map(f => `Przeanalizuj folder content/raw/${f.name}`));
+          // Set contextual suggestions with better descriptions
+          setSuggestedActions([
+            data.folders[0] ? `Przeanalizuj folder z pomysłami o ADHD` : null,
+            data.folders[1] ? `Sprawdź sesję burzy mózgów z lipca` : null,
+            "Oceń potencjał viralowy najnowszych tematów"
+          ].filter(Boolean));
           
           return `Odświeżono listę! Znalazłem ${data.total} folderów z contentem:\n\n${folderList}\n\nMożesz przeanalizować dowolny z nich używając komendy "Przeanalizuj folder content/raw/[nazwa-folderu]"`;
         } else {
