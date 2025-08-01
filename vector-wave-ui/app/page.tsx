@@ -48,6 +48,19 @@ export default function Home() {
           setSuggestedActions(topFolders.map(f => `Przeanalizuj folder content/raw/${f.name}`));
           
           console.log(`Loaded ${data.total} content folders`);
+          
+          // Auto-trigger the "Pokaż dostępne tematy" action after a short delay
+          setTimeout(() => {
+            const input = document.querySelector('textarea[placeholder*="Type"]') as HTMLTextAreaElement;
+            if (input) {
+              input.value = "Pokaż dostępne tematy";
+              input.dispatchEvent(new Event('input', { bubbles: true }));
+              setTimeout(() => {
+                const sendButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+                if (sendButton) sendButton.click();
+              }, 100);
+            }
+          }, 1500); // Wait 1.5s for everything to load
         }
       } catch (error) {
         console.error('Failed to load content folders:', error);
