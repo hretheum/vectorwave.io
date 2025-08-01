@@ -28,7 +28,13 @@ export default function RootLayout({
             defaultOpen={true}
             labels={{
               title: "Vector Wave AI Assistant",
-              initial: "Analiza rozpocznie się po wybraniu tematu z listy.",
+              initial: `Cześć! 👋 Jestem asystentem redakcyjnym Vector Wave.
+
+📂 Dostępne tematy do analizy:
+• 2025-07-31-adhd-ideas-overflow (8 plików) - pomysły o ADHD
+• 2025-07-31-brainstorm (14 plików) - sesja burzy mózgów
+
+Kliknij "Pokaż dostępne tematy" aby zobaczyć pełną listę.`,
             }}
             clickOutsideToClose={false}
             showSuggestions={true}
