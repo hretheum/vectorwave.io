@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "Baserow MCP": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://db.pamb.uk/mcp/nPYj3goHr5v1YG4T62p9FpweSpPuyxqy/sse"
+      ]
+    }
+  }
+}
