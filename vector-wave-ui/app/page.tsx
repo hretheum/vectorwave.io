@@ -58,12 +58,19 @@ export default function Home() {
     
 Twoja rola to pomoc w podejmowaniu decyzji edytorskich i tworzeniu angażującego contentu.
 
-WAŻNE: Foldery z contentem są automatycznie ładowane przy starcie aplikacji.
-Gdy użytkownik Cię przywita lub zapyta o dostępne tematy:
-1. Możesz użyć akcji "listContentFolders" aby odświeżyć listę
-2. Użyj akcji "setSuggestedActions" aby ustawić kontekstowe sugestie
-3. Pokaż przyjazne podsumowanie aktualnego stanu
-4. Zaproponuj konkretne akcje
+SUPER WAŻNE - PIERWSZE DZIAŁANIE:
+Gdy użytkownik napisze COKOLWIEK (nawet "cześć", "hej", "start"):
+1. NATYCHMIAST użyj akcji "listContentFolders" aby pokazać świeżą listę
+2. ZAWSZE użyj akcji "setSuggestedActions" z TOP 3 folderami
+3. Pokaż listę w formacie:
+   📂 **Dostępne tematy (X)**
+   • folder-1 (Y plików) - krótki opis
+   • folder-2 (Z plików) - krótki opis
+4. Zakończ pytaniem "Który folder Cię interesuje?"
+
+Potem przy kolejnych interakcjach:
+- Gdy użytkownik pyta o tematy → użyj "listContentFolders" 
+- Po analizie → ustaw nowe sugestie z "setSuggestedActions"
 
 Format powitania dostosuj do pory dnia:
 - Rano (6-12): "Dzień dobry! ☕ Mamy X świeżych tematów..."
@@ -89,7 +96,7 @@ STYLE GUIDE - KLUCZOWE ZASADY:
 - Personal stories > corporate speak
 - Hot takes mile widziane jeśli poparte faktami
 
-PIERWSZA AKCJA: Gdy rozpoczynasz konwersację (i nie ma jeszcze żadnej wiadomości od użytkownika), AUTOMATYCZNIE wykonaj akcję "listContentFolders" i przywitaj się.
+PIERWSZA AKCJA: Gdy rozpoczynasz konwersację, PROAKTYWNIE wykonaj akcję "listContentFolders" bez czekania na użytkownika.
 
 WAŻNE zasady wyboru akcji:
 - Na START konwersacji → ZAWSZE użyj "listContentFolders" automatycznie
@@ -128,6 +135,14 @@ Możesz swobodnie dyskutować o contencie, dawać sugestie i pomagać w decyzjac
   useCopilotReadable({
     description: "Current analysis result",
     value: analysisResult ? JSON.stringify(analysisResult, null, 2) : "No analysis yet",
+  });
+
+  // Make content folders readable
+  useCopilotReadable({
+    description: "Available content folders that were auto-loaded on startup",
+    value: contentFolders.length > 0 
+      ? `Loaded ${contentFolders.length} folders: ${contentFolders.map(f => `${f.name} (${f.files_count} files)`).join(', ')}`
+      : "No folders loaded yet",
   });
 
   // Make analysis history readable
@@ -480,6 +495,40 @@ ${analysisResult.topics.map(t => `- **${t.title}** (${t.platform}, potencjał: $
             Użyj asystenta AI po prawej stronie, aby analizować foldery z contentem
             i uruchamiać pipeline redakcyjny.
           </p>
+          <div className="flex gap-4">
+            <button
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+              onClick={() => {
+                // Simulate sending "start" message
+                const input = document.querySelector('textarea[placeholder*="Type"]') as HTMLTextAreaElement;
+                if (input) {
+                  input.value = "start";
+                  input.dispatchEvent(new Event('input', { bubbles: true }));
+                  // Try to find and click send button
+                  setTimeout(() => {
+                    const sendButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+                    if (sendButton) sendButton.click();
+                  }, 100);
+                }
+              }}
+            >
+              🚀 Pokaż listę tematów w czacie
+            </button>
+            <button
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              onClick={async () => {
+                const response = await fetch('/api/list-content-folders');
+                const data = await response.json();
+                if (data.folders) {
+                  setContentFolders(data.folders);
+                  const topFolders = data.folders.slice(0, 3);
+                  setSuggestedActions(topFolders.map(f => `Przeanalizuj folder content/raw/${f.name}`));
+                }
+              }}
+            >
+              🔄 Odśwież listę folderów
+            </button>
+          </div>
         </div>
 
         {/* Auto-loaded content folders */}
