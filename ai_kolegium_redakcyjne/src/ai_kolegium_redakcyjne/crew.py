@@ -190,7 +190,7 @@ class AiKolegiumRedakcyjne():
             agents=self.agents,  # All 5 agents
             tasks=self.tasks,    # All 5 tasks in sequence
             process=Process.sequential,  # Start with sequential, later upgrade to hierarchical
-            verbose=2,  # 0=silent, 1=minimal, 2=normal, True=full
+            verbose=True,  # 0=silent, 1=minimal, 2=normal, True=full
             memory=True,  # Enable crew-level memory
             memory_config={
                 "provider": "sqlite",
