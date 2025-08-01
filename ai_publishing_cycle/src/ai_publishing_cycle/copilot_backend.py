@@ -22,6 +22,9 @@ sys.path.append(str(Path(__file__).parents[3] / "ai_kolegium_redakcyjne/src"))
 from ai_kolegium_redakcyjne.normalizer_crew import ContentNormalizerCrew
 from ai_kolegium_redakcyjne.crew import AiKolegiumRedakcyjne
 
+# Import chat handler
+from .chat_handler import handle_chat
+
 app = FastAPI(title="Vector Wave CrewAI Backend")
 
 # Enable CORS for Next.js frontend
@@ -43,6 +46,22 @@ class RunPipelineRequest(BaseModel):
 class SaveMetadataRequest(BaseModel):
     folder_path: str
     content: str
+
+class ChatRequest(BaseModel):
+    message: str
+    context: Optional[Dict[str, Any]] = {}
+
+@app.post("/chat")
+async def chat(request: ChatRequest):
+    """Handle natural chat conversations"""
+    try:
+        response = handle_chat(request.message, request.context)
+        return response
+    except Exception as e:
+        return {
+            "response": f"Ojej, coś poszło nie tak: {str(e)}. Ale możemy dalej gadać!",
+            "error": str(e)
+        }
 
 @app.get("/health")
 async def health():

@@ -47,10 +47,18 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: Cha
         }]);
       }
     } else {
+      const greetings = [
+        'Siema! 👋 Co tam słychać? Masz jakieś ciekawe tematy do przegadania?',
+        'Hej! Widzę że mamy ' + folders.length + ' folderów do analizy. Ale możemy też pogadać o czymkolwiek - co Cię nurtuje?',
+        'Cześć! Jestem tu żeby pomóc, ale też lubię dobrą pogawędkę. O czym chcesz porozmawiać?',
+        'No cześć! 😊 Analizuję content, doradzam strategie, ale też po prostu gadam. Co dziś robimy?',
+        'Witaj! Mam tu sporo materiałów do analizy, ale równie chętnie pogadam o życiu. Co wolisz?'
+      ];
+      
       setMessages([{
         id: '1',
         role: 'assistant',
-        content: 'Cześć! 👋 Jestem Twoim AI asystentem. Mogę pomóc Ci:\n\n• Analizować foldery z contentem\n• Doradzać w strategii publikacji\n• Generować pomysły na posty\n• Odpowiadać na pytania o Vector Wave\n\nCo Cię dziś interesuje?',
+        content: greetings[Math.floor(Math.random() * greetings.length)],
         timestamp: new Date()
       }]);
     }
@@ -98,11 +106,48 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: Cha
     setInput('');
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      let responseContent = '';
+    try {
+      // Call the chat API
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: input,
+          context: {
+            folders,
+            analysisResult,
+            previousMessages: messages.slice(-5) // Last 5 messages for context
+          }
+        })
+      });
 
-      // Check for folder analysis commands
+      const data = await response.json();
+      
+      // Check if the response suggests analyzing a folder
+      if (data.suggestAnalyze && onAnalyzeFolder) {
+        const folderMatch = folders.find(f => 
+          f.name.toLowerCase() === data.suggestAnalyze.toLowerCase() ||
+          input.toLowerCase().includes(f.name.toLowerCase())
+        );
+        if (folderMatch) {
+          onAnalyzeFolder(folderMatch.name);
+        }
+      }
+
+      const assistantMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: data.response || data.message || 'Hmm, nie dostałem odpowiedzi. Spróbuj jeszcze raz?',
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Chat error:', error);
+      
+      // Fallback to local logic for common queries
+      let fallbackResponse = '';
+      
       if (input.toLowerCase().includes('analizuj') || input.toLowerCase().includes('sprawdź')) {
         const folderMatch = folders.find(f => 
           input.toLowerCase().includes(f.name.toLowerCase()) ||
@@ -111,44 +156,39 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: Cha
 
         if (folderMatch && onAnalyzeFolder) {
           onAnalyzeFolder(folderMatch.name);
-          responseContent = `Rozpoczynam analizę folderu "${folderMatch.name}". Za chwilę zobaczysz wyniki w głównym oknie. 📊\n\nFolder zawiera ${folderMatch.files_count} plików. Analizuję potencjał marketingowy...`;
+          fallbackResponse = `Ok, analizuję folder "${folderMatch.name}"... 🔍`;
         } else {
-          responseContent = 'Nie znalazłem takiego folderu. Dostępne foldery to:\n\n' + 
-            folders.map(f => `• ${f.name} (${f.files_count} plików)`).join('\n');
+          fallbackResponse = 'Hmm, nie kojarzę takiego folderu. Mamy:\n' + 
+            folders.slice(0, 5).map(f => `• ${f.name}`).join('\n') +
+            (folders.length > 5 ? `\n...i ${folders.length - 5} więcej` : '');
         }
-      } 
-      // List folders command
-      else if (input.toLowerCase().includes('pokaż') || input.toLowerCase().includes('lista')) {
-        responseContent = `Mamy ${folders.length} dostępne tematy:\n\n` +
-          folders.map(f => `📁 **${f.name}**\n   ${f.files_count} plików\n`).join('\n') +
-          '\nKtóry folder Cię interesuje? Mogę go przeanalizować.';
-      }
-      // Strategy advice
-      else if (input.toLowerCase().includes('strategia') || input.toLowerCase().includes('publikacja')) {
-        responseContent = 'Oto moja rekomendacja strategii publikacji:\n\n' +
-          '**Poniedziałek**: LinkedIn - thought leadership\n' +
-          '**Wtorek/Czwartek**: Twitter - viral threads\n' +
-          '**Piątek**: Newsletter - deep dive\n\n' +
-          'Pamiętaj o zasadzie 80/20: 80% wartości, 20% promocji. ' +
-          'Kontrowersja + dane = engagement! 🚀';
-      }
-      // Default response
-      else {
-        responseContent = 'Rozumiem! Jak mogę Ci pomóc z tym tematem? ' +
-          'Mogę przeanalizować konkretny folder, doradzić strategię publikacji, ' +
-          'lub pomóc w tworzeniu engaging content. Co wolisz?';
+      } else {
+        // Natural, varied responses for general chat
+        const responses = [
+          'No to opowiadaj! Co tam u Ciebie? 😊',
+          'Brzmi ciekawie! Powiedz mi więcej.',
+          'Ha! Dobre. A co jeszcze?',
+          'Serio? No to muszę to usłyszeć!',
+          'O, to intrygujące. Jak to się stało?',
+          'No proszę! A ja myślałem, że już wszystko słyszałem 😄',
+          'Czekaj, czekaj... jak to "' + input.slice(0, 20) + '"...? Rozwiń myśl!',
+          'Hah, ' + (input.length < 10 ? 'krótko i na temat' : 'no no, gadasz jak najęty') + '! Co dalej?'
+        ];
+        
+        fallbackResponse = responses[Math.floor(Math.random() * responses.length)];
       }
 
       const assistantMessage: Message = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: responseContent,
+        content: fallbackResponse,
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
 
   if (isMinimized) {
