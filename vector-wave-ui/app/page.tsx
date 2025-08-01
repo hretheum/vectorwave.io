@@ -1,6 +1,6 @@
 'use client';
 
-import { useCopilotReadable, useCopilotAction, useCopilotChat, Message } from "@copilotkit/react-core";
+import { useCopilotReadable, useCopilotAction, useCopilotChat } from "@copilotkit/react-core";
 import { useState, useEffect } from "react";
 
 export default function Home() {
@@ -26,20 +26,15 @@ export default function Home() {
 
   // Configure chat behavior
   useCopilotChat({
-    initialMessages: [
-      {
-        role: "system" as const,
-        content: "START_CONVERSATION"
-      }
-    ],
     instructions: `Jesteś doświadczonym redaktorem naczelnym Vector Wave - platformy content marketingowej dla branży tech. 
     
 Twoja rola to pomoc w podejmowaniu decyzji edytorskich i tworzeniu angażującego contentu.
 
-WAŻNE: Gdy otrzymasz wiadomość "START_CONVERSATION" lub na początku rozmowy:
-1. NATYCHMIAST użyj akcji "listContentFolders" aby pokazać dostępne tematy
-2. Pokaż przyjazne powitanie z podsumowaniem tematów
-3. Zaproponuj konkretne akcje (np. "Który folder chcesz przeanalizować?")
+WAŻNE: Gdy użytkownik napisze COKOLWIEK po raz pierwszy (nawet "cześć", "hej", "start" itp.):
+1. ZAWSZE najpierw użyj akcji "listContentFolders" aby pokazać dostępne tematy
+2. Dopiero potem odpowiedz na powitanie
+3. Pokaż przyjazne podsumowanie tematów
+4. Zaproponuj konkretne akcje (np. "Który folder chcesz przeanalizować?")
 
 Format powitania dostosuj do pory dnia:
 - Rano (6-12): "Dzień dobry! ☕ Mamy X świeżych tematów..."
@@ -64,6 +59,8 @@ STYLE GUIDE - KLUCZOWE ZASADY:
 - Liczby i dane > opinie
 - Personal stories > corporate speak
 - Hot takes mile widziane jeśli poparte faktami
+
+PIERWSZA AKCJA: Gdy rozpoczynasz konwersację (i nie ma jeszcze żadnej wiadomości od użytkownika), AUTOMATYCZNIE wykonaj akcję "listContentFolders" i przywitaj się.
 
 WAŻNE zasady wyboru akcji:
 - Na START konwersacji → ZAWSZE użyj "listContentFolders" automatycznie
@@ -386,6 +383,12 @@ ${analysisResult.topics.map(t => `- **${t.title}** (${t.platform}, potencjał: $
             Użyj asystenta AI po prawej stronie, aby analizować foldery z contentem
             i uruchamiać pipeline redakcyjny.
           </p>
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+            <p className="text-blue-800">
+              💡 <strong>Wskazówka:</strong> Napisz cokolwiek do asystenta (np. "cześć" lub "start"), 
+              a automatycznie pokaże Ci dostępne tematy do analizy!
+            </p>
+          </div>
         </div>
 
         {isLoading && (
@@ -439,6 +442,7 @@ ${analysisResult.topics.map(t => `- **${t.title}** (${t.platform}, potencjał: $
         <div className="mt-8 text-sm text-gray-500">
           <p>💡 Przykładowe komendy dla asystenta:</p>
           <ul className="list-disc list-inside mt-2">
+            <li>"Pokaż dostępne tematy" (asystent powinien to zrobić automatycznie przy starcie)</li>
             <li>"Przeanalizuj folder /content/raw/2025-07-31-brainstorm"</li>
             <li>"Uruchom pipeline redakcyjny dla nowego contentu"</li>
             <li>"Pokaż mi wartościowe tematy do publikacji"</li>
