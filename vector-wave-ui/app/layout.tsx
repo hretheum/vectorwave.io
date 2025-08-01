@@ -28,7 +28,7 @@ export default function RootLayout({
             defaultOpen={true}
             labels={{
               title: "Vector Wave AI Assistant",
-              initial: "Cześć! 👋 Jestem asystentem redakcyjnym Vector Wave. Mogę pomóc z analizą contentu i decyzjami edytorskimi.",
+              initial: "Cześć! 👋 Jestem asystentem redakcyjnym Vector Wave. Napisz cokolwiek (np. 'start' lub 'cześć'), a pokażę Ci dostępne tematy do analizy!",
             }}
             clickOutsideToClose={false}
           >

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCopilotReadable, useCopilotAction, useCopilotChat } from "@copilotkit/react-core";
+import { useCopilotChatSuggestions } from "@copilotkit/react-ui";
 import { useState, useEffect } from "react";
 
 export default function Home() {
@@ -10,6 +11,7 @@ export default function Home() {
   const [pipelineOutput, setPipelineOutput] = useState<string[]>([]);
   const [isPipelineRunning, setIsPipelineRunning] = useState(false);
   const [analysisHistory, setAnalysisHistory] = useState<Record<string, any>>({});
+  const [suggestedActions, setSuggestedActions] = useState<string[]>([]);
 
   // Load style guides on mount
   useEffect(() => {
@@ -32,9 +34,10 @@ Twoja rola to pomoc w podejmowaniu decyzji edytorskich i tworzeniu angażująceg
 
 WAŻNE: Gdy użytkownik napisze COKOLWIEK po raz pierwszy (nawet "cześć", "hej", "start" itp.):
 1. ZAWSZE najpierw użyj akcji "listContentFolders" aby pokazać dostępne tematy
-2. Dopiero potem odpowiedz na powitanie
-3. Pokaż przyjazne podsumowanie tematów
-4. Zaproponuj konkretne akcje (np. "Który folder chcesz przeanalizować?")
+2. Użyj akcji "setSuggestedActions" aby ustawić kontekstowe sugestie
+3. Dopiero potem odpowiedz na powitanie
+4. Pokaż przyjazne podsumowanie tematów
+5. Zaproponuj konkretne akcje (np. "Który folder chcesz przeanalizować?")
 
 Format powitania dostosuj do pory dnia:
 - Rano (6-12): "Dzień dobry! ☕ Mamy X świeżych tematów..."
@@ -73,10 +76,26 @@ KLUCZOWE:
 - "Analiza" to TYLKO analyzeFolder - szybka ocena potencjału
 - "Pipeline/Kolegium" to pełny proces redakcyjny z CrewAI - tylko na wyraźne żądanie
 - Po analizie zapytaj co dalej: zapisać metadane? uruchomić kolegium? przeanalizować inny?
+- ZAWSZE używaj "setSuggestedActions" po każdej akcji aby aktualizować sugestie kontekstowe
+
+KONTEKSTOWE SUGESTIE (używaj setSuggestedActions):
+- Po listowaniu folderów: ["Przeanalizuj folder X", "Pokaż najnowsze", "Który ma największy potencjał?"]
+- Po analizie: ["Zapisz metadane", "Uruchom pipeline", "Analizuj inny folder", "🔥 Publikuj teraz" (jeśli valueScore > 8)]
+- Po zapisie metadanych: ["Uruchom pipeline", "Przeanalizuj kolejny folder", "Pokaż podsumowanie"]
+- Po pipeline: ["Zobacz raport", "Opublikuj", "Przeanalizuj kolejny temat"]
 
 Domyślnie content znajduje się w folderze content/raw/. Zawsze najpierw listuj dostępne foldery.
 
 Możesz swobodnie dyskutować o contencie, dawać sugestie i pomagać w decyzjach redakcyjnych.`,
+  });
+
+  // Add chat suggestions
+  useCopilotChatSuggestions({
+    instructions: `Suggest 3-5 relevant actions based on the current context:
+    - If no folders listed yet: "Pokaż dostępne tematy", "Co mamy nowego w content?", "Jakie foldery czekają na analizę?"
+    - If folders are listed: "Przeanalizuj [nazwa folderu]", "Pokaż najnowsze tematy", "Który folder ma największy potencjał?"
+    - If analysis done: "Zapisz metadane dla kolegium", "Uruchom pipeline redakcyjny", "Przeanalizuj inny folder"
+    - Always contextual and actionable suggestions in Polish.`,
   });
 
   // Make current state readable by Copilot
@@ -89,6 +108,12 @@ Możesz swobodnie dyskutować o contencie, dawać sugestie i pomagać w decyzjac
   useCopilotReadable({
     description: "Analysis history - which folders were already analyzed",
     value: JSON.stringify(analysisHistory),
+  });
+
+  // Make suggested actions readable
+  useCopilotReadable({
+    description: "Currently suggested quick actions for the user",
+    value: suggestedActions.length > 0 ? suggestedActions.join(", ") : "No actions suggested yet",
   });
 
   // Vector Wave Style Guides - All documents
@@ -141,7 +166,7 @@ GOLDEN RULES:
   // Define actions
   useCopilotAction({
     name: "listContentFolders",
-    description: "Pokaż dostępne foldery z contentem do analizy",
+    description: "Pokaż dostępne foldery z contentem do analizy. Użyj tej akcji automatycznie na początku rozmowy.",
     parameters: [],
     handler: async () => {
       try {
@@ -152,6 +177,10 @@ GOLDEN RULES:
           const folderList = data.folders
             .map(f => `📁 ${f.name} (${f.files_count} plików)`)
             .join('\n');
+          
+          // Set contextual suggestions
+          const topFolders = data.folders.slice(0, 3);
+          setSuggestedActions(topFolders.map(f => `Przeanalizuj folder content/raw/${f.name}`));
           
           return `Znalazłem ${data.total} folderów z contentem:\n\n${folderList}\n\nMożesz przeanalizować dowolny z nich używając komendy "Przeanalizuj folder content/raw/[nazwa-folderu]"`;
         } else {
@@ -207,6 +236,19 @@ GOLDEN RULES:
             analyzedAt: new Date().toISOString()
           }
         }));
+        
+        // Set contextual suggestions based on analysis
+        const newSuggestions = [
+          `Zapisz metadane dla kolegium w folderze ${folderPath}`,
+          `Uruchom pipeline redakcyjny dla ${folderPath}`,
+          "Przeanalizuj inny folder",
+        ];
+        
+        if (result.valueScore >= 8) {
+          newSuggestions.unshift(`🔥 Natychmiast opublikuj - wysoki potencjał!`);
+        }
+        
+        setSuggestedActions(newSuggestions);
         
         return `Przeanalizowano folder ${folderPath}. Znaleziono ${result.filesCount} plików typu ${result.contentType}.`;
       } catch (error) {
@@ -293,6 +335,31 @@ ${analysisResult.topics.map(t => `- **${t.title}** (${t.platform}, potencjał: $
       } catch (error) {
         return `Błąd zapisu metadanych: ${error.message}`;
       }
+    },
+  });
+
+  useCopilotAction({
+    name: "setSuggestedActions",
+    description: "Ustaw sugerowane akcje dla użytkownika bazując na obecnym kontekście",
+    parameters: [
+      {
+        name: "actions",
+        type: "object",
+        description: "Lista sugerowanych akcji",
+        attributes: [
+          {
+            name: "suggestions",
+            type: "string[]",
+            description: "Array of suggested action strings in Polish",
+            required: true,
+          }
+        ],
+        required: true,
+      },
+    ],
+    handler: async ({ actions }) => {
+      setSuggestedActions(actions.suggestions);
+      return `✅ Ustawiłem ${actions.suggestions.length} sugerowanych akcji.`;
     },
   });
 
@@ -390,6 +457,37 @@ ${analysisResult.topics.map(t => `- **${t.title}** (${t.platform}, potencjał: $
             </p>
           </div>
         </div>
+
+        {/* Dynamic action buttons */}
+        {suggestedActions.length > 0 && (
+          <div className="mb-8 bg-gray-50 p-4 rounded-lg">
+            <p className="text-sm text-gray-600 mb-3">🎯 Sugerowane akcje:</p>
+            <div className="flex flex-wrap gap-2">
+              {suggestedActions.map((action, idx) => (
+                <button
+                  key={idx}
+                  className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors text-sm"
+                  onClick={() => {
+                    // Copy action to clipboard
+                    navigator.clipboard.writeText(action);
+                    // Visual feedback
+                    const btn = document.getElementById(`action-btn-${idx}`);
+                    if (btn) {
+                      btn.textContent = '✓ Skopiowano!';
+                      setTimeout(() => {
+                        btn.textContent = action;
+                      }, 2000);
+                    }
+                  }}
+                  id={`action-btn-${idx}`}
+                >
+                  {action}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">Kliknij aby skopiować komendę do schowka</p>
+          </div>
+        )}
 
         {isLoading && (
           <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-4">

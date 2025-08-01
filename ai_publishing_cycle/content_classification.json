@@ -4,62 +4,68 @@
     {
       "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/09-content-types.md",
       "folder": "2025-07-31-brainstorm",
-      "content_type": "SUGGESTION",
+      "content_type": "DRAFT",
       "platform": "general",
-      "purpose": "ideation",
-      "language": "EN|PL",
-      "status": "outline",
+      "purpose": "publication",
+      "language": "mixed",
+      "status": "complete",
       "title": "Workshop #2: Content Framework",
-      "preview": "# Workshop #2: Content Framework\n\n**Moderator:** Przechodzimy do Content Types. Molly, możesz poprowadzić?\n\n**MW:** Let's define each content type with brutal clarity.\n\n## SEKCJA 3.1: Content Types\n\n**DEEP ANALYSIS (3..."
+      "preview": "# Workshop #2: Content Framework\n\n**Moderator:** Przechodzimy do Content Types. Molly, możesz poprowadzić?\n\n**MW:** Let's define each content type with brutal clarity."
     },
     {
       "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/03-section-details.md",
       "folder": "2025-07-31-brainstorm",
-      "content_type": "SUGGESTION",
+      "content_type": "DRAFT",
       "platform": "general",
-      "purpose": "ideation",
-      "language": "PL|EN",
-      "status": "outline",
+      "purpose": "publication",
+      "language": "mixed",
+      "status": "complete",
       "title": "03 Section Details",
-      "preview": "## Głębsze zanurzenie w strukturę - detale sekcji\n\n**Moderator:** OK, mamy zarys głównych kategorii. Zejdźmy głębiej - co konkretnie powinno znaleźć się w każdej sekcji?\n\n**KS:** I'll start with **Mission & Anti-Mission*..."
+      "preview": "## Głębsze zanurzenie w strukturę - detale sekcji\n\n**Moderator:** OK, mamy zarys głównych kategorii. Zejdźmy głębiej - co konkretnie powinno znaleźć się w każdej sekcji?"
     },
     {
       "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/10-quality-standards.md",
       "folder": "2025-07-31-brainstorm",
-      "content_type": "SUGGESTION",
+      "content_type": "DRAFT",
       "platform": "general",
-      "purpose": "ideation",
-      "language": "PL|EN",
-      "status": "outline",
+      "purpose": "publication",
+      "language": "mixed",
+      "status": "complete",
       "title": "10 Quality Standards",
-      "preview": "## SEKCJA 3.2: Quality Standards\n\n**DL:** Quality needs measurable criteria. Here's my framework:\n\n**TECHNICAL ACCURACY**\n- Every claim needs a source or test\n- Code must run in specified environment  \n- Version numbers ..."
+      "preview": "## SEKCJA 3.2: Quality Standards\n\n**DL:** Quality needs measurable criteria. Here's my framework:\n\n**TECHNICAL ACCURACY**\n- Every claim needs a source or test\n- Code must run in specified environment"
     },
     {
       "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/12-ethics-corrections.md",
       "folder": "2025-07-31-brainstorm",
-      "content_type": "SUGGESTION",
+      "content_type": "DRAFT",
       "platform": "general",
-      "purpose": "ideation",
-      "language": "PL|EN",
-      "status": "outline",
+      "purpose": "publication",
+      "language": "mixed",
+      "status": "complete",
       "title": "12 Ethics Corrections",
-      "preview": "## SEKCJA 4.2: Ethics & Corrections\n\n**MW:** Transparency builds trust. Here's how:\n\n**CORRECTION HANDLING**\n- Same prominence as original error\n- \"CORRECTION:\" in title\n- Explanation of what changed and why\n- Timestamp ..."
+      "preview": "## SEKCJA 4.2: Ethics & Corrections\n\n**MW:** Transparency builds trust. Here's how:\n\n**CORRECTION HANDLING**\n- Same prominence as original error\n- \"CORRECTION:\" in title"
     },
     {
       "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/04-final-structure.md",
       "folder": "2025-07-31-brainstorm",
-      "content_type": "SUGGESTION",
+      "content_type": "DRAFT",
       "platform": "general",
-      "purpose": "ideation",
-      "language": "PL|EN",
-      "status": "outline",
+      "purpose": "publication",
+      "language": "mixed",
+      "status": "complete",
       "title": "04 Final Structure",
-      "preview": "## Finalizacja struktury - konsensus\n\n**Moderator:** Świetna dyskusja. Spróbujmy teraz sfinalizować strukturę.\n\n**BT:** Based on our discussion, here's the synthesized structure:\n\n**VECTOR WAVES STYLE GUIDE - FINAL ST..."
+      "preview": "## Finalizacja struktury - konsensus\n\n**Moderator:** Świetna dyskusja. Spróbujmy teraz sfinalizować strukturę.\n\n**BT:** Based on our discussion, here's the synthesized structure:"
     }
   ],
   "summary": {
-    "by_type": {"SUGGESTION": 5},
-    "by_platform": {"general": 5},
-    "by_language": {"PL|EN": 5}
+    "by_type": {
+      "DRAFT": 5
+    },
+    "by_platform": {
+      "general": 5
+    },
+    "by_language": {
+      "mixed": 5
+    }
   }
 }
