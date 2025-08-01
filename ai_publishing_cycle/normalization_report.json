@@ -4,39 +4,39 @@
   "files_created": [
     {
       "original": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/09-content-types.md",
-      "normalized": "/content/normalized/2025-07-31-general-workshop-2-content-framework.md",
-      "type": "SUGGESTION",
+      "normalized": "2025-07-31-general-workshop-2-content-framework.md",
+      "type": "DRAFT",
       "quality_score": 0.7
     },
     {
       "original": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/03-section-details.md",
-      "normalized": "/content/normalized/2025-07-31-general-03-section-details.md",
-      "type": "SUGGESTION",
+      "normalized": "2025-07-31-general-03-section-details.md",
+      "type": "DRAFT",
       "quality_score": 0.7
     },
     {
       "original": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/10-quality-standards.md",
-      "normalized": "/content/normalized/2025-07-31-general-10-quality-standards.md",
-      "type": "SUGGESTION",
+      "normalized": "2025-07-31-general-10-quality-standards.md",
+      "type": "DRAFT",
       "quality_score": 0.8
     },
     {
       "original": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/12-ethics-corrections.md",
-      "normalized": "/content/normalized/2025-07-31-general-12-ethics-corrections.md",
-      "type": "SUGGESTION",
+      "normalized": "2025-07-31-general-12-ethics-corrections.md",
+      "type": "DRAFT",
       "quality_score": 0.8
     },
     {
       "original": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/04-final-structure.md",
-      "normalized": "/content/normalized/2025-07-31-general-04-final-structure.md",
-      "type": "SUGGESTION",
+      "normalized": "2025-07-31-general-04-final-structure.md",
+      "type": "DRAFT",
       "quality_score": 0.75
     }
   ],
   "processing_stats": {
     "total_words_processed": 820,
     "total_data_points_extracted": 4,
-    "average_quality_score": 0.75
+    "average_quality_score": 0.74
   },
   "errors": []
 }

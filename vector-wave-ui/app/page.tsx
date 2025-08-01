@@ -12,6 +12,7 @@ export default function Home() {
   const [isPipelineRunning, setIsPipelineRunning] = useState(false);
   const [analysisHistory, setAnalysisHistory] = useState<Record<string, any>>({});
   const [suggestedActions, setSuggestedActions] = useState<string[]>([]);
+  const [contentFolders, setContentFolders] = useState<any[]>([]);
 
   // Load style guides on mount
   useEffect(() => {
@@ -26,18 +27,43 @@ export default function Home() {
       .catch(err => console.error('Failed to load style guides:', err));
   }, []);
 
+  // Auto-load content folders on mount
+  useEffect(() => {
+    const loadInitialFolders = async () => {
+      try {
+        const response = await fetch('/api/list-content-folders');
+        const data = await response.json();
+        
+        if (data.folders && data.folders.length > 0) {
+          // Store folders
+          setContentFolders(data.folders);
+          
+          // Set initial suggested actions
+          const topFolders = data.folders.slice(0, 3);
+          setSuggestedActions(topFolders.map(f => `Przeanalizuj folder content/raw/${f.name}`));
+          
+          console.log(`Loaded ${data.total} content folders`);
+        }
+      } catch (error) {
+        console.error('Failed to load content folders:', error);
+      }
+    };
+    
+    loadInitialFolders();
+  }, []);
+
   // Configure chat behavior
   useCopilotChat({
     instructions: `Jesteś doświadczonym redaktorem naczelnym Vector Wave - platformy content marketingowej dla branży tech. 
     
 Twoja rola to pomoc w podejmowaniu decyzji edytorskich i tworzeniu angażującego contentu.
 
-WAŻNE: Gdy użytkownik napisze COKOLWIEK po raz pierwszy (nawet "cześć", "hej", "start" itp.):
-1. ZAWSZE najpierw użyj akcji "listContentFolders" aby pokazać dostępne tematy
+WAŻNE: Foldery z contentem są automatycznie ładowane przy starcie aplikacji.
+Gdy użytkownik Cię przywita lub zapyta o dostępne tematy:
+1. Możesz użyć akcji "listContentFolders" aby odświeżyć listę
 2. Użyj akcji "setSuggestedActions" aby ustawić kontekstowe sugestie
-3. Dopiero potem odpowiedz na powitanie
-4. Pokaż przyjazne podsumowanie tematów
-5. Zaproponuj konkretne akcje (np. "Który folder chcesz przeanalizować?")
+3. Pokaż przyjazne podsumowanie aktualnego stanu
+4. Zaproponuj konkretne akcje
 
 Format powitania dostosuj do pory dnia:
 - Rano (6-12): "Dzień dobry! ☕ Mamy X świeżych tematów..."
@@ -174,6 +200,9 @@ GOLDEN RULES:
         const data = await response.json();
         
         if (data.folders && data.folders.length > 0) {
+          // Update folders state
+          setContentFolders(data.folders);
+          
           const folderList = data.folders
             .map(f => `📁 ${f.name} (${f.files_count} plików)`)
             .join('\n');
@@ -182,8 +211,9 @@ GOLDEN RULES:
           const topFolders = data.folders.slice(0, 3);
           setSuggestedActions(topFolders.map(f => `Przeanalizuj folder content/raw/${f.name}`));
           
-          return `Znalazłem ${data.total} folderów z contentem:\n\n${folderList}\n\nMożesz przeanalizować dowolny z nich używając komendy "Przeanalizuj folder content/raw/[nazwa-folderu]"`;
+          return `Odświeżono listę! Znalazłem ${data.total} folderów z contentem:\n\n${folderList}\n\nMożesz przeanalizować dowolny z nich używając komendy "Przeanalizuj folder content/raw/[nazwa-folderu]"`;
         } else {
+          setContentFolders([]);
           return "Nie znalazłem żadnych folderów w content/raw/";
         }
       } catch (error) {
@@ -450,13 +480,40 @@ ${analysisResult.topics.map(t => `- **${t.title}** (${t.platform}, potencjał: $
             Użyj asystenta AI po prawej stronie, aby analizować foldery z contentem
             i uruchamiać pipeline redakcyjny.
           </p>
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-            <p className="text-blue-800">
-              💡 <strong>Wskazówka:</strong> Napisz cokolwiek do asystenta (np. "cześć" lub "start"), 
-              a automatycznie pokaże Ci dostępne tematy do analizy!
-            </p>
-          </div>
         </div>
+
+        {/* Auto-loaded content folders */}
+        {contentFolders.length > 0 && (
+          <div className="mb-8 bg-white border border-gray-200 p-6 rounded-lg shadow">
+            <h3 className="text-xl font-semibold mb-4">📂 Dostępne tematy ({contentFolders.length})</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {contentFolders.map((folder, idx) => (
+                <div key={idx} className="bg-gray-50 p-3 rounded-lg flex justify-between items-center">
+                  <div>
+                    <p className="font-medium">{folder.name}</p>
+                    <p className="text-sm text-gray-600">{folder.files_count} plików</p>
+                  </div>
+                  <button
+                    className="text-sm px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    onClick={() => {
+                      const command = `Przeanalizuj folder content/raw/${folder.name}`;
+                      navigator.clipboard.writeText(command);
+                      // Visual feedback
+                      const btn = event.target as HTMLButtonElement;
+                      const originalText = btn.textContent;
+                      btn.textContent = '✓';
+                      setTimeout(() => {
+                        btn.textContent = originalText;
+                      }, 1000);
+                    }}
+                  >
+                    Analizuj
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Dynamic action buttons */}
         {suggestedActions.length > 0 && (
