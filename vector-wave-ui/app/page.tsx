@@ -16,6 +16,7 @@ export default function Home() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [showChat, setShowChat] = useState(true);
+  const [reportDownloaded, setReportDownloaded] = useState(false);
 
   // Auto-load content folders on mount
   useEffect(() => {
@@ -40,6 +41,74 @@ export default function Home() {
     // Simulate assistant-ui auto-execution
     setTimeout(loadFolders, 500);
   }, []);
+
+  const generateDetailedReport = (analysis: any) => {
+    if (!analysis) return;
+    
+    // Generate detailed markdown report
+    const report = `# Szczegółowy Raport Analizy: ${analysis.folder}
+
+## 📊 Podsumowanie
+- **Liczba plików**: ${analysis.filesCount}
+- **Typ contentu**: ${analysis.contentType}
+- **Ocena wartości**: ${analysis.valueScore}/10
+- **Data analizy**: ${new Date().toLocaleDateString('pl')}
+
+## 🎯 Rekomendacja AI
+> ${analysis.recommendation}
+
+## 📁 Struktura Plików
+${analysis.files ? analysis.files.map((file: string) => `- ${file}`).join('\n') : 'Brak danych o plikach'}
+
+## 💡 Propozycje Tematów (${analysis.topics?.length || 0})
+${analysis.topics ? analysis.topics.map((topic: any, idx: number) => `
+### ${idx + 1}. ${topic.title}
+- **Platforma**: ${topic.platform}
+- **Potencjał wiralowy**: ${topic.viralScore}/10
+- **Status**: ${topic.viralScore >= 8 ? '🔥 HOT' : '✅ Dobry'}
+`).join('\n') : 'Brak propozycji tematów'}
+
+## 📈 Analiza Potencjału
+${analysis.valueScore >= 8 ? `
+### ⭐ Wysoki potencjał!
+Ten content ma duże szanse na sukces. Charakteryzuje się:
+- Wysoką wartością merytoryczną
+- Potencjałem do generowania engagementu
+- Możliwością repurposingu na wiele platform
+` : `
+### 📊 Średni potencjał
+Content wymaga dopracowania lub jest niszowy. Rozważ:
+- Dodanie więcej praktycznych przykładów
+- Zwiększenie kontrowersyjności
+- Lepsze wykorzystanie danych i statystyk
+`}
+
+## 🚀 Następne Kroki
+1. ${analysis.valueScore >= 8 ? 'Natychmiast publikuj na głównej platformie' : 'Dopracuj content przed publikacją'}
+2. Przygotuj wersje dla różnych platform
+3. Zaplanuj cross-posting z 2-3 dniowym odstępem
+4. Monitoruj metryki przez pierwszy tydzień
+
+---
+*Raport wygenerowany przez Vector Wave AI*
+`;
+
+    // Create blob and download
+    const blob = new Blob([report], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `raport-${analysis.folder}-${new Date().toISOString().split('T')[0]}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    // Show success message
+    console.log('✅ Raport został pobrany jako plik markdown');
+    setReportDownloaded(true);
+    setTimeout(() => setReportDownloaded(false), 3000);
+  };
 
   const analyzeFolder = async (folderName: string) => {
     console.log('🎯 Starting analysis for:', folderName);
@@ -438,8 +507,7 @@ export default function Home() {
                   size="lg" 
                   variant="outline"
                   onClick={() => {
-                    // TODO: Implement detailed report
-                    console.log('Generating detailed report for:', analysisResult);
+                    generateDetailedReport(analysisResult);
                   }}
                 >
                   <FileText className="w-4 h-4" />
@@ -478,6 +546,16 @@ export default function Home() {
         analysisResult={analysisResult}
         folders={folders}
       />
+      
+      {/* Download notification */}
+      {reportDownloaded && (
+        <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 duration-200">
+          <div className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5" />
+            <span className="font-medium">Raport został pobrany!</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
