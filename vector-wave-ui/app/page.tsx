@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { flushSync } from "react-dom";
-import { Folder, Sparkles, Clock, FileText, BarChart3, Zap, Brain, Target, TrendingUp, ArrowRight, Loader2, CheckCircle2, AlertCircle, MessageSquare } from "lucide-react";
+import { Folder, Sparkles, Clock, FileText, BarChart3, Zap, Brain, Target, TrendingUp, ArrowRight, Loader2, CheckCircle2, AlertCircle, MessageSquare, Download, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChatPanel } from "@/components/ChatPanel";
+import { Modal } from "@/components/ui/modal";
 
 export default function Home() {
   const [folders, setFolders] = useState<any[]>([]);
@@ -16,7 +17,9 @@ export default function Home() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [showChat, setShowChat] = useState(true);
-  const [reportDownloaded, setReportDownloaded] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportContent, setReportContent] = useState<string>('');
+  const [reportCopied, setReportCopied] = useState(false);
 
   // Auto-load content folders on mount
   useEffect(() => {
@@ -70,7 +73,7 @@ ${analysis.topics ? analysis.topics.map((topic: any, idx: number) => `
 
 ## 📈 Analiza Potencjału
 ${analysis.valueScore >= 8 ? `
-### ⭐ Wysoki potencjał!
+### ⭐ Wysoki potencjał
 Ten content ma duże szanse na sukces. Charakteryzuje się:
 - Wysoką wartością merytoryczną
 - Potencjałem do generowania engagementu
@@ -93,21 +96,27 @@ Content wymaga dopracowania lub jest niszowy. Rozważ:
 *Raport wygenerowany przez Vector Wave AI*
 `;
 
-    // Create blob and download
-    const blob = new Blob([report], { type: 'text/markdown' });
+    // Show report in modal
+    setReportContent(report);
+    setShowReportModal(true);
+  };
+
+  const copyReportToClipboard = () => {
+    navigator.clipboard.writeText(reportContent);
+    setReportCopied(true);
+    setTimeout(() => setReportCopied(false), 2000);
+  };
+
+  const downloadReport = () => {
+    const blob = new Blob([reportContent], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `raport-${analysis.folder}-${new Date().toISOString().split('T')[0]}.md`;
+    a.download = `raport-${analysisResult?.folder || 'content'}-${new Date().toISOString().split('T')[0]}.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
-    // Show success message
-    console.log('✅ Raport został pobrany jako plik markdown');
-    setReportDownloaded(true);
-    setTimeout(() => setReportDownloaded(false), 3000);
   };
 
   const analyzeFolder = async (folderName: string) => {
@@ -547,15 +556,49 @@ Content wymaga dopracowania lub jest niszowy. Rozważ:
         folders={folders}
       />
       
-      {/* Download notification */}
-      {reportDownloaded && (
-        <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 duration-200">
-          <div className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5" />
-            <span className="font-medium">Raport został pobrany!</span>
+      {/* Report Modal */}
+      <Modal isOpen={showReportModal} onClose={() => setShowReportModal(false)}>
+        <div className="max-w-none">
+          {/* Modal Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Szczegółowy Raport</h2>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyReportToClipboard}
+              >
+                {reportCopied ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    Skopiowano
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    Kopiuj
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={downloadReport}
+              >
+                <Download className="w-4 h-4" />
+                Pobierz
+              </Button>
+            </div>
+          </div>
+          
+          {/* Report Content */}
+          <div className="prose prose-gray max-w-none">
+            <div className="bg-gray-50 rounded-lg p-6 font-mono text-sm whitespace-pre-wrap">
+              {reportContent}
+            </div>
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }
