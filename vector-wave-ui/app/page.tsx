@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import { flushSync } from "react-dom";
 import { Folder, Sparkles, Clock, FileText, BarChart3, Zap, Brain, Target, TrendingUp, ArrowRight, Loader2, CheckCircle2, AlertCircle, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -42,12 +43,19 @@ export default function Home() {
 
   const analyzeFolder = async (folderName: string) => {
     console.log('🎯 Starting analysis for:', folderName);
-    alert('Analyzing folder: ' + folderName); // Test alert
-    setIsAnalyzing(true);
-    setAnalysisResult(null);
-    setSelectedFolder(folderName);
+    console.log('📊 Current state - isAnalyzing:', isAnalyzing, 'selectedFolder:', selectedFolder);
+    
+    // Force synchronous state update
+    flushSync(() => {
+      setAnalysisResult(null);
+      setSelectedFolder(folderName);
+      setIsAnalyzing(true);
+    });
+    
+    console.log('🔄 State updated - isAnalyzing should be true now');
     
     try {
+      console.log('📤 Sending request to /api/analyze-folder');
       const response = await fetch('/api/analyze-folder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -55,6 +63,7 @@ export default function Home() {
       });
       
       console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', response.headers);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -64,9 +73,12 @@ export default function Home() {
       
       const data = await response.json();
       console.log('✅ Analysis data:', data);
+      console.log('🔄 Setting analysis result...');
       setAnalysisResult({ ...data, folder: folderName });
+      console.log('✅ Analysis result set');
     } catch (error) {
       console.error('❌ Analysis failed:', error);
+      console.error('❌ Error details:', error.message, error.stack);
       // Show error to user
       setAnalysisResult({
         folder: folderName,
@@ -78,6 +90,7 @@ export default function Home() {
         recommendation: 'Spróbuj ponownie za chwilę.'
       });
     } finally {
+      console.log('🏁 Finally block - setting isAnalyzing to false');
       setIsAnalyzing(false);
     }
   };
@@ -172,7 +185,7 @@ export default function Home() {
               </Badge>
             </div>
             
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" onClick={() => console.log('🔥 Grid clicked!')}>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {folders.map((folder, idx) => (
                 <Card 
                   key={idx} 
