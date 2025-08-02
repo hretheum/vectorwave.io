@@ -26,7 +26,7 @@ export default function Home() {
     const loadFolders = async () => {
       try {
         console.log('🔄 Loading folders...');
-        const response = await fetch('/api/list-content-folders');
+        const response = await fetch('http://localhost:8001/api/list-content-folders');
         console.log('📡 Response status:', response.status);
         const data = await response.json();
         console.log('📂 Data received:', data);
@@ -140,7 +140,7 @@ Content wymaga dopracowania lub jest niszowy. Rozważ:
     
     try {
       console.log('📤 Sending request to /api/analyze-content');
-      const response = await fetch('/api/analyze-content', {
+      const response = await fetch('http://localhost:8001/api/analyze-content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folder: folderName })
