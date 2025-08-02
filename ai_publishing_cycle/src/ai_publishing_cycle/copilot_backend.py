@@ -401,10 +401,17 @@ ARCHIVE_PROCESSED_CONTENT = os.getenv("ARCHIVE_PROCESSED_CONTENT", "false").lowe
 async def analyze_content(folder_name: str) -> dict:
     """Analyze content in a specific folder using CrewAI Flow"""
     try:
+        # Debug logging
+        logger.info(f"🔍 Analyzing folder: {folder_name}")
+        logger.info(f"📁 BASE_CONTENT_DIR: {BASE_CONTENT_DIR}")
+        
         # Read all files in the folder
         folder_path = os.path.join(BASE_CONTENT_DIR, folder_name)
+        logger.info(f"📂 Full path: {folder_path}")
+        
         if not os.path.exists(folder_path):
-            return {"error": f"Folder {folder_name} not found"}
+            logger.error(f"❌ Folder not found: {folder_path}")
+            return {"error": f"Folder {folder_name} not found at {folder_path}"}
         
         files = [f for f in os.listdir(folder_path) if f.endswith('.md')]
         

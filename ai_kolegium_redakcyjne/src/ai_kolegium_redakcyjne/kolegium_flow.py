@@ -132,8 +132,12 @@ class KolegiumEditorialFlow(Flow[EditorialState]):
         logger.info(f"🔍 Analyzing content in: {self.state.folder_path}")
         
         # Get content files from environment or default
-        base_normalized_path = os.getenv("CONTENT_NORMALIZED_PATH", "/content/normalized")
-        content_dir = os.path.join(base_normalized_path, self.state.folder_path)
+        # For kolegium flow, we should read from RAW, not normalized
+        base_raw_path = os.getenv("CONTENT_RAW_PATH", "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw")
+        content_dir = os.path.join(base_raw_path, self.state.folder_path)
+        
+        logger.info(f"📂 Looking for content in: {content_dir}")
+        
         if os.path.exists(content_dir):
             files = [f for f in os.listdir(content_dir) if f.endswith('.md')]
             self.state.content_files = files
