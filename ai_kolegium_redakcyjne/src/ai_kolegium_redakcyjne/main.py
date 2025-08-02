@@ -24,8 +24,8 @@ def run():
     Run the AI Kolegium Redakcyjne editorial crew.
     Now supports both Flow and Crew implementations.
     """
-    # Check if we should use Flow implementation
-    use_flow = os.environ.get('USE_CREWAI_FLOW', 'true').lower() == 'true'
+    # Check if we should use Flow implementation - default to false
+    use_flow = os.environ.get('USE_CREWAI_FLOW', 'false').lower() == 'true'
     
     if use_flow:
         return run_flow()

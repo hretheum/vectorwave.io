@@ -1,17 +1,22 @@
 'use client';
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Sparkles, X, Minimize2, Maximize2, Trash2 } from "lucide-react";
+import { Send, Bot, User, Sparkles, X, Minimize2, Maximize2, Trash2, Pin, PinOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  contextActions?: Array<{
+    label: string;
+    action: () => void;
+  }>;
 }
 
 interface ChatPanelProps {
@@ -25,11 +30,18 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: Cha
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isDocked, setIsDocked] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load messages from localStorage on mount
+  // Load messages and docked state from localStorage on mount
   useEffect(() => {
     const savedMessages = localStorage.getItem('chatMessages');
+    const savedDocked = localStorage.getItem('chatPanelDocked');
+    
+    if (savedDocked !== null) {
+      setIsDocked(savedDocked === 'true');
+    }
+    
     if (savedMessages) {
       try {
         const parsed = JSON.parse(savedMessages);
@@ -82,13 +94,74 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: Cha
   // React to analysis results
   useEffect(() => {
     if (analysisResult && analysisResult.folder) {
-      const resultMessage: Message = {
-        id: `result-${Date.now()}`,
+      // First show analysis summary
+      const summaryMessage: Message = {
+        id: `summary-${Date.now()}`,
         role: 'assistant',
-        content: `✅ Analiza zakończona!\n\n**${analysisResult.folder}**\n• Plików: ${analysisResult.filesCount}\n• Typ: ${analysisResult.contentType}\n• Ocena: ${analysisResult.valueScore}/10\n\n💡 "${analysisResult.recommendation}"\n\nZnalazłem ${analysisResult.topics?.length || 0} pomysłów na posty. Chcesz zobaczyć szczegóły?`,
-        timestamp: new Date()
+        content: `✅ Analiza zakończona!\n\n**${analysisResult.folder}**\n• Plików: ${analysisResult.filesCount}\n• Typ: ${analysisResult.contentType}\n• Ocena: ${analysisResult.valueScore}/10\n\n💡 "${analysisResult.recommendation}"`,
+        timestamp: new Date(),
+        contextActions: [
+          {
+            label: '📊 Pokaż pełny raport',
+            action: () => {
+              const detailButton = document.querySelector('[data-action="detailed-report"]') as HTMLButtonElement;
+              detailButton?.click();
+            }
+          },
+          ...(analysisResult.contentOwnership === 'ORIGINAL' ? [{
+            label: '🔍 Weryfikuj źródła',
+            action: () => {
+              const verifyButton = document.querySelector('[data-action="verify-sources"]') as HTMLButtonElement;
+              verifyButton?.click();
+            }
+          }] : [])
+        ]
       };
-      setMessages(prev => [...prev, resultMessage]);
+      setMessages(prev => [...prev, summaryMessage]);
+      
+      // Then show topics as separate messages
+      if (analysisResult.topTopics && analysisResult.topTopics.length > 0) {
+        setMessages(prev => [...prev, {
+          id: `topics-header-${Date.now()}`,
+          role: 'assistant',
+          content: `📝 **Znalazłem ${analysisResult.topTopics.length} pomysłów na posty:**`,
+          timestamp: new Date()
+        }]);
+        
+        analysisResult.topTopics.forEach((topic: any, index: number) => {
+          setTimeout(() => {
+            setMessages(prev => [...prev, {
+              id: `topic-${index}-${Date.now()}`,
+              role: 'assistant',
+              content: `**${topic.title}**\n\n📍 Platforma: ${topic.platform}\n\n⚡ Viral Score: ${topic.viralScore}/10${index < analysisResult.topTopics.length - 1 ? '\n\n---' : ''}`,
+              timestamp: new Date(),
+              contextActions: [{
+                label: '✍️ Wygeneruj draft',
+                action: async () => {
+                  // Show generation message
+                  setMessages(prev => [...prev, {
+                    id: `draft-${Date.now()}`,
+                    role: 'assistant',
+                    content: `🚧 Generowanie draftu...\n\n**Temat:** ${topic.title}\n**Platforma:** ${topic.platform}\n**Folder:** ${analysisResult.folder}\n\n⏳ Za chwilę pojawi się gotowy draft!`,
+                    timestamp: new Date()
+                  }]);
+                  
+                  // TODO: Call writing flow endpoint
+                  // For now, just show a placeholder after 2 seconds
+                  setTimeout(() => {
+                    setMessages(prev => [...prev, {
+                      id: `draft-result-${Date.now()}`,
+                      role: 'assistant',
+                      content: `✅ Draft gotowy!\n\n[Tu pojawi się wygenerowany content z ai_writing_flow]`,
+                      timestamp: new Date()
+                    }]);
+                  }, 2000);
+                }
+              }]
+            }]);
+          }, (index + 1) * 200); // Stagger messages for nicer effect
+        });
+      }
     }
   }, [analysisResult]);
 
@@ -191,7 +264,13 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: Cha
     }
   };
 
-  if (isMinimized) {
+  const toggleDocked = () => {
+    const newDocked = !isDocked;
+    setIsDocked(newDocked);
+    localStorage.setItem('chatPanelDocked', newDocked.toString());
+  };
+
+  if (isMinimized && !isDocked) {
     return (
       <Card 
         className="fixed bottom-4 right-4 w-16 h-16 flex items-center justify-center cursor-pointer shadow-2xl border-0 bg-gradient-to-br from-indigo-600 to-purple-600 hover:scale-105 transition-transform z-50"
@@ -203,7 +282,10 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: Cha
   }
 
   return (
-    <Card className="fixed bottom-4 right-4 w-96 h-[600px] flex flex-col shadow-2xl border-0 overflow-hidden z-50">
+    <div className={cn(
+      "flex flex-col shadow-2xl border-0 overflow-hidden",
+      isDocked ? "h-full w-full" : "fixed bottom-4 right-4 w-96 h-[600px] z-50 rounded-lg"
+    )}>
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 text-white">
         <div className="flex items-center justify-between">
@@ -240,15 +322,26 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: Cha
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-white hover:bg-white/20"
-              onClick={() => setIsMinimized(true)}
+              onClick={toggleDocked}
+              title={isDocked ? "Odepnij panel" : "Przypnij panel"}
             >
-              <Minimize2 className="w-4 h-4" />
+              {isDocked ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
             </Button>
+            {!isDocked && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-white hover:bg-white/20"
+                onClick={() => setIsMinimized(true)}
+              >
+                <Minimize2 className="w-4 h-4" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-white hover:bg-white/20"
-              onClick={() => setIsMinimized(true)}
+              onClick={() => isDocked ? toggleDocked() : setIsMinimized(true)}
             >
               <X className="w-4 h-4" />
             </Button>
@@ -279,9 +372,22 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: Cha
                   : "bg-white border border-gray-200"
               )}
             >
-              <p className="text-sm whitespace-pre-wrap">
-                {message.content}
-              </p>
+              <div className={cn(
+                "text-sm prose prose-sm max-w-none",
+                message.role === 'user' && "prose-invert"
+              )}>
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                    ul: ({ children }) => <ul className="list-disc list-inside mb-2">{children}</ul>,
+                    li: ({ children }) => <li className="mb-1">{children}</li>,
+                    hr: () => <hr className="my-2 border-gray-300" />,
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
+              </div>
               <p className={cn(
                 "text-xs mt-1",
                 message.role === 'user' ? "text-indigo-200" : "text-gray-400"
@@ -291,6 +397,23 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: Cha
                   minute: '2-digit' 
                 })}
               </p>
+              
+              {/* Context Actions */}
+              {message.contextActions && message.contextActions.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {message.contextActions.map((action, idx) => (
+                    <Button
+                      key={idx}
+                      size="sm"
+                      variant="outline"
+                      className="text-xs whitespace-normal text-left break-words h-auto py-2 px-3"
+                      onClick={action.action}
+                    >
+                      {action.label}
+                    </Button>
+                  ))}
+                </div>
+              )}
             </div>
             {message.role === 'user' && (
               <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
@@ -367,6 +490,6 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: Cha
           </Button>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

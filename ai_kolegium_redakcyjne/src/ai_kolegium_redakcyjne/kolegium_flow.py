@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 class EditorialState(BaseModel):
     """Shared state for editorial flow"""
-    folder_path: str
+    folder_path: str = ""  # Added default value
     content_type: str = "STANDALONE"  # SERIES or STANDALONE
     content_ownership: str = "EXTERNAL"  # ORIGINAL or EXTERNAL
     content_files: List[str] = []
@@ -353,16 +353,39 @@ class KolegiumEditorialFlow(Flow[EditorialState]):
         self.state.total_processing_time = (datetime.now() - self.start_time).total_seconds()
         self.state.analysis_timestamp = datetime.now().isoformat()
         
-        # Create final report
+        # Create final report with all required fields
         report = EditorialReport(
-            timestamp=self.state.analysis_timestamp,
-            total_topics_analyzed=len(self.state.topics_discovered),
+            executive_summary=f"Analyzed {len(self.state.topics_discovered)} topics from {self.state.folder_path}. "
+                            f"Content type: {self.state.content_type}, Ownership: {self.state.content_ownership}. "
+                            f"Results: {len(self.state.approved_topics)} approved, "
+                            f"{len(self.state.rejected_topics)} rejected, "
+                            f"{len(self.state.human_review_queue)} for human review.",
             approved_topics=self.state.approved_topics,
             rejected_topics=self.state.rejected_topics,
             human_review_queue=self.state.human_review_queue,
-            processing_time_seconds=self.state.total_processing_time,
-            content_ownership=self.state.content_ownership,
-            validation_path="original" if self.state.content_ownership == "ORIGINAL" else "external"
+            content_calendar=[
+                {
+                    "topic_id": topic["id"],
+                    "title": topic["title"],
+                    "proposed_date": datetime.now().isoformat(),
+                    "platform": "multi"
+                } for topic in self.state.approved_topics
+            ],
+            resource_allocation={
+                "content_team": [topic["id"] for topic in self.state.approved_topics],
+                "review_team": [topic["id"] for topic in self.state.human_review_queue]
+            },
+            performance_predictions={
+                "average_viral_score": sum(topic.get("viral_score", 0.7) for topic in self.state.approved_topics) / max(len(self.state.approved_topics), 1),
+                "expected_engagement": 0.8,
+                "quality_confidence": 0.85
+            },
+            visual_dashboard_data={
+                "total_analyzed": len(self.state.topics_discovered),
+                "approval_rate": len(self.state.approved_topics) / max(len(self.state.topics_discovered), 1),
+                "content_ownership": self.state.content_ownership,
+                "validation_path": "original" if self.state.content_ownership == "ORIGINAL" else "external"
+            }
         )
         
         # Log summary

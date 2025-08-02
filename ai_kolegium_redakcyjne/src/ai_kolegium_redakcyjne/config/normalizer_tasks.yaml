@@ -107,22 +107,80 @@ extract_metadata:
 
 normalize_content:
   description: >
-    Create normalized versions of all content with standardized format:
+    Create normalized versions of all content with standardized format.
     
-    NORMALIZED FILE FORMAT:
+    IMPORTANT DISTINCTION - LOCAL FLAVOR FOR ORIGINAL CONTENT:
+    - If content_type is DRAFT (original content), apply CREATIVE NORMALIZATION
+    - If content_type is SOURCE (external content), apply STANDARD NORMALIZATION
+    
+    CREATIVE NORMALIZATION (for DRAFT/ORIGINAL):
     ```
     ---
     # YAML Frontmatter
-    type: SOURCE|DRAFT|SUGGESTION|TEMPLATE|DATA
+    type: DRAFT
+    content_ownership: ORIGINAL
     platform: twitter|linkedin|newsletter|medium|general
     title: "Clear descriptive title"
     date_processed: "2025-08-01"
     original_file: "path/to/original"
     language: PL|EN|mixed
+    creative_elements:
+      tone: professional|casual|humorous|inspirational
+      style: tutorial|story|analysis|opinion
+      hooks: ["hook 1", "hook 2"]
+      cta: "call to action"
+    metrics:
+      word_count: 1500
+      originality_score: 0.95
+      engagement_potential: 0.85
+    tags: [ai, automation, productivity]
+    ---
+    
+    # Creative Summary
+    Engaging 2-3 sentence hook that captures the essence.
+    
+    # Key Messages
+    - Core message 1
+    - Core message 2
+    - Core message 3
+    
+    # Content Highlights
+    - Unique insights
+    - Original perspectives
+    - Creative angles
+    
+    # Platform Adaptations
+    ## Twitter Thread
+    - Opening hook
+    - Key points for thread
+    
+    ## LinkedIn Post
+    - Professional angle
+    - Business value
+    
+    # Original Content
+    [Full original content preserved here]
+    ```
+    
+    STANDARD NORMALIZATION (for SOURCE/EXTERNAL):
+    ```
+    ---
+    # YAML Frontmatter
+    type: SOURCE
+    content_ownership: EXTERNAL
+    platform: twitter|linkedin|newsletter|medium|general
+    title: "Clear descriptive title"
+    date_processed: "2025-08-01"
+    original_file: "path/to/original"
+    source_info:
+      original_url: "if available"
+      author: "if known"
+      publication_date: "if known"
+    language: PL|EN|mixed
     metrics:
       word_count: 1500
       data_points: 12
-      quality_score: 0.85
+      source_credibility: 0.85
     tags: [ai, automation, productivity]
     ---
     
@@ -139,16 +197,23 @@ normalize_content:
     - $19,500 monthly savings
     - 8 AI agents deployed
     
+    # Source References
+    - [List any sources mentioned]
+    - [Include citations if present]
+    
     # Original Content
     [Full original content preserved here]
     ```
     
     IMPORTANT:
+    - Detect content_ownership from classification phase
+    - Apply appropriate normalization template
+    - For ORIGINAL: Focus on creative potential, hooks, platform adaptations
+    - For EXTERNAL: Focus on data extraction, source tracking, credibility
     - Save normalized files to /content/normalized/ with naming: 
       YYYY-MM-DD-platform-title-slug.md
     - Preserve ALL original content
     - Ensure consistent formatting
-    - Add quality indicators
   expected_output: >
     Normalization report:
     {
