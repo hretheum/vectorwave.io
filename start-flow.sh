@@ -5,6 +5,12 @@
 echo "🚀 Starting AI Kolegium Redakcyjne with CrewAI Flow..."
 echo ""
 
+# Load environment variables if .env exists
+if [ -f .env ]; then
+    echo "📋 Loading environment variables from .env..."
+    export $(cat .env | grep -v '^#' | xargs)
+fi
+
 # Function to kill processes on exit
 cleanup() {
     echo ""

@@ -18,6 +18,10 @@ import os
 import re
 import random
 import logging
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -89,23 +93,33 @@ async def health():
 async def list_content_folders():
     """List available content folders in raw directory"""
     try:
-        raw_dir = Path("/Users/hretheum/dev/bezrobocie/vector-wave/content/raw")
+        raw_dir = Path(BASE_CONTENT_DIR)
         folders = []
         
         if raw_dir.exists():
             for item in raw_dir.iterdir():
-                if item.is_dir():
+                if item.is_dir() and not item.name.startswith('.'):
                     # Count markdown files
                     md_files = list(item.glob("*.md"))
-                    folders.append({
-                        "name": item.name,
-                        "path": f"content/raw/{item.name}",
-                        "files_count": len(md_files),
-                        "modified": item.stat().st_mtime
-                    })
+                    if md_files:  # Only include folders with actual content
+                        folders.append({
+                            "name": item.name,
+                            "path": f"content/raw/{item.name}",
+                            "files_count": len(md_files),
+                            "modified": item.stat().st_mtime
+                        })
         
         # Sort by modification time, newest first
         folders.sort(key=lambda x: x['modified'], reverse=True)
+        
+        # IMPORTANT: No mocks! Return empty list if no content
+        if not folders:
+            return {
+                "status": "empty",
+                "folders": [],
+                "total": 0,
+                "message": "Brak nowych materiałów w content/raw. Dodaj foldery z plikami .md aby rozpocząć analizę."
+            }
         
         return {
             "status": "success",
@@ -380,8 +394,9 @@ def get_next_steps(folder_name: str) -> List[str]:
         "Monitor engagement metrics"
     ]
 
-# Base content directory
-BASE_CONTENT_DIR = "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw"
+# Base content directory from environment
+BASE_CONTENT_DIR = os.getenv("CONTENT_RAW_PATH", "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw")
+ARCHIVE_PROCESSED_CONTENT = os.getenv("ARCHIVE_PROCESSED_CONTENT", "false").lower() == "true"
 
 async def analyze_content(folder_name: str) -> dict:
     """Analyze content in a specific folder using CrewAI Flow"""

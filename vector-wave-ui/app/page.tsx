@@ -30,7 +30,12 @@ export default function Home() {
         console.log('📡 Response status:', response.status);
         const data = await response.json();
         console.log('📂 Data received:', data);
-        if (data.folders) {
+        
+        // Handle empty state from backend
+        if (data.status === 'empty') {
+          setFolders([]);
+          console.log('⚠️ No content in raw folder:', data.message);
+        } else if (data.folders) {
           setFolders(data.folders);
           console.log('✅ Folders set:', data.folders);
         }
@@ -246,6 +251,31 @@ Content wymaga dopracowania lub jest niszowy. Rozważ:
             <div className="flex flex-col items-center justify-center gap-4">
               <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
               <p className="text-gray-600">Ładuję dostępne tematy...</p>
+            </div>
+          </Card>
+        ) : folders.length === 0 ? (
+          // Empty state
+          <Card className="p-12 bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200">
+            <div className="flex flex-col items-center justify-center gap-6 text-center">
+              <div className="p-4 bg-white rounded-full shadow-lg">
+                <Folder className="w-12 h-12 text-gray-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Brak nowych materiałów
+                </h3>
+                <p className="text-gray-600 max-w-md">
+                  Nie znaleziono żadnych folderów z plikami .md w katalogu content/raw.
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  Dodaj foldery z treściami aby rozpocząć analizę.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 text-sm text-gray-600">
+                <p className="font-mono bg-gray-200 px-3 py-1 rounded">
+                  content/raw/nazwa-folderu/*.md
+                </p>
+              </div>
             </div>
           </Card>
         ) : (

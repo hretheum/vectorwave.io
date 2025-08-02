@@ -10,6 +10,10 @@ from datetime import datetime
 import logging
 import os
 import re
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 from .models import (
     TopicDiscoveryList,
@@ -122,8 +126,9 @@ class KolegiumEditorialFlow(Flow[EditorialState]):
         """Initial step: Analyze content to determine type and ownership"""
         logger.info(f"🔍 Analyzing content in: {self.state.folder_path}")
         
-        # Get content files
-        content_dir = os.path.join("/content/normalized", self.state.folder_path)
+        # Get content files from environment or default
+        base_normalized_path = os.getenv("CONTENT_NORMALIZED_PATH", "/content/normalized")
+        content_dir = os.path.join(base_normalized_path, self.state.folder_path)
         if os.path.exists(content_dir):
             files = [f for f in os.listdir(content_dir) if f.endswith('.md')]
             self.state.content_files = files
