@@ -42,6 +42,8 @@ sleep 3
 
 # Start frontend
 echo "🎨 Starting frontend..."
+# We need to go back to the main kolegium directory first
+cd ..
 if [ -d "vector-wave-ui" ]; then
     cd vector-wave-ui
     # Check if node_modules exists
@@ -54,7 +56,8 @@ if [ -d "vector-wave-ui" ]; then
     cd ..
 else
     echo "❌ Frontend directory not found!"
-    echo "   Expected: ./vector-wave-ui"
+    echo "   Current directory: $(pwd)"
+    echo "   Looking for: ./vector-wave-ui"
 fi
 
 echo ""

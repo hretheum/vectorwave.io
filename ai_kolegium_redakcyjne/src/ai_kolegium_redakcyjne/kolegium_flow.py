@@ -3,6 +3,11 @@ CrewAI Flow implementation for AI Kolegium Redakcyjne with conditional logic
 """
 
 from crewai.flow.flow import Flow, listen, start, router
+try:
+    from crewai.flow.flow import or_
+except ImportError:
+    # Fallback if or_ is not available in this version
+    or_ = None
 from crewai import Agent, Crew, Process, Task
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
@@ -243,7 +248,9 @@ class KolegiumEditorialFlow(Flow[EditorialState]):
         
         # Process results
         self._process_validation_results(result, "original")
-        return self.state
+        
+        # Go to final report
+        return self._generate_final_report()
     
     @listen("validate_external_content")
     def validate_external_content(self):
@@ -330,10 +337,11 @@ class KolegiumEditorialFlow(Flow[EditorialState]):
         
         # Process results
         self._process_validation_results(result, "external")
-        return self.state
+        
+        # Go to final report
+        return self._generate_final_report()
     
-    @listen(["validate_original_content", "validate_external_content"])
-    def generate_final_report(self):
+    def _generate_final_report(self):
         """Common final step: Generate editorial report"""
         logger.info("📝 Generating final editorial report...")
         
