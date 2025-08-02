@@ -139,23 +139,154 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: Cha
                 label: '✍️ Wygeneruj draft',
                 action: async () => {
                   // Show generation message
+                  const generatingMsgId = `draft-${Date.now()}`;
                   setMessages(prev => [...prev, {
-                    id: `draft-${Date.now()}`,
+                    id: generatingMsgId,
                     role: 'assistant',
-                    content: `🚧 Generowanie draftu...\n\n**Temat:** ${topic.title}\n**Platforma:** ${topic.platform}\n**Folder:** ${analysisResult.folder}\n\n⏳ Za chwilę pojawi się gotowy draft!`,
+                    content: `🚧 Generowanie draftu...\n\n**Temat:** ${topic.title}\n**Platforma:** ${topic.platform}\n**Folder:** ${analysisResult.folder}\n**Typ contentu:** ${analysisResult.contentOwnership}\n\n⏳ Uruchamiam AI Writing Flow...`,
                     timestamp: new Date()
                   }]);
                   
-                  // TODO: Call writing flow endpoint
-                  // For now, just show a placeholder after 2 seconds
-                  setTimeout(() => {
+                  try {
+                    // Call writing flow endpoint
+                    const response = await fetch('/api/generate-draft', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        topic_title: topic.title,
+                        platform: topic.platform,
+                        folder_path: analysisResult.folder,
+                        content_type: analysisResult.contentType || 'STANDALONE',
+                        content_ownership: analysisResult.contentOwnership || 'EXTERNAL',
+                        viral_score: topic.viralScore,
+                        editorial_recommendations: analysisResult.recommendation || '',
+                        skip_research: analysisResult.contentOwnership === 'ORIGINAL'
+                      })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === 'started' && data.flow_id) {
+                      // Update message with flow ID
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === generatingMsgId 
+                          ? { ...msg, content: msg.content + `\n\n🆔 Flow ID: ${data.flow_id}` }
+                          : msg
+                      ));
+                      
+                      // Poll for results
+                      const pollInterval = setInterval(async () => {
+                        const statusResponse = await fetch(`/api/draft-status/${data.flow_id}`);
+                        const statusData = await statusResponse.json();
+                        
+                        if (statusData.status === 'completed') {
+                          clearInterval(pollInterval);
+                          setMessages(prev => [...prev, {
+                            id: `draft-result-${Date.now()}`,
+                            role: 'assistant',
+                            content: `✅ Draft gotowy!\n\n**${topic.title}**\n\n${statusData.draft || '[Brak draftu - sprawdź logi]'}\n\n📊 Metryki:\n• Quality Score: ${statusData.quality_score || 'N/A'}\n• Style Score: ${statusData.style_score || 'N/A'}\n• Rewizje: ${statusData.revision_count || 0}`,
+                            timestamp: new Date(),
+                            contextActions: [{
+                              label: '📝 Edytuj draft',
+                              action: () => {
+                                // TODO: Open editor with draft
+                                console.log('Edit draft:', statusData.draft);
+                              }
+                            }, {
+                              label: '📤 Publikuj',
+                              action: () => {
+                                // TODO: Trigger distribution flow
+                                console.log('Publish draft');
+                              }
+                            }]
+                          }]);
+                        } else if (statusData.status === 'awaiting_feedback') {
+                          clearInterval(pollInterval);
+                          setMessages(prev => [...prev, {
+                            id: `feedback-request-${Date.now()}`,
+                            role: 'assistant',
+                            content: `👤 **Draft wymaga Twojej opinii!**\n\n${statusData.current_draft || '[Draft w trakcie generowania]'}\n\n**Co chcesz zrobić?**`,
+                            timestamp: new Date(),
+                            contextActions: [{
+                              label: '✅ Akceptuj',
+                              action: async () => {
+                                // Continue without changes
+                                try {
+                                  const feedbackResponse = await fetch('/api/draft-feedback', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      flow_id: data.flow_id,
+                                      feedback_type: 'minor',
+                                      feedback_text: 'Accepted as-is'
+                                    })
+                                  });
+                                  if (feedbackResponse.ok) {
+                                    setMessages(prev => [...prev, {
+                                      id: `feedback-sent-${Date.now()}`,
+                                      role: 'assistant',
+                                      content: '✅ Zaakceptowano! Finalizuję draft...',
+                                      timestamp: new Date()
+                                    }]);
+                                  }
+                                } catch (error) {
+                                  console.error('Feedback error:', error);
+                                }
+                              }
+                            }, {
+                              label: '✏️ Drobne poprawki',
+                              action: () => {
+                                // Minor edits -> style validation
+                                setInput('[FEEDBACK] Drobne poprawki: ');
+                                // Store flow_id for later use
+                                (window as any).currentFlowId = data.flow_id;
+                                (window as any).feedbackType = 'minor';
+                              }
+                            }, {
+                              label: '🔄 Większe zmiany',
+                              action: () => {
+                                // Major changes -> audience re-alignment
+                                setInput('[FEEDBACK] Większe zmiany: ');
+                                (window as any).currentFlowId = data.flow_id;
+                                (window as any).feedbackType = 'major';
+                              }
+                            }, {
+                              label: '🔁 Zmień kierunek',
+                              action: () => {
+                                // Pivot -> new research (or audience for ORIGINAL)
+                                setInput('[FEEDBACK] Nowy kierunek: ');
+                                (window as any).currentFlowId = data.flow_id;
+                                (window as any).feedbackType = 'pivot';
+                              }
+                            }]
+                          }]);
+                        } else if (statusData.status === 'failed') {
+                          clearInterval(pollInterval);
+                          setMessages(prev => [...prev, {
+                            id: `draft-error-${Date.now()}`,
+                            role: 'assistant',
+                            content: `❌ Błąd podczas generowania draftu:\n\n${statusData.error || 'Nieznany błąd'}`,
+                            timestamp: new Date()
+                          }]);
+                        }
+                      }, 2000); // Poll every 2 seconds
+                      
+                      // Stop polling after 5 minutes
+                      setTimeout(() => {
+                        clearInterval(pollInterval);
+                      }, 300000);
+                    } else {
+                      throw new Error(data.detail || 'Failed to start writing flow');
+                    }
+                  } catch (error) {
+                    console.error('Draft generation error:', error);
                     setMessages(prev => [...prev, {
-                      id: `draft-result-${Date.now()}`,
+                      id: `draft-error-${Date.now()}`,
                       role: 'assistant',
-                      content: `✅ Draft gotowy!\n\n[Tu pojawi się wygenerowany content z ai_writing_flow]`,
+                      content: `❌ Nie udało się wygenerować draftu:\n\n${error instanceof Error ? error.message : 'Nieznany błąd'}\n\n💡 Spróbuj ponownie za chwilę.`,
                       timestamp: new Date()
                     }]);
-                  }, 2000);
+                  }
                 }
               }]
             }]);
@@ -180,6 +311,38 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: Cha
     setIsTyping(true);
 
     try {
+      // Check if this is feedback for writing flow
+      if (input.startsWith('[FEEDBACK]') && (window as any).currentFlowId) {
+        const feedbackText = input.replace('[FEEDBACK]', '').replace(/^(Drobne poprawki|Większe zmiany|Nowy kierunek):\s*/, '').trim();
+        const flowId = (window as any).currentFlowId;
+        const feedbackType = (window as any).feedbackType || 'minor';
+        
+        const feedbackResponse = await fetch('/api/draft-feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            flow_id: flowId,
+            feedback_type: feedbackType,
+            feedback_text: feedbackText
+          })
+        });
+        
+        if (feedbackResponse.ok) {
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `✅ Feedback otrzymany! Typ: **${feedbackType}**\n\nPrzetwarzam zmiany...`,
+            timestamp: new Date()
+          }]);
+          
+          // Clear stored values
+          delete (window as any).currentFlowId;
+          delete (window as any).feedbackType;
+        }
+        
+        setIsTyping(false);
+        return;
+      }
       // Call the chat API
       const response = await fetch('/api/chat', {
         method: 'POST',

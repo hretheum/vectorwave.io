@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import Dict, Any, List, Optional, AsyncGenerator
+from typing import Dict, Any, List, Optional, AsyncGenerator, Literal
 import asyncio
 from pathlib import Path
 import json
@@ -27,10 +27,20 @@ logger = logging.getLogger(__name__)
 
 # Add our modules to path
 sys.path.append(str(Path(__file__).parents[3] / "ai_kolegium_redakcyjne/src"))
+sys.path.append(str(Path(__file__).parents[3] / "ai_writing_flow/src"))
 
 # Import our crews
 from ai_kolegium_redakcyjne.normalizer_crew import ContentNormalizerCrew
 from ai_kolegium_redakcyjne.crew import AiKolegiumRedakcyjne
+
+# Import writing flow
+try:
+    from ai_writing_flow.main import AIWritingFlow
+    from ai_writing_flow.models import WritingFlowState, HumanFeedbackDecision
+    WRITING_FLOW_AVAILABLE = True
+except ImportError:
+    print("⚠️ AI Writing Flow not available")
+    WRITING_FLOW_AVAILABLE = False
 
 # Check if CrewAI is available
 CREWAI_AVAILABLE = False
@@ -72,6 +82,22 @@ class SaveMetadataRequest(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     context: Optional[Dict[str, Any]] = {}
+
+class GenerateDraftRequest(BaseModel):
+    topic_title: str
+    platform: str
+    folder_path: str
+    content_type: Literal["STANDALONE", "SERIES"] = "STANDALONE"
+    content_ownership: Literal["ORIGINAL", "EXTERNAL"] = "EXTERNAL"
+    viral_score: float
+    editorial_recommendations: str = ""
+    skip_research: bool = False
+
+class DraftFeedbackRequest(BaseModel):
+    flow_id: str
+    feedback_type: Literal["minor", "major", "pivot"]
+    feedback_text: str
+    specific_changes: Optional[List[str]] = None
 
 @app.post("/chat")
 async def chat(request: ChatRequest):
@@ -638,6 +664,189 @@ async def analyze_content_endpoint(request: Dict[str, Any]):
         raise HTTPException(status_code=500, detail=result["error"])
     
     return result
+
+# Store for active writing flows
+active_flows = {}
+
+@app.post("/api/generate-draft")
+async def generate_draft(request: GenerateDraftRequest):
+    """Start AI Writing Flow to generate draft"""
+    try:
+        if not WRITING_FLOW_AVAILABLE:
+            raise HTTPException(status_code=503, detail="AI Writing Flow not available")
+        
+        # Create flow state from request
+        initial_state = WritingFlowState(
+            topic_title=request.topic_title,
+            platform=request.platform,
+            folder_path=request.folder_path,
+            content_type=request.content_type,
+            content_ownership=request.content_ownership,
+            viral_score=request.viral_score,
+            editorial_recommendations=request.editorial_recommendations,
+            skip_research=request.skip_research
+        )
+        
+        # Generate unique flow ID
+        flow_id = str(uuid.uuid4())
+        
+        # Initialize flow
+        flow = AIWritingFlow()
+        active_flows[flow_id] = {
+            "flow": flow,
+            "state": initial_state,
+            "status": "running",
+            "started_at": datetime.now().isoformat()
+        }
+        
+        # Start flow in background (in production, use proper async task queue)
+        import asyncio
+        asyncio.create_task(run_writing_flow(flow_id, flow, initial_state))
+        
+        return {
+            "status": "started",
+            "flow_id": flow_id,
+            "message": f"Started generating draft for: {request.topic_title}",
+            "metadata": {
+                "platform": request.platform,
+                "content_ownership": request.content_ownership,
+                "skip_research": request.skip_research
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Generate draft error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+async def run_writing_flow(flow_id: str, flow: AIWritingFlow, initial_state: WritingFlowState):
+    """Run writing flow asynchronously"""
+    try:
+        # Run flow
+        result = await asyncio.to_thread(flow.kickoff, initial_state)
+        
+        # Update flow status
+        active_flows[flow_id]["status"] = "completed"
+        active_flows[flow_id]["result"] = result
+        active_flows[flow_id]["completed_at"] = datetime.now().isoformat()
+        
+    except Exception as e:
+        logger.error(f"Writing flow error: {e}")
+        active_flows[flow_id]["status"] = "failed"
+        active_flows[flow_id]["error"] = str(e)
+
+@app.post("/api/draft-feedback")
+async def submit_draft_feedback(request: DraftFeedbackRequest):
+    """Submit human feedback for draft"""
+    try:
+        if request.flow_id not in active_flows:
+            raise HTTPException(status_code=404, detail="Flow not found")
+        
+        flow_data = active_flows[request.flow_id]
+        if flow_data["status"] != "awaiting_feedback":
+            raise HTTPException(status_code=400, detail="Flow not awaiting feedback")
+        
+        # Create feedback object
+        feedback = HumanFeedbackDecision(
+            feedback_type=request.feedback_type,
+            feedback_text=request.feedback_text,
+            specific_changes=request.specific_changes,
+            continue_to_stage="generate_draft" if request.feedback_type == "minor" else "align_audience"
+        )
+        
+        # In production, this would signal the flow to continue
+        # For now, we'll simulate it
+        flow_data["feedback"] = feedback
+        flow_data["status"] = "processing_feedback"
+        
+        return {
+            "status": "success",
+            "message": f"Feedback received: {request.feedback_type}",
+            "flow_id": request.flow_id
+        }
+        
+    except Exception as e:
+        logger.error(f"Draft feedback error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/draft-status/{flow_id}")
+async def get_draft_status(flow_id: str):
+    """Check writing flow progress"""
+    try:
+        if flow_id not in active_flows:
+            raise HTTPException(status_code=404, detail="Flow not found")
+        
+        flow_data = active_flows[flow_id]
+        response = {
+            "flow_id": flow_id,
+            "status": flow_data["status"],
+            "started_at": flow_data["started_at"],
+            "current_stage": None,
+            "agents_executed": []
+        }
+        
+        # Add details based on status
+        if flow_data["status"] == "completed":
+            result = flow_data.get("result")
+            if result:
+                response.update({
+                    "current_stage": result.current_stage,
+                    "agents_executed": result.agents_executed,
+                    "draft": result.final_draft,
+                    "quality_score": result.quality_score,
+                    "style_score": result.style_score,
+                    "revision_count": result.revision_count,
+                    "completed_at": flow_data.get("completed_at")
+                })
+        elif flow_data["status"] == "failed":
+            response["error"] = flow_data.get("error")
+        elif flow_data["status"] == "awaiting_feedback":
+            response["awaiting_feedback"] = True
+            response["current_draft"] = flow_data.get("current_draft")
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Draft status error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/generate-draft-stream")
+async def generate_draft_stream(request: GenerateDraftRequest):
+    """Generate draft with streaming updates"""
+    async def stream_draft_generation() -> AsyncGenerator[str, None]:
+        try:
+            if not WRITING_FLOW_AVAILABLE:
+                yield f"data: {json.dumps({'type': 'error', 'message': 'AI Writing Flow not available'})}\\n\\n"
+                return
+            
+            # Start event
+            yield f"data: {json.dumps({'type': 'start', 'message': f'Starting draft generation for: {request.topic_title}', 'timestamp': datetime.now().isoformat()})}\\n\\n"
+            
+            # Flow stages simulation
+            stages = [
+                ("research", "🔍 Conducting research..." if not request.skip_research else "⏭️ Skipping research (ORIGINAL content)"),
+                ("audience", "👥 Aligning with target audiences..."),
+                ("draft", "✍️ Generating initial draft..."),
+                ("human_review", "👤 Awaiting human review..."),
+                ("style", "📏 Validating style compliance..."),
+                ("quality", "✅ Running quality check..."),
+                ("complete", "✨ Draft generation complete!")
+            ]
+            
+            for stage, message in stages:
+                await asyncio.sleep(2)  # Simulate processing
+                yield f"data: {json.dumps({'type': 'stage', 'stage': stage, 'message': message, 'timestamp': datetime.now().isoformat()})}\\n\\n"
+                
+                # Skip research for ORIGINAL content
+                if stage == "research" and (request.content_ownership == "ORIGINAL" or request.skip_research):
+                    continue
+            
+            # Final result
+            yield f"data: {json.dumps({'type': 'complete', 'draft': 'Generated draft content here...', 'timestamp': datetime.now().isoformat()})}\\n\\n"
+            
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e), 'timestamp': datetime.now().isoformat()})}\\n\\n"
+    
+    return StreamingResponse(stream_draft_generation(), media_type="text/event-stream")
 
 if __name__ == "__main__":
     import uvicorn

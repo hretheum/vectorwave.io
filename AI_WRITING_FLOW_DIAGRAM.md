@@ -24,7 +24,10 @@ graph TD
         B -->|ORIGINAL<br/>or UI override| D[Audience Alignment<br/><i>Audience Mapper</i>]
         C --> D
         D --> E[Draft Generation<br/><i>Content Writer</i>]
-        E --> F[Style Guide Validation<br/><i>Style Validator</i>]
+        E --> P{Human Review<br/><i>UI Integration</i>}
+        P -->|Minor Edits| F[Style Guide Validation<br/><i>Style Validator</i>]
+        P -->|Content Changes| D
+        P -->|Direction Change| C
         F --> G{Quality Check<br/><i>Quality Controller</i>}
         G -->|Fail| I[Revision Loop]
         I --> E
@@ -57,6 +60,7 @@ graph TD
     style M fill:#d32f2f,color:#fff
     style N fill:#1976d2,color:#fff
     style O fill:#388e3c,color:#fff
+    style P fill:#ff5722,color:#fff
 ```
 
 ### Przepływ danych między systemami
