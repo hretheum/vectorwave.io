@@ -398,23 +398,15 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
           "container mx-auto px-4 py-8 transition-all duration-300",
           chatDocked && "pr-96"
         )}>
-        {/* Welcome Section */}
-        <Card className="mb-8 border-0 shadow-xl bg-gradient-to-br from-white to-indigo-50/50">
-          <CardHeader className="pb-4">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
-                <Brain className="w-8 h-8 text-white" />
-              </div>
-              <div className="flex-1">
-                <CardTitle className="text-2xl mb-2">Cześć! Jestem Twoim AI Asystentem Redakcyjnym 👋</CardTitle>
-                <CardDescription className="text-base">
-                  Automatycznie załadowałem dostępne tematy do analizy. Kliknij przy folderze, który Cię interesuje,
-                  a pokażę Ci jego potencjał marketingowy i propozycje wykorzystania.
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
+        {/* Dashboard Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+          <p className="text-gray-600">
+            {folders.length > 0 
+              ? `${folders.length} tematów gotowych do analizy` 
+              : 'Brak tematów do analizy - dodaj pliki do folderu raw'}
+          </p>
+        </div>
 
         {/* Folders Grid */}
         {isLoading ? (
