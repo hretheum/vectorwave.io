@@ -2,19 +2,21 @@
 
 ## 🚀 Szybki start
 
-### 1. Uruchom backend z Flow
+### Opcja 1: Skrypt startowy (rekomendowane)
 ```bash
-cd ai_publishing_cycle
-USE_CREWAI_FLOW=true python src/ai_publishing_cycle/copilot_backend.py
+./start-flow.sh
 ```
 
-### 2. Uruchom frontend
+### Opcja 2: Ręczne uruchomienie
 ```bash
-cd vector-wave-ui
-npm run dev
+# W jednym terminalu - backend z Flow
+cd ai_publishing_cycle && USE_CREWAI_FLOW=true python src/ai_publishing_cycle/copilot_backend.py
+
+# W drugim terminalu - frontend
+cd vector-wave-ui && npm run dev
 ```
 
-### 3. Otwórz w przeglądarce
+### Otwórz w przeglądarce
 http://localhost:3000
 
 ## 🔄 Jak działa Flow
