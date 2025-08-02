@@ -24,6 +24,15 @@ trap cleanup EXIT INT TERM
 
 # Start backend with Flow
 echo "📡 Starting backend server with CrewAI Flow..."
+# Check for Python virtual environment
+if [ -d "ai_publishing_cycle/.venv" ]; then
+    echo "🐍 Activating backend virtual environment..."
+    source ai_publishing_cycle/.venv/bin/activate
+elif [ -d ".venv" ]; then
+    echo "🐍 Activating global virtual environment..."
+    source .venv/bin/activate
+fi
+
 cd ai_publishing_cycle && USE_CREWAI_FLOW=true python src/ai_publishing_cycle/copilot_backend.py &
 BACKEND_PID=$!
 cd ..
@@ -33,9 +42,20 @@ sleep 3
 
 # Start frontend
 echo "🎨 Starting frontend..."
-cd vector-wave-ui && npm run dev &
-FRONTEND_PID=$!
-cd ..
+if [ -d "vector-wave-ui" ]; then
+    cd vector-wave-ui
+    # Check if node_modules exists
+    if [ ! -d "node_modules" ]; then
+        echo "📦 Installing frontend dependencies..."
+        npm install
+    fi
+    npm run dev &
+    FRONTEND_PID=$!
+    cd ..
+else
+    echo "❌ Frontend directory not found!"
+    echo "   Expected: ./vector-wave-ui"
+fi
 
 echo ""
 echo "✅ Services started!"
