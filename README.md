@@ -24,8 +24,9 @@ Zautomatyzowany system redakcyjny gdzie **5 wyspecjalizowanych agentów AI** wsp
 
 Inteligentny system który **automatyzuje proces redakcyjny** od odkrycia trendu do decyzji o publikacji.
 
-### 🤖 **5 Współpracujących Agentów AI**
+### 🤖 **10+ Współpracujących Agentów AI**
 
+### Kolegium Redakcyjne (5 agentów)
 | Agent | Rola | Główne zadanie |
 |-------|------|----------------|
 | **Content Scout** | 🔍 Odkrywca | Skanuje internet w poszukiwaniu trending topics |
@@ -33,6 +34,15 @@ Inteligentny system który **automatyzuje proces redakcyjny** od odkrycia trendu
 | **Editorial Strategist** | 📝 Strateg | Podejmuje decyzje redakcyjne (z human-in-the-loop) |
 | **Quality Assessor** | ✅ Kontroler | Fact-checking, source verification, quality control |
 | **Decision Coordinator** | 🎯 Koordynator | Orkiestruje całą współpracę i generuje raporty |
+
+### AI Writing Flow (5 agentów)
+| Agent | Rola | Główne zadanie |
+|-------|------|----------------|
+| **Research Agent** | 🔬 Badacz | Deep research, źródła, fact-finding |
+| **Audience Mapper** | 👥 Strateg | Dopasowanie do grup docelowych |
+| **Content Writer** | ✍️ Pisarz | Generowanie contentu zgodnego ze styleguide |
+| **Style Validator** | 📏 Strażnik | Walidacja stylu Vector Wave |
+| **Quality Controller** | 🎯 Kontroler | Finalna ocena jakości i etyki |
 
 ### ⚡ **Kluczowe Zalety**
 
@@ -308,6 +318,28 @@ const EditorialDashboard = () => {
   );
 };
 ```
+## ✍️ **AI Writing Flow - Generowanie Contentu**
+
+### Architektura Flow
+```
+Topic Selection → Research* → Audience Mapping → Draft Generation 
+                     ↓                                    ↓
+              (*skip for ORIGINAL)              Human Review Loop
+                                                         ↓
+                                              Style Validation → Quality Check → Publication
+```
+
+### Human-in-the-Loop Decision Points
+- **Minor edits** → Style validation → Quality check
+- **Major changes** → Audience re-alignment → New draft
+- **Direction pivot** → New research (or audience for ORIGINAL)
+
+### Integracja z UI
+- Przycisk "Wygeneruj draft" w ChatPanel
+- Real-time polling statusu generowania
+- Interfejs feedbacku z 4 opcjami decyzji
+- Metryki jakości (Quality Score, Style Score)
+
 ## 🗺️ **Implementation Status**
 
 ### ✅ **Phase 1: Foundation** (COMPLETED)
@@ -315,18 +347,25 @@ const EditorialDashboard = () => {
 - Docker + CI/CD pipeline working
 - Basic CrewAI agents functional
 
-### 🔄 **Phase 2: Core Agents** (IN PROGRESS)  
+### ✅ **Phase 2: Core Agents** (COMPLETED)  
 - Content Scout + Trend Analyst implemented
 - AG-UI event system partially integrated
 - PostgreSQL + Redis infrastructure ready
+- **AI Writing Flow fully implemented** (5 agents)
+- **UI integration with generate-draft endpoints**
+- **Human feedback loop operational**
 
-### 📋 **Phase 3-5: Advanced Features** (PLANNED)
-- Human-in-the-loop workflows
-- Quality Assessor + Decision Coordinator
+### 🔄 **Phase 3: Integration** (IN PROGRESS)
+- Connecting Kolegium Flow with Writing Flow
+- WebSocket/SSE for real-time updates
+- End-to-end testing
+
+### 📋 **Phase 4-5: Advanced Features** (PLANNED)
 - Dynamic agent creation
 - Production hardening
+- Performance optimization
 
-**Current Status**: Uruchomiony Content Scout może odkrywać trending topics i Trend Analyst ocenia ich viral potential. System gotowy do dodania kolejnych agentów.
+**Current Status**: System ma pełne Kolegium Redakcyjne (5 agentów) oraz AI Writing Flow (5 agentów). UI jest zintegrowane z endpointami do generowania draftów. Human-in-the-loop feedback działa.
 
 ## 💰 **Resource Requirements**
 
