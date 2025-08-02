@@ -5,6 +5,17 @@
 echo "🚀 Starting AI Kolegium Redakcyjne with CrewAI Flow..."
 echo ""
 
+# Store the starting directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR"
+
+# Check if port 8001 is already in use
+if lsof -Pi :8001 -sTCP:LISTEN -t >/dev/null ; then
+    echo "⚠️  Port 8001 is already in use. Killing existing process..."
+    lsof -ti:8001 | xargs kill -9 2>/dev/null
+    sleep 2
+fi
+
 # Load environment variables if .env exists
 if [ -f .env ]; then
     echo "📋 Loading environment variables from .env..."
@@ -16,6 +27,9 @@ cleanup() {
     echo ""
     echo "🛑 Stopping services..."
     kill $BACKEND_PID $FRONTEND_PID 2>/dev/null
+    # Also try to kill by port in case PIDs are lost
+    lsof -ti:8001 | xargs kill -9 2>/dev/null
+    lsof -ti:3000 | xargs kill -9 2>/dev/null
     exit
 }
 
@@ -35,15 +49,25 @@ fi
 
 cd ai_publishing_cycle && USE_CREWAI_FLOW=true python src/ai_publishing_cycle/copilot_backend.py &
 BACKEND_PID=$!
-cd ..
+cd "$SCRIPT_DIR"
 
-# Wait a bit for backend to start
+# Wait and check if backend actually started
+echo "⏳ Waiting for backend to start..."
 sleep 3
+
+# Check if backend is running
+if ! kill -0 $BACKEND_PID 2>/dev/null; then
+    echo "❌ Backend failed to start!"
+    echo "   Check logs above for errors"
+    # Continue anyway - maybe frontend can still be useful
+else
+    echo "✅ Backend is running on PID $BACKEND_PID"
+fi
 
 # Start frontend
 echo "🎨 Starting frontend..."
-# We need to go back to the main kolegium directory first
-cd ..
+# Return to script directory
+cd "$SCRIPT_DIR"
 if [ -d "vector-wave-ui" ]; then
     cd vector-wave-ui
     # Check if node_modules exists
@@ -56,8 +80,10 @@ if [ -d "vector-wave-ui" ]; then
     cd ..
 else
     echo "❌ Frontend directory not found!"
+    echo "   Script directory: $SCRIPT_DIR"
     echo "   Current directory: $(pwd)"
     echo "   Looking for: ./vector-wave-ui"
+    # Don't exit - backend might still work
 fi
 
 echo ""
