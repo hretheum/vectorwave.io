@@ -1,383 +1,184 @@
 #!/usr/bin/env python
 """
-AI Writing Flow - Content generation with styleguide compliance and human-in-the-loop
+AI Writing Flow - Production V2 with Full Monitoring & Quality Gates
+
+This is the main entry point for AI Writing Flow V2, providing:
+- Complete monitoring stack with real-time KPI tracking
+- Multi-channel alerting system (console, webhook, email)  
+- Quality gates with 5 validation rules
+- Linear execution flow (eliminates infinite loops)
+- Backward compatibility with Kolegium system
+
+V2 replaces the legacy @router/@listen implementation with production-ready architecture.
 """
 
 import os
 import logging
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 from pathlib import Path
 
-from crewai.flow import Flow, listen, start, router
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
+# Phase 4: Import V2 Production Implementation
+from ai_writing_flow.ai_writing_flow_v2 import AIWritingFlowV2
+
+# Legacy compatibility imports
 from ai_writing_flow.models import WritingFlowState, HumanFeedbackDecision
-from ai_writing_flow.crews.writing_crew import WritingCrew
-from ai_writing_flow.tools.styleguide_loader import load_styleguide_context
 from ai_writing_flow.utils.ui_bridge import UIBridge
 
 # Load environment variables
 load_dotenv()
 
-# AGGRESSIVE CrewAI FLOOD PREVENTION
-os.environ["CREWAI_STORAGE_LOG_ENABLED"] = "false"
-os.environ["CREWAI_FLOW_EXECUTION_LOG_ENABLED"] = "false"
-os.environ["CREWAI_PROGRESS_TRACKING_ENABLED"] = "false"
-
-# Configure logging with aggressive CrewAI suppression
+# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(message)s')
 logger = logging.getLogger(__name__)
 
-# KILL ALL CrewAI LOGGERS
-for logger_name in [
-    'crewai', 'crewai.flow', 'crewai_flows', 'crewai.memory', 
-    'crewai.telemetry', 'crewai.crew', 'crewai.agent', 'crewai.task',
-    'crewai.tools', 'crewai.utilities', 'crewai.llm',
-    'crewai.flows', 'crewai.flows.flow', 'crewai.flows.engine'
-]:
-    logging.getLogger(logger_name).setLevel(logging.CRITICAL)
-    logging.getLogger(logger_name).disabled = True
+
+# Phase 4: AIWritingFlowV2 Integration - Task 30.1
+# This is the new production-ready flow class with full monitoring & quality gates
+AIWritingFlowV2 = AIWritingFlowV2  # Export V2 as primary class
 
 
-class AIWritingFlow(Flow[WritingFlowState]):
-    """Main flow for AI content writing with human feedback loop"""
+# Legacy compatibility wrapper - maintains backward compatibility with Kolegium
+class AIWritingFlow:
+    """
+    Legacy compatibility wrapper for AIWritingFlow
     
-    def __init__(self):
-        super().__init__(verbose=False)  # Disable verbose logging
-        self.crew = WritingCrew()
+    This class maintains backward compatibility with existing Kolegium integrations
+    while delegating to the new AIWritingFlowV2 implementation.
+    
+    DEPRECATED: Use AIWritingFlowV2 directly for new implementations
+    """
+    
+    def __init__(self, **kwargs):
+        """Initialize legacy wrapper with V2 flow"""
+        logger.info("🔄 Legacy AIWritingFlow wrapper - using V2 implementation")
+        
+        # Initialize V2 flow with production defaults
+        self.flow_v2 = AIWritingFlowV2(
+            monitoring_enabled=kwargs.get('monitoring_enabled', True),
+            alerting_enabled=kwargs.get('alerting_enabled', True), 
+            quality_gates_enabled=kwargs.get('quality_gates_enabled', True),
+            storage_path=kwargs.get('storage_path', None)
+        )
+        
+        # Legacy compatibility properties
         self.ui_bridge = UIBridge()
-        self.styleguide_context = load_styleguide_context()
-        self._execution_count = 0  # Track how many times flow executes
+        self._execution_count = 0
         
-    @start()
-    def receive_topic(self):
-        """Receive topic selection from Kolegium"""
-        self._execution_count += 1
-        # logger.info(f"🌊 Flow execution #{self._execution_count}")  # Wykomentowane - powodowało flood
-        
-        if self._execution_count > 1:
-            logger.error("❌ Flow executed too many times, preventing infinite loop!")
-            return "finalize_output"
-            
-        logger.info(f"📝 Starting Writing Flow for: {self.state.topic_title}")
-        logger.info(f"📁 Content path: {self.state.file_path}")
-        logger.info(f"🎯 Platform: {self.state.platform}")
-        logger.info(f"📊 Viral Score: {self.state.viral_score}")
-        logger.info(f"🏷️ Content Ownership: {self.state.content_ownership}")
-        logger.info(f"📄 Content Type: {self.state.content_type}")
-        logger.info(f"💡 Editorial Recommendations: {self.state.editorial_recommendations}")
-        logger.info(f"🔬 Skip Research: {self.state.skip_research}")
-        
-        # Check if file_path is a folder or file
-        content_path = Path(self.state.file_path)
-        
-        if content_path.is_dir():
-            logger.info(f"📂 Processing folder with normalized content")
-            # Find markdown files in the folder
-            md_files = list(content_path.glob("*.md"))
-            # Filter out metadata files
-            md_files = [f for f in md_files if f.name != "NORMALIZATION_META.json"]
-            
-            if md_files:
-                # Store source files for later use
-                self.state.source_files = [str(f) for f in md_files]
-                logger.info(f"📄 Found {len(md_files)} normalized files")
-                
-                # For now, use the first file as primary source
-                # Later, research crew can read all files
-                if len(md_files) == 1:
-                    self.state.file_path = str(md_files[0])
-                    logger.info(f"📄 Using single file: {md_files[0].name}")
-                else:
-                    logger.info(f"📚 Multiple files found, will process all in research phase")
-        elif content_path.is_file():
-            logger.info(f"📄 Processing single normalized file")
-            self.state.source_files = [str(content_path)]
-        else:
-            raise ValueError(f"Invalid content path: {content_path}")
-        
-        self.state.current_stage = "topic_received"
-        self.state.agents_executed.append("flow_initialized")
-        
-        # Check if we should skip research
-        if self.state.content_ownership == "ORIGINAL" or self.state.skip_research:
-            logger.info("⏭️ Skipping research phase for ORIGINAL content")
-        
-        # Router will handle the actual routing
-        return self
+        # Initialize legacy state for compatibility
+        self.state = WritingFlowState()
     
-    @router(receive_topic)
-    def route_after_topic(self):
-        """Route based on content ownership"""
-        if self.state.content_ownership == "ORIGINAL" or self.state.skip_research:
-            return "align_audience"
-        return "conduct_research"
-    
-    @listen("conduct_research")
-    def conduct_research(self):
-        """Deep content research for EXTERNAL content"""
-        logger.info("🔍 Conducting deep research...")
+    def kickoff(self, inputs: Dict[str, Any]) -> WritingFlowState:
+        """
+        Legacy compatibility method - delegates to V2 flow
         
-        # Prevent re-execution
-        if "research_agent" in self.state.agents_executed:
-            logger.warning("⚠️ Research already completed, skipping...")
-            return "align_audience"
+        Args:
+            inputs: Flow input parameters (legacy format)
+            
+        Returns:
+            WritingFlowState: Final execution state
+        """
         
-        self.state.current_stage = "research"
-        self.state.agents_executed.append("research_agent")
+        logger.info("🔄 Legacy kickoff() called - delegating to V2 flow")
         
         try:
-            result = self.crew.research_agent().execute(
-                topic=self.state.topic_title,
-                sources_path=self.state.file_path,
-                context=self.styleguide_context,
-                content_ownership=self.state.content_ownership
-            )
+            # Convert legacy inputs and execute V2 flow
+            final_state = self.flow_v2.kickoff(inputs)
             
-            self.state.research_sources = result.sources
-            self.state.research_summary = result.summary
+            # Update legacy state for compatibility
+            self.state = final_state
             
-            logger.info("✅ Research completed successfully")
-            return "align_audience"
+            return final_state
             
         except Exception as e:
-            logger.error(f"❌ Research failed: {str(e)}", exc_info=True)
-            # Return to next stage anyway to avoid infinite loop
-            self.state.research_sources = []
-            self.state.research_summary = "Research skipped due to error"
-            return "align_audience"
+            logger.error(f"❌ Legacy flow execution failed: {e}")
+            # Create failure state for compatibility
+            failure_state = WritingFlowState()
+            failure_state.current_stage = "failed"
+            failure_state.error_message = str(e)
+            self.state = failure_state
+            return failure_state
     
-    @listen("align_audience")
-    def align_audience(self):
-        """Align content with target audiences"""
-        logger.info("👥 Aligning with target audiences...")
-        
-        # Check if we already completed this stage
-        if self.state.current_stage == "audience_alignment_completed":
-            logger.warning("⚠️ Audience alignment already completed, skipping...")
-            return "generate_draft"
-        
-        self.state.current_stage = "audience_alignment"
-        self.state.agents_executed.append("audience_mapper")
-        
-        try:
-            # Create audience crew instance
-            audience_crew = self.crew.audience_mapper()
-            
-            logger.info("🎯 Executing audience crew...")
-            result = audience_crew.execute(
-                topic=self.state.topic_title,
-                platform=self.state.platform,
-                research_summary=self.state.research_summary,
-                editorial_recommendations=self.state.editorial_recommendations
-            )
-            
-            logger.info(f"✅ Audience crew completed. Result type: {type(result)}")
-            
-            self.state.audience_scores = {
-                "technical_founder": result.technical_founder_score,
-                "senior_engineer": result.senior_engineer_score,
-                "decision_maker": result.decision_maker_score,
-                "skeptical_learner": result.skeptical_learner_score
-            }
-            self.state.target_depth_level = result.recommended_depth
-            
-            # Mark as completed to prevent re-execution
-            self.state.current_stage = "audience_alignment_completed"
-            
-            logger.info(f"📊 Audience scores set: {self.state.audience_scores}")
-            logger.info("➡️ Moving to generate_draft phase...")
-            
-            return "generate_draft"
-            
-        except Exception as e:
-            logger.error(f"❌ Error in align_audience: {str(e)}", exc_info=True)
-            raise
+    def plot(self, filename: str = "ai_writing_flow_diagram.png") -> None:
+        """Legacy plot method - delegates to V2"""
+        logger.info("🔄 Legacy plot() called - using V2 diagram")
+        self.flow_v2.plot(filename)
     
-    @listen("generate_draft")
-    def generate_draft(self):
-        """Generate initial draft"""
-        logger.info("✍️ Generating draft...")
-        
-        # Prevent re-execution
-        if "content_writer" in self.state.agents_executed:
-            logger.warning("⚠️ Content writer already executed, skipping...")
-            return "validate_style"
-            
-        self.state.current_stage = "draft_generation"
-        self.state.agents_executed.append("content_writer")
-        
-        result = self.crew.content_writer().execute(
-            topic=self.state.topic_title,
-            platform=self.state.platform,
-            audience_insights=self.state.audience_insights,
-            research_summary=self.state.research_summary,
-            depth_level=self.state.target_depth_level,
-            styleguide_context=self.styleguide_context
-        )
-        
-        self.state.current_draft = result.draft
-        self.state.draft_versions.append(result.draft)
-        
-        # Send draft to UI for human review
-        logger.info("👤 Sending draft for human review...")
-        self.ui_bridge.send_draft_for_review(
-            draft=result.draft,
-            metadata={
-                "word_count": result.word_count,
-                "structure_type": result.structure_type,
-                "non_obvious_insights": result.non_obvious_insights
-            }
-        )
-        
-        # For MVP, skip human feedback and go directly to style validation
-        logger.info("🚀 MVP Mode: Skipping human feedback, proceeding to style validation")
-        return "validate_style"
+    def get_dashboard_metrics(self) -> Dict[str, Any]:
+        """Get dashboard metrics from V2 flow"""
+        return self.flow_v2.get_dashboard_metrics()
     
-    @listen("await_human_feedback")
-    def await_human_feedback(self):
-        """Wait for human feedback on draft"""
-        logger.info("⏳ Awaiting human feedback...")
-        self.state.current_stage = "human_review"
-        
-        # For MVP, we'll auto-approve after mock feedback
-        # In production, this would wait for actual UI callback
-        logger.info("🤖 Using mock feedback for MVP")
-        feedback = self.ui_bridge.get_human_feedback()
-        
-        if feedback:
-            self.state.human_feedback = feedback.feedback_text
-            self.state.human_feedback_type = feedback.feedback_type
-            
-            return f"process_{feedback.feedback_type}_feedback"
-        
-        # No feedback means approve as-is
-        return "validate_style"
+    def get_health_status(self) -> Dict[str, Any]:
+        """Get health status from V2 flow"""
+        return self.flow_v2.get_health_status()
     
-    @router(await_human_feedback)
-    def route_human_feedback(self):
-        """Route based on human feedback type"""
-        if not self.state.human_feedback_type:
-            return "validate_style"
-        
-        feedback_routes = {
-            "minor": "validate_style",      # Minor edits -> style check
-            "major": "align_audience",       # Content changes -> re-align
-            "pivot": "conduct_research"      # Direction change -> research
-        }
-        
-        # For ORIGINAL content, skip research even on pivot
-        if self.state.human_feedback_type == "pivot" and self.state.content_ownership == "ORIGINAL":
-            return "align_audience"
-        
-        return feedback_routes.get(self.state.human_feedback_type, "validate_style")
-    
-    @listen("validate_style")
-    def validate_style(self):
-        """Validate against style guide"""
-        logger.info("📏 Validating style compliance...")
-        self.state.current_stage = "style_validation"
-        self.state.agents_executed.append("style_validator")
-        
-        result = self.crew.style_validator().execute(
-            draft=self.state.current_draft,
-            styleguide_context=self.styleguide_context
-        )
-        
-        self.state.style_violations = result.violations
-        self.state.forbidden_phrases_found = result.forbidden_phrases
-        self.state.style_score = result.compliance_score
-        
-        if not result.is_compliant:
-            logger.warning(f"❌ Style violations found: {len(result.violations)}")
-            self.state.revision_count += 1
-            
-            if self.state.revision_count > 3:
-                logger.error("🚨 Max revisions reached, escalating to human")
-                self.ui_bridge.escalate_to_human("Max revision attempts")
-                return "finalize_output"
-            
-            return "generate_draft"  # Retry with feedback
-        
-        return "quality_check"
-    
-    @listen("quality_check")
-    def quality_check(self):
-        """Final quality assessment"""
-        logger.info("✅ Running quality check...")
-        self.state.current_stage = "quality_assessment"
-        self.state.agents_executed.append("quality_controller")
-        
-        result = self.crew.quality_controller().execute(
-            draft=self.state.current_draft,
-            sources=self.state.research_sources,
-            styleguide_context=self.styleguide_context
-        )
-        
-        self.state.quality_score = result.quality_score
-        self.state.quality_issues = result.improvement_suggestions
-        
-        if not result.is_approved or result.requires_human_review:
-            logger.warning("🚨 Quality check failed or requires human review")
-            self.ui_bridge.request_human_review(result)
-            return "await_human_feedback"
-        
-        return "finalize_output"
-    
-    @listen("finalize_output")
-    def finalize_output(self):
-        """Prepare final output package"""
-        logger.info("📦 Finalizing output...")
-        self.state.current_stage = "completed"
-        
-        self.state.final_draft = self.state.current_draft
-        self.state.total_processing_time = (
-            datetime.now() - self.state.flow_start_time
-        ).total_seconds()
-        
-        # Prepare metadata
-        self.state.publication_metadata = {
-            "topic": self.state.topic_title,
-            "platform": self.state.platform,
-            "viral_score": self.state.viral_score,
-            "quality_score": self.state.quality_score,
-            "style_score": self.state.style_score,
-            "audience_alignment": self.state.audience_scores,
-            "revision_count": self.state.revision_count,
-            "processing_time": self.state.total_processing_time,
-            "agents_executed": self.state.agents_executed
-        }
-        
-        logger.info("✨ Writing Flow completed successfully!")
-        self.ui_bridge.send_completion_notice(self.state)
-        
-        return self.state
+    def emergency_stop(self) -> None:
+        """Emergency stop - delegates to V2"""
+        logger.critical("🚨 Legacy emergency stop - delegating to V2")
+        self.flow_v2.emergency_stop()
 
 
 def kickoff():
-    """Entry point for the flow"""
-    # Example input from Kolegium - using REAL normalized content
-    initial_state = WritingFlowState(
-        topic_title="General Workshop Content Framework",
-        platform="LinkedIn",
-        file_path="content/normalized/2025-07-31-general-workshop-2-content-framework.md",  # Specific file
-        content_type="STANDALONE",
-        content_ownership="ORIGINAL",  # Our own content
-        viral_score=7.5,
-        editorial_recommendations="Focus on practical framework implementation"
-    )
+    """
+    Legacy entry point - now uses AIWritingFlowV2
     
-    flow = AIWritingFlow()
-    # Pass state as dictionary
-    flow.kickoff(initial_state.model_dump())
+    This function maintains backward compatibility while using the new V2 implementation
+    with full monitoring, alerting, and quality gates.
+    """
+    
+    logger.info("🚀 Legacy kickoff() - using AI Writing Flow V2")
+    
+    # Example inputs for V2 flow (using realistic test content)
+    initial_inputs = {
+        "topic_title": "AI Writing Flow V2 Production Implementation",
+        "platform": "LinkedIn", 
+        "file_path": "content/test-content.md",  # Would need actual file
+        "content_type": "STANDALONE",
+        "content_ownership": "ORIGINAL",
+        "viral_score": 8.0,
+        "editorial_recommendations": "Focus on V2 production features and monitoring capabilities"
+    }
+    
+    try:
+        # Create V2 flow with full monitoring stack
+        flow_v2 = AIWritingFlowV2(
+            monitoring_enabled=True,
+            alerting_enabled=True,
+            quality_gates_enabled=True
+        )
+        
+        # Execute with V2 implementation
+        final_state = flow_v2.kickoff(initial_inputs)
+        
+        logger.info("✅ V2 flow execution completed successfully")
+        return final_state
+        
+    except Exception as e:
+        logger.error(f"❌ V2 flow execution failed: {e}")
+        raise
 
 
 def plot():
-    """Generate flow diagram"""
-    flow = AIWritingFlow()
-    flow.plot("ai_writing_flow_diagram.png")
+    """
+    Legacy plot function - now uses AIWritingFlowV2
+    
+    Generates architecture diagram for the new V2 implementation
+    """
+    
+    logger.info("📊 Legacy plot() - generating V2 architecture diagram")
+    
+    try:
+        flow_v2 = AIWritingFlowV2()
+        flow_v2.plot("ai_writing_flow_v2_diagram.png")
+        
+        logger.info("✅ V2 architecture diagram generated")
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to generate V2 diagram: {e}")
+        raise
 
 
 if __name__ == "__main__":
