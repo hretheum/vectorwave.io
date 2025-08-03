@@ -847,6 +847,258 @@ Implementacja tego planu zapewni stabilny, wydajny i skalowalny system generacji
 **Next Steps:**
 1. Review tego planu z zespołem
 2. Rozpoczęcie implementacji od Phase 1
+
+---
+
+## 🧠 Knowledge Base Implementation Plan
+
+### Architecture: Hybrid Approach
+
+```
+vector-wave/
+├── knowledge-base/
+│   ├── crewai/
+│   │   ├── cache/              # Cached query responses
+│   │   ├── docs/               # Offline markdown documentation
+│   │   │   ├── core/           # Core concepts (flows, agents, crews)
+│   │   │   ├── patterns/       # Best practices and patterns
+│   │   │   ├── issues/         # Known issues and solutions
+│   │   │   └── examples/       # Code examples
+│   │   ├── embeddings/         # Pre-computed vector embeddings
+│   │   ├── chroma_db/          # Persisted vector store
+│   │   └── updater.py          # Sync and update script
+│   └── config.yaml             # Configuration
+```
+
+### Components
+
+1. **Offline Markdown Store** 
+   - Git-versioned documentation
+   - Structured for easy navigation
+   - Full-text searchable
+
+2. **Chroma Vector Store**
+   - Semantic search capabilities
+   - Pre-computed embeddings
+   - Fast similarity search
+
+3. **Redis/In-Memory Cache**
+   - Frequently asked queries
+   - Performance optimization
+   - TTL-based invalidation
+
+4. **Web API Fallback**
+   - Always up-to-date information
+   - Direct docs.crewai.com access
+   - GitHub issues integration
+
+### 📋 Atomic Tasks with Agent Chains
+
+#### Phase 1: Knowledge Base Infrastructure (Day 1-2)
+
+**Agent Chain**: project-architect → project-coder → qa-test-engineer
+
+**Task 1.1: Design KB Architecture** (2h)
+- Agent: project-architect
+- Deliverables: Detailed architecture diagram, API design
+- Success Metrics:
+  - Query latency <100ms (cached)
+  - Query latency <500ms (uncached)
+  - 99% availability
+
+**Task 1.2: Setup Vector Store** (3h)
+- Agent: project-coder
+- Actions:
+  ```bash
+  pip install chromadb langchain openai tiktoken
+  mkdir -p knowledge-base/crewai/{cache,docs,embeddings,chroma_db}
+  ```
+- Success Metrics:
+  - Chroma DB initialized
+  - Test embeddings created
+  - Basic CRUD operations working
+
+**Task 1.3: Implement Query Engine** (4h)
+- Agent: project-coder
+- Components:
+  ```python
+  class CrewAIKnowledgeBase:
+      def __init__(self):
+          self.cache = CacheLayer()
+          self.vector_store = ChromaVectorStore()
+          self.markdown_store = MarkdownStore()
+          self.web_fallback = WebAPIFallback()
+      
+      async def query(self, question: str):
+          # Multi-layer query resolution
+  ```
+- Success Metrics:
+  - 4-layer fallback working
+  - <200ms average response time
+  - 95% query success rate
+
+**Task 1.4: Create Update Mechanism** (2h)
+- Agent: project-coder
+- Features:
+  - Weekly sync cron job
+  - Incremental updates
+  - Diff detection
+- Success Metrics:
+  - Full sync <5 minutes
+  - Incremental sync <30 seconds
+  - Zero data loss
+
+#### Phase 2: Content Population (Day 2-3)
+
+**Agent Chain**: crewai-flow-specialist → documentation-keeper → qa-test-engineer
+
+**Task 2.1: Download & Structure Docs** (3h)
+- Agent: crewai-flow-specialist
+- Actions:
+  - Scrape all CrewAI documentation
+  - Organize by topic
+  - Create navigation index
+- Success Metrics:
+  - 100% documentation coverage
+  - Proper categorization
+  - Valid markdown format
+
+**Task 2.2: Extract Known Issues** (2h)
+- Agent: crewai-flow-specialist
+- Sources:
+  - GitHub issues (especially #1579 - router loops)
+  - Stack Overflow questions
+  - Discord community FAQs
+- Success Metrics:
+  - Top 50 issues documented
+  - Solutions provided
+  - Categorized by severity
+
+**Task 2.3: Create Embeddings** (2h)
+- Agent: project-coder
+- Process:
+  - Chunk documents (max 1000 tokens)
+  - Generate embeddings
+  - Store in Chroma
+- Success Metrics:
+  - All docs embedded
+  - <5s query time
+  - 90% semantic accuracy
+
+#### Phase 3: Integration with Flow (Day 3-4)
+
+**Agent Chain**: crewai-flow-specialist → project-coder → qa-test-engineer
+
+**Task 3.1: Create KB Tools** (3h)
+- Agent: project-coder
+- Tools:
+  ```python
+  @tool("query_crewai_knowledge")
+  def query_knowledge(query: str) -> str:
+      """Query CrewAI knowledge base"""
+      
+  @tool("debug_flow_issue")
+  def debug_issue(error: str) -> str:
+      """Get debugging help for flow issues"""
+  ```
+- Success Metrics:
+  - Tools integrated with crews
+  - <500ms response time
+  - Helpful responses
+
+**Task 3.2: Integrate with AI Writing Flow** (4h)
+- Agent: project-coder
+- Integration points:
+  - Error handling lookups
+  - Best practice validation
+  - Pattern recommendations
+- Success Metrics:
+  - Automatic error resolution
+  - Reduced debugging time by 50%
+  - Zero false positives
+
+### 🎯 Validation Methods
+
+#### 1. Query Accuracy Testing
+```python
+# Test suite with ground truth
+test_cases = [
+    {
+        "query": "How to fix @router infinite loops?",
+        "expected": "Use @listen with state checks instead"
+    },
+    {
+        "query": "CrewAI flow best practices",
+        "expected": ["Linear flow", "State guards", "No circular deps"]
+    }
+]
+
+accuracy = run_accuracy_tests(kb, test_cases)
+assert accuracy > 0.9  # 90% accuracy required
+```
+
+#### 2. Performance Benchmarking
+```python
+# Latency requirements
+benchmarks = {
+    "cached_query": 10,      # ms
+    "vector_search": 200,    # ms
+    "markdown_grep": 500,    # ms
+    "web_fallback": 2000     # ms
+}
+
+results = run_performance_tests(kb, n=1000)
+assert all(results[k] < v for k, v in benchmarks.items())
+```
+
+#### 3. Coverage Validation
+```bash
+# Ensure all docs are indexed
+coverage_report = validate_coverage()
+assert coverage_report['official_docs'] == 100
+assert coverage_report['github_issues'] >= 50
+assert coverage_report['examples'] >= 20
+```
+
+### 📊 Success Metrics
+
+1. **Knowledge Base Metrics**
+   - Query success rate: >95%
+   - Average response time: <200ms
+   - Documentation coverage: 100%
+   - Update frequency: Weekly
+   - Cache hit rate: >70%
+
+2. **Integration Metrics**
+   - Flow debugging time: -50%
+   - Error resolution rate: >80%
+   - False positive rate: <5%
+   - User satisfaction: >4.5/5
+
+3. **Operational Metrics**
+   - Uptime: 99.9%
+   - Storage used: <1GB
+   - Memory usage: <500MB
+   - CPU usage: <10%
+
+### 🚀 Implementation Timeline
+
+**Week 1 Enhanced:**
+- Day 1: KB infrastructure setup
+- Day 2: Content population
+- Day 3: KB integration with flow
+- Day 4: Linear flow implementation
+- Day 5: Testing & optimization
+
+**Week 2:**
+- Comprehensive testing with KB
+- Performance optimization
+- Documentation
+
+**Week 3:**
+- Production deployment
+- Monitoring setup
+- Training & handover
 3. Continuous testing podczas development
 4. Staged rollout z monitoring
 
