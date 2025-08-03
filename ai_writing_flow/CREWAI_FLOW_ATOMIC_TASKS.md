@@ -110,7 +110,7 @@ Guards: Circuit Breaker + Stage Manager + Retry Manager + Loop Prevention
 **Agent Chain**: project-coder → code-reviewer
 **⚠️ CODE REVIEW**: Obowiązkowy po każdych 150 liniach kodu!
 
-- [ ] **Atomic Task 1.1**: Implement FlowStage enum
+- [x] **Atomic Task 1.1**: Implement FlowStage enum
   - **Agent**: project-coder
   - **Time**: 30min
   - **Deliverable**: `/src/ai_writing_flow/models/flow_stage.py`
@@ -118,14 +118,14 @@ Guards: Circuit Breaker + Stage Manager + Retry Manager + Loop Prevention
   - **Validation**: `python -c "from models.flow_stage import FlowStage; print(list(FlowStage))"`
   - **Code Review**: Mandatory before proceeding to 1.2
 
-- [ ] **Atomic Task 1.2**: Create FlowControlState model
+- [x] **Atomic Task 1.2**: Create FlowControlState model
   - **Agent**: project-coder → code-reviewer
   - **Time**: 45min
   - **Deliverable**: `/src/ai_writing_flow/models/flow_control_state.py`
   - **Success**: Pydantic model z retry tracking i history
   - **Validation**: `pytest tests/test_flow_control_state.py::test_serialization -v`
 
-- [ ] **Atomic Task 1.3**: Add state transition validation
+- [x] **Atomic Task 1.3**: Add state transition validation
   - **Agent**: project-coder → code-reviewer
   - **Time**: 15min
   - **Deliverable**: State transition matrix i validation logic
