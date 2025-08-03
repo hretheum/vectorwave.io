@@ -1,7 +1,6 @@
 """Utils package for circuit breaker, retry manager and loop prevention."""
 
-from .circuit_breaker import CircuitBreaker
 from .retry_manager import RetryManager
-from .loop_prevention import LoopPreventionSystem
+from .circuit_breaker import CircuitBreaker, StageCircuitBreaker
 
-__all__ = ["CircuitBreaker", "RetryManager", "LoopPreventionSystem"]
+__all__ = ["RetryManager", "CircuitBreaker", "StageCircuitBreaker"]

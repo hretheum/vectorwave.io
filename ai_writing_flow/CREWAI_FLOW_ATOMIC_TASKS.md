@@ -135,21 +135,21 @@ Guards: Circuit Breaker + Stage Manager + Retry Manager + Loop Prevention
 ##### Blok 2: StageManager implementation (1h)
 **Agent Chain**: project-coder → code-reviewer → architecture-advisor
 
-- [ ] **Atomic Task 2.1**: Create StageManager class
+- [x] **Atomic Task 2.1**: Create StageManager class
   - **Agent**: project-coder → architecture-advisor
   - **Time**: 30min
   - **Deliverable**: `/src/ai_writing_flow/managers/stage_manager.py`
   - **Success**: Stage completion tracking working
   - **Validation**: `pytest tests/test_stage_manager.py::test_completion_tracking -v`
 
-- [ ] **Atomic Task 2.2**: Add stage result storage
+- [x] **Atomic Task 2.2**: Add stage result storage
   - **Agent**: project-coder → code-reviewer
   - **Time**: 20min
   - **Deliverable**: Result caching per stage
   - **Success**: Results properly typed i accessible
   - **Validation**: `pytest tests/test_stage_manager.py::test_result_storage -v`
 
-- [ ] **Atomic Task 2.3**: Implement stage reset functionality
+- [x] **Atomic Task 2.3**: Implement stage reset functionality
   - **Agent**: project-coder → code-reviewer
   - **Time**: 10min
   - **Deliverable**: Reset mechanism for retries

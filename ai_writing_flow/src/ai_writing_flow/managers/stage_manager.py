@@ -8,9 +8,11 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any, Callable
 from dataclasses import dataclass
 import logging
+import threading
 
-from ..models.flow_stage import FlowStage
-from ..models.flow_control_state import FlowControlState, StageExecution
+from ..models.flow_stage import FlowStage, get_linear_flow, is_valid_transition
+from ..models.flow_control_state import FlowControlState
+from ..models.stage_execution import StageExecution
 
 
 logger = logging.getLogger(__name__)
@@ -58,13 +60,15 @@ class StageManager:
         self.flow_state = flow_state
         self.stage_configs: Dict[FlowStage, StageConfig] = {}
         self._current_execution: Optional[StageExecution] = None
+        self._stage_executions: List[StageExecution] = []
+        self._lock = threading.RLock()  # Add thread safety
         
         # Initialize default stage configurations
         self._initialize_default_configs()
     
     def _initialize_default_configs(self) -> None:
         """Initialize default configurations for all stages."""
-        linear_flow = FlowStage.get_linear_flow()
+        linear_flow = get_linear_flow()
         
         for stage in linear_flow:
             # Default configuration for all stages
@@ -78,8 +82,7 @@ class StageManager:
             # Stage-specific configurations
             if stage == FlowStage.RESEARCH:
                 config.skip_conditions = [self._has_existing_research]
-            elif stage == FlowStage.HUMAN_REVIEW:
-                config.skip_conditions = [self._auto_approve_enabled]
+            # Skip human review condition removed - stage doesn't exist in our enum
             
             self.stage_configs[stage] = config
     
@@ -95,16 +98,6 @@ class StageManager:
         research_result = state.stage_results.get('research')
         return research_result is not None and len(str(research_result)) > 100
     
-    def _auto_approve_enabled(self, state: FlowControlState) -> bool:
-        """Check if auto-approval is enabled for human review.
-        
-        Args:
-            state: Flow state to check
-            
-        Returns:
-            True if human review can be skipped
-        """
-        return state.global_context.get('auto_approve', False)
     
     def configure_stage(self, stage: FlowStage, config: StageConfig) -> None:
         """Configure a specific stage.
@@ -165,21 +158,22 @@ class StageManager:
             # Create a fake execution that's already completed
             execution = StageExecution(
                 stage=stage,
-                start_time=datetime.now(timezone.utc),
-                end_time=datetime.now(timezone.utc),
-                success=True,
-                result={'skipped': True}
+                execution_id=self.flow_state.execution_id,
+                retry_attempt=0
             )
+            execution.complete(success=True, result={'skipped': True})
             return execution
         
         # Check if stage is valid for current flow position
-        if not FlowStage.is_valid_transition(self.flow_state.current_stage, stage):
+        if not is_valid_transition(self.flow_state.current_stage, stage):
             # Allow starting the current stage
             if stage != self.flow_state.current_stage:
                 raise ValueError(f"Cannot start stage {stage} from current stage {self.flow_state.current_stage}")
         
         # Start stage execution tracking
-        self._current_execution = self.flow_state.start_stage_execution(stage)
+        with self._lock:  # Thread safety
+            self._current_execution = self.flow_state.start_stage_execution(stage)
+            self._stage_executions.append(self._current_execution)
         
         logger.info(f"Started stage {stage} execution")
         return self._current_execution
@@ -195,31 +189,29 @@ class StageManager:
             result: Stage execution result
             error: Error message if failed
         """
-        # Find the execution in history
-        execution = None
-        for exec_item in reversed(self.flow_state.execution_history):
-            if exec_item.stage == stage and exec_item.end_time is None:
-                execution = exec_item
-                break
-        
-        if execution:
-            execution.complete(success=success, result=result, error=error)
+        with self._lock:  # Thread safety
+            # Find the execution in our tracking
+            execution = None
+            for exec_item in reversed(self._stage_executions):
+                if exec_item.stage == stage and exec_item.end_time is None:
+                    execution = exec_item
+                    break
+            
+            if execution:
+                execution.complete(success=success, result=result, error=error)
+                # Also update flow state with the result
+                stage_result = execution.to_stage_result()
+                self.flow_state.mark_stage_complete(stage, stage_result)
         
         if success:
-            # Store result in stage results
-            if result:
-                self.flow_state.stage_results[stage.name.lower()] = result
-            
-            # Mark stage as completed
-            if stage not in self.flow_state.completed_stages:
-                self.flow_state.completed_stages.append(stage)
+            # Stage result is already stored by mark_stage_complete
             
             logger.info(f"Completed stage {stage} successfully")
         else:
             logger.error(f"Stage {stage} failed: {error}")
         
         # Update last update time
-        self.flow_state.last_update = datetime.now(timezone.utc)
+        # last_update is a property, not settable - remove this line
     
     def get_stage_result(self, stage: FlowStage) -> Optional[Dict[str, Any]]:
         """Get the result of a completed stage.
@@ -230,7 +222,7 @@ class StageManager:
         Returns:
             Stage result or None if not completed
         """
-        return self.flow_state.stage_results.get(stage.name.lower())
+        return self.flow_state.stage_results.get(stage.value)
     
     def reset_stage(self, stage: FlowStage) -> None:
         """Reset a stage for re-execution.
@@ -251,9 +243,9 @@ class StageManager:
             List of StageExecution objects
         """
         if stage is None:
-            return self.flow_state.execution_history
+            return self._stage_executions
         
-        return [exec_item for exec_item in self.flow_state.execution_history 
+        return [exec_item for exec_item in self._stage_executions 
                 if exec_item.stage == stage]
     
     def get_stage_metrics(self, stage: FlowStage) -> Dict[str, Any]:
@@ -293,18 +285,18 @@ class StageManager:
         Returns:
             Dictionary of overall metrics
         """
-        all_executions = self.flow_state.execution_history
+        all_executions = self._stage_executions
         completed_stages = len(self.flow_state.completed_stages)
-        total_stages = len(FlowStage.get_linear_flow())
+        total_stages = len(get_linear_flow())
         
         return {
             'total_executions': len(all_executions),
             'completed_stages': completed_stages,
             'total_stages': total_stages,
             'completion_percentage': (completed_stages / total_stages) * 100 if total_stages else 0,
-            'total_retries': self.flow_state.total_retries,
+            'total_retries': self.flow_state.total_retry_count,
             'execution_duration_seconds': self.flow_state.get_execution_duration(),
-            'current_stage': self.flow_state.current_stage.name,
+            'current_stage': self.flow_state.current_stage.value,
             'is_completed': self.flow_state.is_completed()
         }
     
@@ -314,7 +306,7 @@ class StageManager:
         Args:
             keep_last_n: Number of recent executions to keep
         """
-        if len(self.flow_state.execution_history) > keep_last_n:
+        if len(self._stage_executions) > keep_last_n:
             # Keep the most recent executions
-            self.flow_state.execution_history = self.flow_state.execution_history[-keep_last_n:]
+            self._stage_executions = self._stage_executions[-keep_last_n:]
             logger.info(f"Cleaned up execution history, kept last {keep_last_n} executions")
