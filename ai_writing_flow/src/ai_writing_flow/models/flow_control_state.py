@@ -5,7 +5,7 @@ This module implements the FlowControlState model with proper state tracking,
 retry management, and execution history to prevent infinite loops.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Set, Tuple, Optional, Any
 from uuid import uuid4
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -33,14 +33,14 @@ class StageResult(BaseModel):
     retry_count: int = 0
     error_details: Optional[str] = None
     agent_executed: Optional[str] = None
-    timestamp: datetime = Field(default_factory=datetime.now)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class StageTransition(BaseModel):
     """Immutable record of stage transition."""
     from_stage: FlowStage
     to_stage: FlowStage
-    timestamp: datetime = Field(default_factory=datetime.now)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     reason: str = ""
     metadata: Dict[str, Any] = Field(default_factory=dict)
     transition_id: str = Field(default_factory=lambda: str(uuid4()))
@@ -71,7 +71,7 @@ class FlowControlState(BaseModel):
     current_stage: FlowStage = FlowStage.INPUT_VALIDATION
     completed_stages: Set[FlowStage] = Field(default_factory=set)
     execution_id: str = Field(default_factory=lambda: str(uuid4()))
-    start_time: datetime = Field(default_factory=datetime.now)
+    start_time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Thread safety (using private attribute instead of field)
     # Note: _lock is a private attribute, not a Pydantic field
@@ -142,7 +142,7 @@ class FlowControlState(BaseModel):
             raise ValueError(f"Stage {to_stage.value} exceeded execution limit of {self.MAX_STAGE_EXECUTIONS}")
         
         # Log transition
-        elapsed = (datetime.now() - self.start_time).total_seconds()
+        elapsed = (datetime.now(timezone.utc) - self.start_time).total_seconds()
         logger.info(
             f"Flow {self.execution_id}: {self.current_stage.value} → {to_stage.value} "
             f"(elapsed: {elapsed:.2f}s, reason: {reason})"
@@ -210,7 +210,7 @@ class FlowControlState(BaseModel):
             # Increment failures
             failures = self.circuit_breaker_failures.get(stage_key, 0) + 1
             self.circuit_breaker_failures[stage_key] = failures
-            self.circuit_breaker_last_failure[stage_key] = datetime.now()
+            self.circuit_breaker_last_failure[stage_key] = datetime.now(timezone.utc)
             
             # Open circuit breaker after threshold failures
             if failures >= self.CIRCUIT_BREAKER_FAILURE_THRESHOLD:
@@ -238,7 +238,7 @@ class FlowControlState(BaseModel):
         if not last_failure:
             return True
         
-        elapsed = (datetime.now() - last_failure).total_seconds()
+        elapsed = (datetime.now(timezone.utc) - last_failure).total_seconds()
         return elapsed > self.CIRCUIT_BREAKER_RECOVERY_TIMEOUT_SECONDS
     
     def get_execution_summary(self) -> Dict[str, Any]:
@@ -263,7 +263,7 @@ class FlowControlState(BaseModel):
     
     def get_health_status(self) -> Dict[str, Any]:
         """Get comprehensive health status."""
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         execution_time = (now - self.start_time).total_seconds()
         
         return {
@@ -396,7 +396,7 @@ class FlowControlState(BaseModel):
         Returns:
             Duration since flow started
         """
-        return (datetime.now() - self.start_time).total_seconds()
+        return (datetime.now(timezone.utc) - self.start_time).total_seconds()
     
     def is_completed(self) -> bool:
         """
