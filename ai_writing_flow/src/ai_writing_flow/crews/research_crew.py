@@ -12,7 +12,15 @@ from datetime import datetime
 import re
 
 from ..models import ResearchResult
-from ..tools.knowledge_base_tool import search_crewai_docs, get_crewai_example, list_crewai_topics
+from ..tools.enhanced_knowledge_tools import (
+    search_crewai_knowledge,
+    get_flow_examples,
+    troubleshoot_crewai,
+    # Backward compatibility imports
+    search_crewai_docs,
+    get_crewai_example,
+    list_crewai_topics
+)
 
 # Disable CrewAI memory logs
 os.environ["CREWAI_STORAGE_LOG_ENABLED"] = "false"
@@ -165,6 +173,11 @@ class ResearchCrew:
                 read_source_files,
                 extract_sources,
                 research_web_sources,
+                # Enhanced Knowledge Base tools
+                search_crewai_knowledge,
+                get_flow_examples,
+                troubleshoot_crewai,
+                # Backward compatibility tools
                 search_crewai_docs,
                 get_crewai_example,
                 list_crewai_topics
