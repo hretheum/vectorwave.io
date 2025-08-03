@@ -3,7 +3,7 @@ Data models for AI Writing Flow
 """
 
 from pydantic import BaseModel, Field
-from typing import List, Dict, Optional, Literal
+from typing import List, Dict, Optional, Literal, Any
 from datetime import datetime
 
 
@@ -11,13 +11,14 @@ class WritingFlowState(BaseModel):
     """State management for the writing flow"""
     
     # Input from Kolegium
-    topic_title: str = Field(description="Selected topic for content creation")
-    platform: str = Field(description="Target platform (LinkedIn, Twitter, etc.)")
-    folder_path: str = Field(description="Path to source content folder")
+    topic_title: str = Field(default="", description="Selected topic for content creation")
+    platform: str = Field(default="", description="Target platform (LinkedIn, Twitter, etc.)")
+    file_path: str = Field(default="", description="Path to specific source content file or folder")
+    source_files: List[str] = Field(default_factory=list, description="List of source files when processing folder")
     content_type: Literal["STANDALONE", "SERIES"] = Field(default="STANDALONE")
     content_ownership: Literal["ORIGINAL", "EXTERNAL"] = Field(default="EXTERNAL")
-    viral_score: float = Field(description="Viral potential score from Kolegium")
-    editorial_recommendations: str = Field(description="Editorial guidance from Kolegium")
+    viral_score: float = Field(default=0.0, description="Viral potential score from Kolegium")
+    editorial_recommendations: str = Field(default="", description="Editorial guidance from Kolegium")
     
     # Flow control
     skip_research: bool = Field(default=False, description="UI override to skip research")
@@ -51,7 +52,7 @@ class WritingFlowState(BaseModel):
     # Output
     final_draft: str = Field(default="")
     platform_variants: Dict[str, str] = Field(default_factory=dict)
-    publication_metadata: Dict[str, any] = Field(default_factory=dict)
+    publication_metadata: Dict[str, Any] = Field(default_factory=dict)
     
     # Metadata
     flow_start_time: datetime = Field(default_factory=datetime.now)
@@ -66,7 +67,7 @@ class ResearchResult(BaseModel):
     )
     summary: str = Field(description="Executive summary of research findings")
     key_insights: List[str] = Field(description="Bullet points of key insights")
-    data_points: List[Dict[str, any]] = Field(
+    data_points: List[Dict[str, Any]] = Field(
         default_factory=list,
         description="Specific data points with sources"
     )

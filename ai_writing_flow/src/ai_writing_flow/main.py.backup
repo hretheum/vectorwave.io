@@ -21,24 +21,19 @@ from ai_writing_flow.utils.ui_bridge import UIBridge
 # Load environment variables
 load_dotenv()
 
-# AGGRESSIVE CrewAI FLOOD PREVENTION
+# Disable CrewAI memory logs
 os.environ["CREWAI_STORAGE_LOG_ENABLED"] = "false"
-os.environ["CREWAI_FLOW_EXECUTION_LOG_ENABLED"] = "false"
-os.environ["CREWAI_PROGRESS_TRACKING_ENABLED"] = "false"
 
-# Configure logging with aggressive CrewAI suppression
-logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(message)s')
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# KILL ALL CrewAI LOGGERS
-for logger_name in [
-    'crewai', 'crewai.flow', 'crewai_flows', 'crewai.memory', 
-    'crewai.telemetry', 'crewai.crew', 'crewai.agent', 'crewai.task',
-    'crewai.tools', 'crewai.utilities', 'crewai.llm',
-    'crewai.flows', 'crewai.flows.flow', 'crewai.flows.engine'
-]:
-    logging.getLogger(logger_name).setLevel(logging.CRITICAL)
-    logging.getLogger(logger_name).disabled = True
+# Reduce CrewAI verbosity
+logging.getLogger("crewai").setLevel(logging.WARNING)
+logging.getLogger("crewai.memory").setLevel(logging.ERROR)
+logging.getLogger("crewai.telemetry").setLevel(logging.ERROR)
+logging.getLogger("crewai.flow").setLevel(logging.ERROR)
+logging.getLogger("crewai_flows").setLevel(logging.ERROR)
 
 
 class AIWritingFlow(Flow[WritingFlowState]):
@@ -57,7 +52,7 @@ class AIWritingFlow(Flow[WritingFlowState]):
         self._execution_count += 1
         # logger.info(f"🌊 Flow execution #{self._execution_count}")  # Wykomentowane - powodowało flood
         
-        if self._execution_count > 1:
+        if self._execution_count > 3:
             logger.error("❌ Flow executed too many times, preventing infinite loop!")
             return "finalize_output"
             

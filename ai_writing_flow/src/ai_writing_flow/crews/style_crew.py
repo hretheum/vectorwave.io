@@ -6,8 +6,12 @@ from crewai import Agent, Crew, Task
 from crewai.tools import tool
 from typing import Dict, Any, List, Tuple
 import re
+import os
 
 from ..models import StyleValidation
+
+# Disable CrewAI memory logs
+os.environ["CREWAI_STORAGE_LOG_ENABLED"] = "false"
 
 
 class StyleCrew:

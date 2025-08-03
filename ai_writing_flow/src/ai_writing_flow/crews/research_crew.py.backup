@@ -13,50 +13,24 @@ import re
 
 from ..models import ResearchResult
 
-# Disable CrewAI memory logs
-os.environ["CREWAI_STORAGE_LOG_ENABLED"] = "false"
 
 # Define base path at module level
 BASE_PATH = Path("/Users/hretheum/dev/bezrobocie/vector-wave")
 
 
 @tool("Read Source Files")
-def read_source_files(file_path: str) -> str:
-    """Read source file(s) from path - can be file or folder"""
-    full_path = BASE_PATH / file_path.lstrip("/")
+def read_source_files(folder_path: str) -> str:
+    """Read markdown files from the source folder"""
+    full_path = BASE_PATH / folder_path.lstrip("/")
+    if not full_path.exists():
+        return f"Folder {folder_path} not found"
     
-    # Check if it's a directory
-    if full_path.is_dir():
-        content_parts = []
-        md_files = list(full_path.glob("*.md"))
-        # Filter out metadata files
-        md_files = [f for f in md_files if f.name != "NORMALIZATION_META.json"]
-        
-        if not md_files:
-            return f"No markdown files found in folder {file_path}"
-        
-        # Read all markdown files
-        for file in md_files[:5]:  # Limit to first 5 files
-            try:
-                with open(file, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                    content_parts.append(f"=== {file.name} ===\n{content}\n")
-            except Exception as e:
-                content_parts.append(f"=== Error reading {file.name}: {str(e)} ===\n")
-        
-        return "\n".join(content_parts)
+    content = []
+    for file in full_path.glob("*.md"):
+        with open(file, 'r', encoding='utf-8') as f:
+            content.append(f"=== {file.name} ===\n{f.read()}\n")
     
-    # Single file
-    elif full_path.is_file():
-        try:
-            with open(full_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-                return f"=== {full_path.name} ===\n{content}"
-        except Exception as e:
-            return f"Error reading file {file_path}: {str(e)}"
-    
-    else:
-        return f"Path {file_path} not found at {full_path}"
+    return "\n".join(content[:5])  # First 5 files
 
 
 @tool("Extract Sources")
@@ -90,20 +64,11 @@ def extract_sources(content: str) -> str:
 
 
 @tool("Research Web Sources")
-def research_web_sources(topic: str, content_ownership: str = "EXTERNAL") -> str:
+def research_web_sources(topic: str) -> str:
     """Research additional web sources for context and validation"""
-    # For ORIGINAL content, we don't need external sources
-    if content_ownership == "ORIGINAL":
-        return json.dumps({
-            "message": "Skipping external research for ORIGINAL content",
-            "topic": topic,
-            "findings": [],
-            "key_insights": [],
-            "controversies": []
-        }, indent=2)
-    
-    # For EXTERNAL content, provide mock research data
     # In production, this would use actual web search APIs
+    # For now, return structured mock data
+    
     research_data = {
         "topic": topic,
         "timestamp": datetime.now().isoformat(),
@@ -129,15 +94,28 @@ def research_web_sources(topic: str, content_ownership: str = "EXTERNAL") -> str
                     "3.5x faster debugging",
                     "60% less documentation time"
                 ]
+            },
+            {
+                "source": "MIT Technology Review",
+                "url": "https://technologyreview.com/ai-coding",
+                "summary": "Critical analysis of AI agent limitations and future potential",
+                "credibility": "high",
+                "data_points": [
+                    "Current accuracy: 65-80%",
+                    "Human oversight still critical",
+                    "Best for repetitive tasks"
+                ]
             }
         ],
         "key_insights": [
             "AI agents are becoming essential tools, not replacements",
-            "Focus shifting from code generation to system design"
+            "Focus shifting from code generation to system design",
+            "Quality and security concerns remain top priorities"
         ],
         "controversies": [
             "Job displacement fears vs. productivity gains",
-            "Code ownership and liability questions"
+            "Code ownership and liability questions",
+            "Over-reliance on AI-generated solutions"
         ]
     }
     
@@ -170,26 +148,25 @@ class ResearchCrew:
         )
     
     def create_research_task(self, topic: str, sources_path: str, 
-                           context: str, content_ownership: str = "EXTERNAL") -> Task:
+                           context: str) -> Task:
         """Create a research task"""
         return Task(
             description=f"""
             Conduct comprehensive research on: {topic}
-            Content ownership: {content_ownership}
             
             Steps:
-            1. Read source file: {sources_path}
-            2. Extract and validate all sources and references from the file
-            3. {'Skip external research for ORIGINAL content - use research_web_sources tool with content_ownership=ORIGINAL' if content_ownership == 'ORIGINAL' else 'Research additional web sources for context using research_web_sources tool'}
-            4. Identify key data points and statistics from source file
+            1. Read all source files from: {sources_path}
+            2. Extract and validate all sources and references
+            3. Research additional web sources for context
+            4. Identify key data points and statistics
             5. Create executive summary of findings
             
             Focus on:
-            - Content analysis from source file
-            - {'Internal insights and frameworks' if content_ownership == 'ORIGINAL' else 'External validation and multiple perspectives'}
-            - Key concepts and methodologies
-            - Practical applications and examples
-            - Quality assessment of source material
+            - Factual accuracy and source credibility
+            - Multiple perspectives on the topic
+            - Recent developments and trends
+            - Quantifiable data and evidence
+            - Potential controversies or debates
             
             Context from styleguide: {context}
             """,
@@ -197,12 +174,12 @@ class ResearchCrew:
             expected_output="Comprehensive research summary with sources, data points, and insights"
         )
     
-    def execute(self, topic: str, sources_path: str, context: str, content_ownership: str = "EXTERNAL") -> ResearchResult:
+    def execute(self, topic: str, sources_path: str, context: str) -> ResearchResult:
         """Execute research crew"""
         crew = Crew(
             agents=[self.research_analyst_agent()],
-            tasks=[self.create_research_task(topic, sources_path, context, content_ownership)],
-            verbose=False  # Zmienione na False aby zmniejszyć spam
+            tasks=[self.create_research_task(topic, sources_path, context)],
+            verbose=True
         )
         
         result = crew.kickoff()

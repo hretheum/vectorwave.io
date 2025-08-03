@@ -7,8 +7,12 @@ from crewai.tools import tool
 from typing import Dict, Any, List, Optional
 import re
 from datetime import datetime
+import os
 
 from ..models import QualityAssessment
+
+# Disable CrewAI memory logs
+os.environ["CREWAI_STORAGE_LOG_ENABLED"] = "false"
 
 
 class QualityCrew:
