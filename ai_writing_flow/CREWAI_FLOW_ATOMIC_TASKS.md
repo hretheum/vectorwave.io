@@ -159,14 +159,14 @@ Guards: Circuit Breaker + Stage Manager + Retry Manager + Loop Prevention
 ##### Blok 3: Testing i validation (30min)
 **Agent Chain**: qa-test-engineer → code-reviewer
 
-- [ ] **Atomic Task 3.1**: Create comprehensive tests
+- [x] **Atomic Task 3.1**: Create comprehensive tests
   - **Agent**: qa-test-engineer
   - **Time**: 20min
   - **Deliverable**: Complete test suite dla FlowControlState
   - **Success**: >95% coverage, all edge cases
   - **Validation**: `pytest --cov=models.flow_control_state --cov-report=term-missing`
 
-- [ ] **Atomic Task 3.2**: Performance testing
+- [x] **Atomic Task 3.2**: Performance testing
   - **Agent**: qa-test-engineer → code-reviewer
   - **Time**: 10min
   - **Deliverable**: Performance benchmarks
