@@ -481,3 +481,31 @@ class LoopPreventionSystem:
                 logger.info(f"Cleaned up {removed_count} old execution records")
             
             return removed_count
+    
+    def should_stop_execution(self) -> bool:
+        """
+        Check if execution should be stopped due to loop prevention
+        
+        Returns:
+            True if execution should be stopped
+        """
+        with self._lock:
+            # Check if emergency stop is active
+            if self._emergency_stop:
+                return True
+            
+            # Check if we have exceeded maximum execution time
+            if (datetime.now(timezone.utc) - self._start_time) > self.max_total_execution_time:
+                return True
+            
+            # Check if any methods are blocked
+            if self._blocked_methods or self._blocked_stages:
+                return True
+            
+            return False
+    
+    def force_stop(self) -> None:
+        """Force stop execution - for emergency situations"""
+        with self._lock:
+            self._emergency_stop = True
+            logger.critical("🚨 Loop prevention system force stopped")
