@@ -12,6 +12,7 @@ from datetime import datetime
 import re
 
 from ..models import ResearchResult
+from ..tools.knowledge_base_tool import search_crewai_docs, get_crewai_example, list_crewai_topics
 
 # Disable CrewAI memory logs
 os.environ["CREWAI_STORAGE_LOG_ENABLED"] = "false"
@@ -163,7 +164,10 @@ class ResearchCrew:
             tools=[
                 read_source_files,
                 extract_sources,
-                research_web_sources
+                research_web_sources,
+                search_crewai_docs,
+                get_crewai_example,
+                list_crewai_topics
             ],
             verbose=True,
             allow_delegation=False
