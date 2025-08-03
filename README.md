@@ -4,7 +4,7 @@
 
 Zautomatyzowany system redakcyjny gdzie **5 wyspecjalizowanych agentów AI** współpracuje w czasie rzeczywistym przy odkrywaniu trendów, analizie viralowości i podejmowaniu decyzji redakcyjnych z możliwością ludzkiej interwencji.
 
-**Tech Stack**: CrewAI Flows + AG-UI Protocol + React + PostgreSQL + Digital Ocean
+**Tech Stack**: CrewAI 0.152.0 + Knowledge Base + Docker + PostgreSQL + Digital Ocean
 
 ## 🧭 **Start Tutaj**
 
@@ -35,14 +35,14 @@ Inteligentny system który **automatyzuje proces redakcyjny** od odkrycia trendu
 | **Quality Assessor** | ✅ Kontroler | Fact-checking, source verification, quality control |
 | **Decision Coordinator** | 🎯 Koordynator | Orkiestruje całą współpracę i generuje raporty |
 
-### AI Writing Flow (5 agentów)
-| Agent | Rola | Główne zadanie |
-|-------|------|----------------|
-| **Research Agent** | 🔬 Badacz | Deep research, źródła, fact-finding |
-| **Audience Mapper** | 👥 Strateg | Dopasowanie do grup docelowych |
-| **Content Writer** | ✍️ Pisarz | Generowanie contentu zgodnego ze styleguide |
-| **Style Validator** | 📏 Strażnik | Walidacja stylu Vector Wave |
-| **Quality Controller** | 🎯 Kontroler | Finalna ocena jakości i etyki |
+### AI Writing Flow (5 agentów) + Knowledge Base
+| Agent | Rola | Główne zadanie | KB Integration |
+|-------|------|----------------|----------------|
+| **Research Agent** | 🔬 Badacz | Deep research, źródła, fact-finding | ✅ Full KB access |
+| **Audience Mapper** | 👥 Strateg | Dopasowanie do grup docelowych | ✅ KB patterns |
+| **Content Writer** | ✍️ Pisarz | Generowanie contentu zgodnego ze styleguide | ✅ Style guides |
+| **Style Validator** | 📏 Strażnik | Walidacja stylu Vector Wave | ✅ Validation rules |
+| **Quality Controller** | 🎯 Kontroler | Finalna ocena jakości i etyki | ✅ Quality metrics |
 
 ### ⚡ **Kluczowe Zalety**
 
@@ -60,6 +60,7 @@ Inteligentny system który **automatyzuje proces redakcyjny** od odkrycia trendu
 - **Task Chaining**: Zadania mogą zależeć od wyników innych zadań
 - **Human Input**: Natywne wsparcie dla ludzkiej interwencji
 - **Delegation**: Agenci mogą delegować zadania do innych agentów
+- **Knowledge Base**: Zintegrowana baza wiedzy CrewAI z vector search
 
 ### Przykład CrewAI Agent
 ```python

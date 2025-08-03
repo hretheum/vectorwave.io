@@ -34,7 +34,7 @@ Na podstawie analizy styleguide Vector Waves i istniejącego flow kolegium, prop
 
 ## 2. **Agenty w ai_writing_flow**
 
-### **2.1 Research Agent**
+### **2.1 Research Agent** [ENHANCED WITH KNOWLEDGE BASE]
 ```yaml
 Rola: Deep Research Specialist
 Zadania:
@@ -42,6 +42,14 @@ Zadania:
 - Weryfikuje aktualność danych (<6 miesięcy)
 - Tworzy evidence-based foundation
 - Dokumentuje metodologię research
+- Wykorzystuje Knowledge Base dla CrewAI patterns
+
+Tools:
+- search_crewai_knowledge() - dostęp do KB
+- get_flow_examples() - przykłady patterns
+- troubleshoot_crewai() - debugging help
+- read_source_files() - lokalne źródła
+- extract_sources() - ekstrakcja referencji
 
 Reguły ze styleguide:
 - "Test Everything" - każde twierdzenie musi być weryfikowalne
@@ -279,6 +287,13 @@ if topic.viral_score > 0.7 and topic.approved:
 4. **Measurable Success**
    - 80%+ completion rate
    - <2% correction frequency
+
+5. **Knowledge Base Integration** [NEW]
+   - Full access to CrewAI documentation
+   - Pattern examples for common tasks
+   - Troubleshooting assistance
+   - Hybrid search strategies
+   - Circuit breaker for resilience
    - Platform-specific engagement metrics
 
 ## Podsumowanie

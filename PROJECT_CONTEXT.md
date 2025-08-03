@@ -13,14 +13,22 @@ Stworzenie inteligentnego systemu wspomagającego decyzje redakcyjne poprzez ork
 - **AG-UI Protocol** - real-time communication z frontend
 - **Event Sourcing** - full audit trail wszystkich AI decisions
 
-### Stack Technologiczny (Zaktualizowany)
+### Stack Technologiczny (Zaktualizowany 2025-08-03)
 ```yaml
 AI Framework:
-  - CrewAI 0.30.11+ z CLI scaffolding ✅
+  - CrewAI 0.152.0 z CLI scaffolding ✅
   - CrewAI Flows dla decision trees ✅ 
   - Built-in tools (SerperDev, ScrapeWebsite, etc.) ✅
-  - Knowledge Sources dla editorial guidelines 🔄
-  - Multi-LLM setup (OpenAI + Claude fallbacks) 🔄
+  - Knowledge Base integration (Vector DB) ✅
+  - Enhanced Knowledge Tools z adapter pattern ✅
+  - Multi-LLM setup (OpenAI primary) ✅
+
+Knowledge Base:
+  - Standalone KB service (port 8082) ✅
+  - PostgreSQL + Redis + ChromaDB ✅
+  - REST API z health monitoring ✅
+  - Hybrid search strategies (KB_FIRST, FILE_FIRST, HYBRID) ✅
+  - Circuit breaker pattern ✅
 
 Backend:
   - Python 3.11 + FastAPI ✅
@@ -37,15 +45,16 @@ Frontend:
 
 Infrastructure:
   - Digital Ocean Droplet (46.101.156.14) ✅ [ACTIVE]
-  - Docker + GitHub Container Registry ✅
-  - Watchtower auto-deployment 🔄
+  - Docker Compose (dev & prod) ✅
+  - GitHub Container Registry ✅
   - GitHub Actions CI/CD ✅
-  - Prometheus + Grafana monitoring 📋
+  - Watchtower auto-deployment ✅
+  - Prometheus + Grafana monitoring ✅
 
 Legenda: ✅ Done | 🔄 In Progress | 📋 Planned
 ```
 
-### 📊 Stan Implementacji (2025-08-02)
+### 📊 Stan Implementacji (2025-08-03)
 
 **Phase 1: Foundation & Infrastructure** ✅ COMPLETED
 - [x] Task 1.0: Digital Ocean setup - COMPLETED 2025-01-17
@@ -57,10 +66,20 @@ Legenda: ✅ Done | 🔄 In Progress | 📋 Planned
   - Built-in tools replace custom implementations  
   - CrewAI Flows for decision-making replace basic Crews
   - Knowledge Sources for editorial guidelines
-- [ ] Task 1.1: CrewAI project scaffolding (UPDATED)
-- [ ] Task 1.2: AG-UI Event System integration
-- [ ] Task 1.3: Docker containers setup
-- [ ] Task 1.4: GitHub Actions CI/CD
+- [x] Task 1.1: Knowledge Base integration - COMPLETED 2025-08-03
+  - Standalone KB service w kontenerach Docker
+  - Adapter pattern dla CrewAI tools
+  - Enhanced Knowledge Tools z circuit breaker
+  - Testy integracyjne przechodzą pomyślnie
+- [x] Task 1.2: Docker containers setup - COMPLETED 2025-08-03
+  - docker-compose.yml dla development
+  - docker-compose.prod.yml dla produkcji
+  - Konfiguracja wszystkich serwisów
+- [x] Task 1.3: GitHub Actions CI/CD - COMPLETED 2025-08-03
+  - Pełny pipeline CI/CD w .github/workflows/ci-cd.yml
+  - Build i push do GitHub Container Registry
+  - Automatyczny deployment przez Watchtower
+- [ ] Task 1.4: AG-UI Event System integration
 
 ## 🎭 Agenci i ich Implementacja (CrewAI)
 
@@ -88,11 +107,16 @@ Legenda: ✅ Done | 🔄 In Progress | 📋 Planned
 
 ### AI Writing Flow Agents (IMPLEMENTED)
 
-### 6. Research Agent
+### 6. Research Agent (ENHANCED WITH KB)
 **CrewAI Agent Configuration**:
 - **Role**: "Senior Research Analyst"
 - **Goal**: "Conduct thorough research on topics"
-- **Tools**: read_source_files(), extract_sources(), research_web_sources()
+- **Tools**: 
+  - read_source_files(), extract_sources(), research_web_sources()
+  - search_crewai_knowledge() - Knowledge Base integration
+  - get_flow_examples() - CrewAI pattern examples
+  - troubleshoot_crewai() - Debugging assistance
+- **Knowledge Base**: Full access to CrewAI documentation
 - **Output**: ResearchResult model
 
 ### 7. Audience Mapper

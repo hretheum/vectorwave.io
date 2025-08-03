@@ -182,7 +182,7 @@ class KnowledgeAdapter:
         
         # Documentation path
         self.docs_path = Path(docs_path) if docs_path else Path(
-            "/Users/hretheum/dev/bezrobocie/vector-wave/knowledge-base/data/crewai-docs/docs/en"
+            "/Users/hretheum/dev/bezrobocie/vector-wave/knowledge-base/knowledge-base/data/crewai-docs/docs/en"
         )
         
         # Session for connection pooling
@@ -551,9 +551,9 @@ def get_adapter(strategy: Optional[Union[SearchStrategy, str]] = None) -> Knowle
     if _adapter_instance is None:
         _adapter_instance = KnowledgeAdapter(
             strategy=actual_strategy,
-            kb_api_url=os.getenv('KNOWLEDGE_BASE_URL', 'http://localhost:8080'),
-            timeout=float(os.getenv('KNOWLEDGE_TIMEOUT', '10.0')),
-            max_retries=int(os.getenv('KNOWLEDGE_MAX_RETRIES', '3'))
+            kb_api_url=os.getenv('KB_API_URL', 'http://localhost:8082'),
+            timeout=float(os.getenv('KB_API_TIMEOUT', '30.0')),
+            max_retries=int(os.getenv('KB_MAX_RETRIES', '3'))
         )
     
     return _adapter_instance

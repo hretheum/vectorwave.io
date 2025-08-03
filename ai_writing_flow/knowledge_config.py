@@ -16,7 +16,7 @@ class KnowledgeConfig:
     """Configuration class for Knowledge Base integration"""
     
     # Knowledge Base API settings
-    KB_API_URL: str = os.getenv("KNOWLEDGE_BASE_URL", "http://localhost:8080")
+    KB_API_URL: str = os.getenv("KNOWLEDGE_BASE_URL", "http://localhost:8082")
     KB_TIMEOUT: float = float(os.getenv("KNOWLEDGE_TIMEOUT", "10.0"))
     KB_MAX_RETRIES: int = int(os.getenv("KNOWLEDGE_MAX_RETRIES", "3"))
     
@@ -32,12 +32,12 @@ class KnowledgeConfig:
     # File system paths
     DOCS_PATH: Path = Path(os.getenv(
         "CREWAI_DOCS_PATH",
-        "/Users/hretheum/dev/bezrobocie/vector-wave/knowledge-base/data/crewai-docs/docs/en"
+        "/Users/hretheum/dev/bezrobocie/vector-wave/knowledge-base/knowledge-base/data/crewai-docs/docs/en"
     ))
     
     # Performance settings
     DEFAULT_SEARCH_LIMIT: int = int(os.getenv("KNOWLEDGE_SEARCH_LIMIT", "5"))
-    DEFAULT_SCORE_THRESHOLD: float = float(os.getenv("KNOWLEDGE_SCORE_THRESHOLD", "0.7"))
+    DEFAULT_SCORE_THRESHOLD: float = float(os.getenv("KNOWLEDGE_SCORE_THRESHOLD", "0.35"))
     
     # Logging and observability
     LOG_LEVEL: str = os.getenv("KNOWLEDGE_LOG_LEVEL", "INFO")
@@ -97,7 +97,7 @@ class KnowledgeConfig:
 DEVELOPMENT_ENV = """
 # Development Environment Configuration for Knowledge Base
 export KNOWLEDGE_STRATEGY="FILE_FIRST"
-export KNOWLEDGE_BASE_URL="http://localhost:8080"
+export KNOWLEDGE_BASE_URL="http://localhost:8082"
 export KNOWLEDGE_TIMEOUT="5.0"
 export KNOWLEDGE_MAX_RETRIES="2"
 export KNOWLEDGE_DEBUG="true"

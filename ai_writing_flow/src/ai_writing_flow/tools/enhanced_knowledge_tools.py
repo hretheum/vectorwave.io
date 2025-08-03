@@ -13,7 +13,7 @@ import asyncio
 import os
 import time
 from typing import Dict, Any, Optional
-from crewai_tools import tool
+from crewai.tools import tool
 import structlog
 
 from ..adapters.knowledge_adapter import (
