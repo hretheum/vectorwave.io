@@ -241,6 +241,14 @@ class FlowControlState(BaseModel):
         elapsed = (datetime.now(timezone.utc) - last_failure).total_seconds()
         return elapsed > self.CIRCUIT_BREAKER_RECOVERY_TIMEOUT_SECONDS
     
+    def get_circuit_breaker_state(self, stage: FlowStage) -> CircuitBreakerState:
+        """Get circuit breaker state for a stage."""
+        return self.circuit_breaker_state.get(stage.value, CircuitBreakerState.CLOSED)
+    
+    def get_stage_result(self, stage: FlowStage) -> Optional[StageResult]:
+        """Get result for a specific stage."""
+        return self.stage_results.get(stage.value)
+    
     def get_execution_summary(self) -> Dict[str, Any]:
         """Get summary of flow execution."""
         return {
