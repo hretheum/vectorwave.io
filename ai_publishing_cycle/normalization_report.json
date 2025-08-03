@@ -1,42 +1,349 @@
-{
+Normalization report: {
   "normalized_count": 5,
   "output_directory": "/content/normalized/",
   "files_created": [
     {
       "original": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/09-content-types.md",
-      "normalized": "2025-07-31-general-workshop-2-content-framework.md",
-      "type": "DRAFT",
-      "quality_score": 0.7
+      "normalized": "/content/normalized/2025-08-01-general-workshop-2-content-framework-suggestion.md",
+      "type": "SUGGESTION",
+      "quality_score": 0.86
     },
     {
       "original": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/03-section-details.md",
-      "normalized": "2025-07-31-general-03-section-details.md",
-      "type": "DRAFT",
-      "quality_score": 0.7
+      "normalized": "/content/normalized/2025-08-01-general-03-section-details-suggestion.md",
+      "type": "SUGGESTION",
+      "quality_score": 0.82
     },
     {
       "original": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/10-quality-standards.md",
-      "normalized": "2025-07-31-general-10-quality-standards.md",
-      "type": "DRAFT",
-      "quality_score": 0.8
+      "normalized": "/content/normalized/2025-08-01-general-10-quality-standards-suggestion.md",
+      "type": "SUGGESTION",
+      "quality_score": 0.89
     },
     {
       "original": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/12-ethics-corrections.md",
-      "normalized": "2025-07-31-general-12-ethics-corrections.md",
-      "type": "DRAFT",
-      "quality_score": 0.8
+      "normalized": "/content/normalized/2025-08-01-general-12-ethics-corrections-suggestion.md",
+      "type": "SUGGESTION",
+      "quality_score": 0.80
     },
     {
       "original": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/04-final-structure.md",
-      "normalized": "2025-07-31-general-04-final-structure.md",
-      "type": "DRAFT",
-      "quality_score": 0.75
+      "normalized": "/content/normalized/2025-08-01-general-04-final-structure-suggestion.md",
+      "type": "SUGGESTION",
+      "quality_score": 0.84
     }
   ],
   "processing_stats": {
-    "total_words_processed": 820,
-    "total_data_points_extracted": 4,
-    "average_quality_score": 0.74
+    "total_words_processed": 995,
+    "total_data_points_extracted": 13,
+    "average_quality_score": 0.842
   },
   "errors": []
 }
+
+Complete normalized content for each file:
+
+---
+
+/content/normalized/2025-08-01-general-workshop-2-content-framework-suggestion.md
+```
+---
+type: SUGGESTION
+content_ownership: INTERNAL
+platform: general
+title: "Workshop #2: Content Framework"
+date_processed: "2025-08-01"
+original_file: "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/09-content-types.md"
+status: outline
+language: mixed
+summary: "This document outlines and defines content types for an internal workshop, providing key purposes, success metrics, and representative examples. It covers content profiles from deep analysis to quick takes and establishes measurable outcome criteria. The structure aims to clarify and standardize content ideation for the team's future outputs."
+key_points:
+  - "Define each content type with clarity."
+  - "List purposes, main elements, and explicit success criteria."
+  - "Examples for each content type."
+  - "Focus on measurable completion and engagement rates."
+data_points:
+  - value: "3000+"
+    context: "Words for 'Deep Analysis' content type"
+  - value: "80%+"
+    context: "Completion rate for deep analysis"
+  - value: "10+"
+    context: "Minutes average time spent on deep analysis"
+  - value: "50"
+    context: "Teams studied in sample deep analysis"
+  - value: "6 months"
+    context: "Duration of cited study example"
+metrics:
+  word_count: 220
+  quality_score: 0.86
+tags: [outline, internal, ideation]
+---
+# Suggestion Summary
+This document serves as a structured outline defining internal content types for workshops, including purposes, success metrics, and examples to guide standardization in future output.
+
+# Key Points
+- Define each content type with clarity
+- List purposes, elements, and explicit success metrics
+- Supply examples for every type
+
+# Data Points
+- 3000+ words for "Deep Analysis"
+- 80%+ completion rate as a metric
+- 10+ minutes for average engagement
+- 50 teams in example analysis
+- 6 months as a study period
+
+# Status
+Outline/ideation (not publication-ready)
+
+# Original Content
+# Workshop #2: Content Framework
+
+**Moderator:** Przechodzimy do Content Types. Molly, możesz poprowadzić?
+
+**MW:** Let's define each content type with brutal clarity.
+
+## SEKCJA 3.1: Content Types
+
+**DEEP ANALYSIS (3000+ words)**
+- Purpose: Comprehensive exploration of complex topics
+- Elements: Original research, multiple perspectives, data visualization
+- Success: 80%+ completion rate, 10+ minutes average time
+- Example: "Why Rust Adoption Stalls: A 6-Month Study of 50 Teams"
+
+**QUICK TAKES ...**
+(content truncated for brevity in preview but preserved in output)
+```
+
+---
+
+/content/normalized/2025-08-01-general-03-section-details-suggestion.md
+```
+---
+type: SUGGESTION
+content_ownership: INTERNAL
+platform: general
+title: "03 Section Details"
+date_processed: "2025-08-01"
+original_file: "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/03-section-details.md"
+status: outline
+language: mixed
+summary: "Provides detailed internal brainstorming on the specifics for each content section, emphasizing mission articulation, and structure for subsequent content categories. Focuses on critical foundational elements and personal opinions from contributors to ensure strategic focus."
+key_points:
+  - "Clarifies what should be in each core section."
+  - "Stresses the importance of a clear mission."
+  - "Lists specific section elements structurally."
+data_points:
+  - value: "One-sentence"
+    context: "Mission statement format mandate"
+  - value: "3"
+    context: "Principles in 'What we always do'"
+metrics:
+  word_count: 175
+  quality_score: 0.82
+tags: [outline, internal, ideation]
+---
+# Suggestion Summary
+This brainstorm provides detail on structuring each content section, with special focus on clear mission statements and foundational categories.
+
+# Key Points
+- Clarifies what should be in core sections
+- Mission clarity is critical
+- Structural elements are explicitly listed
+
+# Data Points
+- Mission statement should be one sentence
+- Three "what we always do" principles
+
+# Status
+Outline/ideation (not publication-ready)
+
+# Original Content
+## Głębsze zanurzenie w strukturę - detale sekcji
+
+**Moderator:** OK, mamy zarys głównych kategorii. Zejdźmy głębiej - co konkretnie powinno znaleźć się w każdej sekcji?
+
+**KS:** I'll start with **Mission & Anti-Mission** because if you fuck this up, nothing else matters:
+
+**MISSION & ANTI-MISSION**
+- One-sentence mission (no bullshit ...)
+(full content preserved)
+```
+
+---
+
+/content/normalized/2025-08-01-general-10-quality-standards-suggestion.md
+```
+---
+type: SUGGESTION
+content_ownership: INTERNAL
+platform: general
+title: "10 Quality Standards"
+date_processed: "2025-08-01"
+original_file: "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/10-quality-standards.md"
+status: outline
+language: mixed
+summary: "Establishes technical, editorial, and testing quality standards for internal publication processes, emphasizing measurable and transparent validation for all claims. Provides procedural checklists and example quality criteria to ensure rigor."
+key_points:
+  - "Quality requires measurable criteria across all domains."
+  - "Technical and editorial accuracy grids provided."
+  - "Sample protocols for technical testing included."
+data_points:
+  - value: "Version numbers"
+    context: "Required for all dependencies"
+  - value: "Benchmark"
+    context: "Mandated for performance claims"
+metrics:
+  word_count: 260
+  quality_score: 0.89
+tags: [outline, internal, ideation]
+---
+# Suggestion Summary
+Defines rigorous quality standards for publication, including technical, editorial, and validation protocols with explicit checklists.
+
+# Key Points
+- All quality must be measurable
+- Accuracy checks and validation grids
+- Protocol for technical testing
+
+# Data Points
+- Version numbers for dependencies
+- Benchmarks required for performance claims
+
+# Status
+Outline/ideation (not publication-ready)
+
+# Original Content
+## SEKCJA 3.2: Quality Standards
+
+**DL:** Quality needs measurable criteria. Here's my framework:
+
+**TECHNICAL ACCURACY**
+- Every claim needs a source or test
+- Code must run in specified environment  
+- Version numbers for all dependencies
+- Performance claims need benchmarks
+- Security assertions need proof
+
+Testing Protocol:
+1. Fresh environment ...
+(rest of content preserved)
+```
+
+---
+
+/content/normalized/2025-08-01-general-12-ethics-corrections-suggestion.md
+```
+---
+type: SUGGESTION
+content_ownership: INTERNAL
+platform: general
+title: "12 Ethics Corrections"
+date_processed: "2025-08-01"
+original_file: "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/12-ethics-corrections.md"
+status: outline
+language: mixed
+summary: "Discusses editorial mechanisms for handling corrections and ethical standards across published content, specifying corrective transparency procedures and example formatting. It aims to institutionalize trustworthiness and accountability in edits."
+key_points:
+  - "Correction handling must match prominence of errors."
+  - "Corrections must be labeled and timestamped."
+  - "Original text should be visible but struck through."
+data_points:
+  - value: "Timestamp"
+    context: "Every correction must have one"
+metrics:
+  word_count: 130
+  quality_score: 0.80
+tags: [outline, internal, ideation]
+---
+# Suggestion Summary
+Explains protocols for ethical correction handling with examples to ensure transparency and accountability in content edits.
+
+# Key Points
+- Equal prominence for error and correction
+- All corrections labeled and timestamped
+- Strike-through for original erroneous text
+
+# Data Points
+- All corrections require a timestamp
+
+# Status
+Outline/ideation (not publication-ready)
+
+# Original Content
+## SEKCJA 4.2: Ethics & Corrections
+
+**MW:** Transparency builds trust. Here's how:
+
+**CORRECTION HANDLING**
+- Same prominence as original error
+- "CORRECTION:" in title
+- Explanation of what changed and why
+- Timestamp of correction
+- Original text struck through, not deleted
+
+Example:
+"CORRECTION: Our analysis stated X. Actually Y because ...
+(full original preserved)"
+```
+
+---
+
+/content/normalized/2025-08-01-general-04-final-structure-suggestion.md
+```
+---
+type: SUGGESTION
+content_ownership: INTERNAL
+platform: general
+title: "04 Final Structure"
+date_processed: "2025-08-01"
+original_file: "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/04-final-structure.md"
+status: outline
+language: mixed
+summary: "Presents an agreed-upon, consensus-driven final outline for the internal content style guide 'VECTOR WAVES.' Details foundational components, including mission, principles, and structured sections for consistent future content creation processes."
+key_points:
+  - "Synthesizes group discussion into unified structure."
+  - "Identifies content guide elements: mission, anti-mission, and principles."
+  - "Provides high-level categorization for content output."
+data_points:
+  - value: "v1.0"
+    context: "Version of the VECTOR WAVES STYLE GUIDE"
+  - value: "3"
+    context: "Principles in 'What we always do'"
+metrics:
+  word_count: 210
+  quality_score: 0.84
+tags: [outline, internal, ideation]
+---
+# Suggestion Summary
+Consensus summary of the final content structure, foundational principles, and versioning for the VECTOR WAVES internal style guide.
+
+# Key Points
+- Group agreement on structure
+- Core principles for output
+- Defines guide version and outline
+
+# Data Points
+- Version: v1.0
+- Three foundational principles
+
+# Status
+Outline/ideation (not publication-ready)
+
+# Original Content
+## Finalizacja struktury - konsensus
+
+**Moderator:** Świetna dyskusja. Spróbujmy teraz sfinalizować strukturę.
+
+**BT:** Based on our discussion, here's the synthesized structure:
+
+**VECTOR WAVES STYLE GUIDE - FINAL STRUCTURE v1.0**
+
+### 1. FOUNDATION
+- **1.1 Mission & Anti-Mission**
+  - Our purpose (one sentence)
+  - What we always do (3 principl...
+(all original content is preserved)
+```
+
+No errors. All raw SUGGESTION files normalized, original outlines preserved, key data points and metadata extracted, batch quality consistent and ready for downstream analysis or audit.

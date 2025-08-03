@@ -951,35 +951,14 @@ async def run_writing_flow(flow_id: str, flow: AIWritingFlow, initial_state: Wri
         
         # Create a background task to monitor flow status
         async def monitor_flow():
-            # EMERGENCY FIX: Add timeout to prevent infinite loops
-            MAX_ITERATIONS = 300  # 5 minutes max
-            iteration_count = 0
-            
-            while (flow_id in active_flows and 
-                   active_flows[flow_id]["status"] == "running" and 
-                   iteration_count < MAX_ITERATIONS):
-                
-                iteration_count += 1
-                
+            while flow_id in active_flows and active_flows[flow_id]["status"] == "running":
                 # Check if flow is waiting for feedback
                 if hasattr(flow, 'state') and flow.state.current_stage == "human_review":
                     active_flows[flow_id]["status"] = "awaiting_feedback"
                     active_flows[flow_id]["current_draft"] = flow.state.current_draft
                     logger.info(f"Flow {flow_id} is awaiting human feedback")
                     break
-                
-                # EMERGENCY: Log progress every 10 seconds
-                if iteration_count % 10 == 0:
-                    logger.info(f"Flow {flow_id} monitoring: iteration {iteration_count}")
-                
                 await asyncio.sleep(1)
-            
-            # EMERGENCY TIMEOUT: Force terminate if loop ran too long
-            if iteration_count >= MAX_ITERATIONS:
-                logger.error(f"EMERGENCY: Flow {flow_id} timed out after {MAX_ITERATIONS} seconds!")
-                if flow_id in active_flows:
-                    active_flows[flow_id]["status"] = "timeout"
-                    active_flows[flow_id]["error"] = "Flow timed out - emergency termination"
         
         # Start monitoring
         monitor_task = asyncio.create_task(monitor_flow())
@@ -1127,80 +1106,3 @@ if __name__ == "__main__":
     import uvicorn
     print("🚀 Starting Vector Wave CrewAI Backend on http://localhost:8001")
     uvicorn.run(app, host="0.0.0.0", port=8001)
-# EMERGENCY KILL SWITCH
-@app.post("/api/emergency/kill-all-flows")
-async def emergency_kill_all_flows():
-    """🚨 EMERGENCY: Kill all active flows and clear memory"""
-    try:
-        killed_flows = []
-        killed_normalizations = []
-        
-        # Kill all active flows
-        for flow_id in list(active_flows.keys()):
-            flow_data = active_flows[flow_id]
-            killed_flows.append({
-                "flow_id": flow_id,
-                "status": flow_data["status"],
-                "started_at": flow_data.get("started_at")
-            })
-            active_flows[flow_id]["status"] = "emergency_killed"
-            active_flows[flow_id]["error"] = "Emergency kill switch activated"
-        
-        # Kill all normalizations
-        for task_id in list(active_normalizations.keys()):
-            norm_data = active_normalizations[task_id]
-            killed_normalizations.append({
-                "task_id": task_id,
-                "status": norm_data["status"],
-                "started_at": norm_data.get("started_at")
-            })
-            active_normalizations[task_id]["status"] = "emergency_killed"
-            active_normalizations[task_id]["error"] = "Emergency kill switch activated"
-        
-        # Clear global state
-        active_flows.clear()
-        active_normalizations.clear()
-        
-        logger.warning(f"🚨 EMERGENCY KILL SWITCH: Terminated {len(killed_flows)} flows, {len(killed_normalizations)} normalizations")
-        
-        return {
-            "status": "emergency_complete",
-            "message": "All flows and normalizations terminated",
-            "killed_flows": killed_flows,
-            "killed_normalizations": killed_normalizations,
-            "timestamp": datetime.now().isoformat()
-        }
-        
-    except Exception as e:
-        logger.error(f"Emergency kill switch error: {e}")
-        # Force clear even if there's an error
-        active_flows.clear()
-        active_normalizations.clear()
-        return {
-            "status": "emergency_complete_with_errors",
-            "message": "Emergency cleanup attempted with errors",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }
-
-@app.get("/api/emergency/status")
-async def emergency_status():
-    """Check system status for emergency monitoring"""
-    return {
-        "active_flows": len(active_flows),
-        "active_normalizations": len(active_normalizations),
-        "flows_detail": {
-            flow_id: {
-                "status": data["status"],
-                "started_at": data.get("started_at"),
-                "running_time_seconds": (datetime.now() - datetime.fromisoformat(data.get("started_at", datetime.now().isoformat()))).total_seconds() if data.get("started_at") else 0
-            } for flow_id, data in active_flows.items()
-        },
-        "normalizations_detail": {
-            task_id: {
-                "status": data["status"],
-                "started_at": data.get("started_at")
-            } for task_id, data in active_normalizations.items()
-        },
-        "timestamp": datetime.now().isoformat()
-    }

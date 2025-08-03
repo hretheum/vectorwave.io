@@ -467,15 +467,14 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: Cha
               size="icon"
               className="h-8 w-8 text-white hover:bg-white/20"
               onClick={() => {
-                if (confirm('Czy na pewno chcesz wyczyścić historię czatu?')) {
-                  setMessages([{
-                    id: '1',
-                    role: 'assistant',
-                    content: 'Cześć! 👋 Jestem Twoim AI asystentem. Mogę pomóc Ci:\n\n• Analizować foldery z contentem\n• Doradzać w strategii publikacji\n• Generować pomysły na posty\n• Odpowiadać na pytania o Vector Wave\n\nCo Cię dziś interesuje?',
-                    timestamp: new Date()
-                  }]);
-                  localStorage.removeItem('chatMessages');
-                }
+                // Bezpośrednio czyść bez potwierdzenia
+                setMessages([{
+                  id: '1',
+                  role: 'assistant',
+                  content: 'Cześć! 👋 Jestem Twoim AI asystentem. Mogę pomóc Ci:\n\n• Analizować foldery z contentem\n• Doradzać w strategii publikacji\n• Generować pomysły na posty\n• Odpowiadać na pytania o Vector Wave\n\nCo Cię dziś interesuje?',
+                  timestamp: new Date()
+                }]);
+                localStorage.removeItem('chatMessages');
               }}
               title="Wyczyść historię"
             >

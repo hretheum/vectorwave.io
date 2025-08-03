@@ -3,15 +3,24 @@
     {
       "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/09-content-types.md",
       "title": "Workshop #2: Content Framework",
-      "summary": "This outline captures a brainstorming session defining content types for a team workshop. The discussion includes moderators and contributors outlining and clarifying different content types to be used in their framework.",
+      "summary": "This document outlines and defines content types for an internal workshop, providing key purposes, success metrics, and representative examples. It covers content profiles from deep analysis to quick takes and establishes measurable outcome criteria. The structure aims to clarify and standardize content ideation for the team's future outputs.",
       "key_points": [
-        "Definition of different content types with clear criteria",
-        "Team-based discussion format, moving section by section",
-        "Content typology intended for broader framework structuring"
+        "Define each content type with clarity.",
+        "List purposes, main elements, and explicit success criteria.",
+        "Examples for each content type.",
+        "Focus on measurable completion and engagement rates."
       ],
-      "data_points": [],
+      "data_points": [
+        {"value": "3000+", "context": "Words for 'DeEP ANALYSIS' content type"},
+        {"value": "80%+", "context": "Completion rate success metric for deep analysis"},
+        {"value": "10+", "context": "Minutes average time spent on deep analysis"},
+        {"value": "50", "context": "Teams studied in sample deep analysis example"},
+        {"value": "6 months", "context": "Duration of cited study example"}
+      ],
       "entities": {
-        "people": ["Molly (MW)", "Moderator"],
+        "people": [
+          {"name": "Molly", "abbreviation": "MW"}
+        ],
         "companies": [],
         "technologies": [],
         "products": []
@@ -19,107 +28,232 @@
       "metrics": {
         "word_count": 220,
         "read_time_minutes": 1,
-        "data_density": "low"
+        "data_density": "medium"
       },
-      "quality_score": 0.7
+      "data_density_justification": "Contains several metrics and structured content types, but as an outline not exhaustive.",
+      "quality_score": 0.86,
+      "author": "N/A",
+      "date_created_or_published": "Last modified 2025-08-01T00:14:08.732708",
+      "content_structure": [
+        "Moderator Introduction",
+        "Section 3.1: Content Types",
+        "Subtypes: Deep Analysis, Quick Takes, etc.",
+        "Success Criteria per Content Type",
+        "Example Reference per Type"
+      ],
+      "calls_to_action": [],
+      "links_and_references": [],
+      "target_audience_indicators": [
+        "Internal team/ideation session",
+        "Workshop context"
+      ],
+      "tone": "professional, collaborative, outline-focused",
+      "content_completeness": "Outline only, not full content",
+      "quality_indicators": ["Measurable metrics defined", "Examples given", "Clear structure"],
+      "missing_fields_or_ambiguity": [
+        "Author not specified (use N/A)",
+        "Creation date not explicit (using last modified)",
+        "No links/references present"
+      ]
     },
     {
       "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/03-section-details.md",
       "title": "03 Section Details",
-      "summary": "The document details an ideation outline for further breaking down the content structure by section. Team members suggest specific elements that should be included within each part, focusing on clarity of sections like mission or anti-mission.",
+      "summary": "Provides detailed internal brainstorming on the specifics for each content section, emphasizing mission articulation, and structure for subsequent content categories. Focuses on critical foundational elements and personal opinions from contributors to ensure strategic focus.",
       "key_points": [
-        "Expanding main content categories into detailed sections",
-        "Collaborative exchange on content structure specifics",
-        "Emphasis on granular section criteria"
+        "Clarifies what should be in each core section.",
+        "Stresses the importance of a clear mission.",
+        "Lists specific section elements structurally."
       ],
-      "data_points": [],
+      "data_points": [
+        {"value": "One-sentence", "context": "Mission statement format mandate"},
+        {"value": "3", "context": "Principles in 'What we always do'"}
+      ],
       "entities": {
-        "people": ["Moderator", "KS"],
+        "people": [
+          {"name": "KS"}
+        ],
         "companies": [],
         "technologies": [],
         "products": []
       },
       "metrics": {
-        "word_count": 180,
+        "word_count": 175,
         "read_time_minutes": 1,
-        "data_density": "low"
+        "data_density": "medium"
       },
-      "quality_score": 0.7
+      "data_density_justification": "Specific, structured, but outline format limits volume.",
+      "quality_score": 0.82,
+      "author": "N/A",
+      "date_created_or_published": "Last modified 2025-08-01T00:07:51.367941",
+      "content_structure": [
+        "Moderator Introduction",
+        "Mission & Anti-Mission",
+        "Breakdown of section requirements"
+      ],
+      "calls_to_action": [],
+      "links_and_references": [],
+      "target_audience_indicators": [
+        "Project/contributor audience",
+        "Strategic/ideation focus"
+      ],
+      "tone": "direct, critical, informal in moderator notes",
+      "content_completeness": "Outline only, not fleshed out",
+      "quality_indicators": ["Explicit focus on foundational clarity", "Collaborative remarks"],
+      "missing_fields_or_ambiguity": [
+        "Author not specified (use N/A)",
+        "Creation date not explicit (using last modified)",
+        "No links/references present"
+      ]
     },
     {
       "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/10-quality-standards.md",
       "title": "10 Quality Standards",
-      "summary": "A framework for measuring and enforcing content quality standards is laid out in this outline. Focus areas include technical accuracy, code verifiability, and consistent referencing of sources or tests.",
+      "summary": "Establishes technical, editorial, and testing quality standards for internal publication processes, emphasizing measurable and transparent validation for all claims. Provides procedural checklists and example quality criteria to ensure rigor.",
       "key_points": [
-        "Standardization of quality metrics for content",
-        "Framework based on technical verification, reproducibility, and source citing",
-        "Explicit focus on measurable criteria in content production"
+        "Quality requires measurable criteria across all domains.",
+        "Technical and editorial accuracy grids provided.",
+        "Sample protocols for technical testing included."
       ],
       "data_points": [
-        {"value": "every claim", "context": "must be supported by a source or test"},
-        {"value": "version numbers", "context": "required for code"}
+        {"value": "Version numbers", "context": "Required for all dependencies"},
+        {"value": "Benchmark", "context": "Mandated for performance claims"}
       ],
       "entities": {
-        "people": ["DL"],
+        "people": [
+          {"name": "DL"}
+        ],
         "companies": [],
         "technologies": [],
         "products": []
       },
       "metrics": {
-        "word_count": 170,
+        "word_count": 260,
         "read_time_minutes": 1,
-        "data_density": "medium"
+        "data_density": "high"
       },
-      "quality_score": 0.8
+      "data_density_justification": "Dense with requirements, procedures, and technical details.",
+      "quality_score": 0.89,
+      "author": "N/A",
+      "date_created_or_published": "Last modified 2025-08-01T00:14:31.121648",
+      "content_structure": [
+        "Section 3.2: Quality Standards",
+        "Technical Accuracy Checklist",
+        "Testing Protocol",
+        "Editorial Guidelines"
+      ],
+      "calls_to_action": [],
+      "links_and_references": [],
+      "target_audience_indicators": [
+        "Internal QA/process stakeholders"
+      ],
+      "tone": "authoritative, technical, prescriptive",
+      "content_completeness": "Outline, but more detailed than others (procedural steps given)",
+      "quality_indicators": ["Measurability", "Concrete requirements", "Testing protocol"],
+      "missing_fields_or_ambiguity": [
+        "Author not specified (use N/A)",
+        "Creation date not explicit (using last modified)",
+        "No links/references present"
+      ]
     },
     {
       "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/12-ethics-corrections.md",
       "title": "12 Ethics Corrections",
-      "summary": "The outline sets forth ethical standards for content corrections, emphasizing transparency, giving corrections the same visibility as the original errors, and ensuring clear documentation of changes.",
+      "summary": "Discusses editorial mechanisms for handling corrections and ethical standards across published content, specifying corrective transparency procedures and example formatting. It aims to institutionalize trustworthiness and accountability in edits.",
       "key_points": [
-        "Corrections must be equally prominent as original errors",
-        "Introduce clear labeling and documentation for corrections",
-        "Timestamping and transparent explanations for each correction"
+        "Correction handling must match prominence of errors.",
+        "Corrections must be labeled and timestamped.",
+        "Original text should be visible but struck through."
       ],
       "data_points": [
-        {"value": "same prominence", "context": "corrections must match original error's visibility"},
-        {"value": "\"CORRECTION:\"", "context": "to be placed in title for corrected items"}
+        {"value": "Timestamp", "context": "Every correction must have one"}
       ],
       "entities": {
-        "people": ["MW"],
-        "companies": [],
-        "technologies": [],
-        "products": []
-      },
-      "metrics": {
-        "word_count": 120,
-        "read_time_minutes": 0.5,
-        "data_density": "medium"
-      },
-      "quality_score": 0.8
-    },
-    {
-      "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/04-final-structure.md",
-      "title": "04 Final Structure",
-      "summary": "This outline records the consensus reached on the final content structure after extensive team discussion. It compiles the synthesized vector wave style guide structure as agreed upon by the workshop participants.",
-      "key_points": [
-        "Compiled consensus on content framework structure",
-        "Integration of previous discussions into a finalized style guide",
-        "Team-driven iterative refinement"
-      ],
-      "data_points": [],
-      "entities": {
-        "people": ["Moderator", "BT"],
+        "people": [
+          {"name": "MW"}
+        ],
         "companies": [],
         "technologies": [],
         "products": []
       },
       "metrics": {
         "word_count": 130,
-        "read_time_minutes": 0.5,
-        "data_density": "low"
+        "read_time_minutes": 1,
+        "data_density": "medium"
       },
-      "quality_score": 0.75
+      "data_density_justification": "Contains a procedural list and example, brief for topic.",
+      "quality_score": 0.80,
+      "author": "N/A",
+      "date_created_or_published": "Last modified 2025-08-01T00:15:21.659503",
+      "content_structure": [
+        "Section 4.2: Ethics & Corrections",
+        "Correction Handling Protocol",
+        "Correction Example"
+      ],
+      "calls_to_action": [],
+      "links_and_references": [],
+      "target_audience_indicators": [
+        "Editorial/QA staff"
+      ],
+      "tone": "ethical, instructive, transparent",
+      "content_completeness": "Outline only, not fleshed out",
+      "quality_indicators": ["Stepwise process", "Transparency mechanisms documented"],
+      "missing_fields_or_ambiguity": [
+        "Author not specified (use N/A)",
+        "Creation date not explicit (using last modified)",
+        "No links/references present"
+      ]
+    },
+    {
+      "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/04-final-structure.md",
+      "title": "04 Final Structure",
+      "summary": "Presents an agreed-upon, consensus-driven final outline for the internal content style guide 'VECTOR WAVES.' Details foundational components, including mission, principles, and structured sections for consistent future content creation processes.",
+      "key_points": [
+        "Synthesizes group discussion into unified structure.",
+        "Identifies content guide elements: mission, anti-mission, and principles.",
+        "Provides high-level categorization for content output."
+      ],
+      "data_points": [
+        {"value": "v1.0", "context": "Version of the VECTOR WAVES STYLE GUIDE"},
+        {"value": "3", "context": "Principles in 'What we always do'"}
+      ],
+      "entities": {
+        "people": [
+          {"name": "BT"}
+        ],
+        "companies": [],
+        "technologies": [],
+        "products": [
+          {"name": "VECTOR WAVES STYLE GUIDE"}
+        ]
+      },
+      "metrics": {
+        "word_count": 210,
+        "read_time_minutes": 1,
+        "data_density": "medium"
+      },
+      "data_density_justification": "Comprehensive for outline, but no full content.",
+      "quality_score": 0.84,
+      "author": "N/A",
+      "date_created_or_published": "Last modified 2025-08-01T00:09:16.150051",
+      "content_structure": [
+        "Moderator Introduction",
+        "Synthesized Final Structure",
+        "Sectional Breakdown: Foundation, Mission & Anti-Mission, Principles"
+      ],
+      "calls_to_action": [],
+      "links_and_references": [],
+      "target_audience_indicators": [
+        "Project definition team"
+      ],
+      "tone": "consensus-driven, structured, formal",
+      "content_completeness": "Outline/consensus, not executable by itself",
+      "quality_indicators": ["Includes versioning", "Collective authorship", "Clear organization"],
+      "missing_fields_or_ambiguity": [
+        "Author not specified (use N/A)",
+        "Creation date not explicit (using last modified)",
+        "No links/references present"
+      ]
     }
   ]
 }

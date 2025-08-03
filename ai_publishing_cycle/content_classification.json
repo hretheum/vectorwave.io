@@ -4,68 +4,77 @@
     {
       "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/09-content-types.md",
       "folder": "2025-07-31-brainstorm",
-      "content_type": "DRAFT",
+      "content_type": "SUGGESTION",
+      "confidence": "likely",
       "platform": "general",
-      "purpose": "publication",
+      "purpose": "ideation",
       "language": "mixed",
-      "status": "complete",
+      "status": "outline",
       "title": "Workshop #2: Content Framework",
-      "preview": "# Workshop #2: Content Framework\n\n**Moderator:** Przechodzimy do Content Types. Molly, możesz poprowadzić?\n\n**MW:** Let's define each content type with brutal clarity."
+      "preview": "# Workshop #2: Content Framework\n\n**Moderator:** Przechodzimy do Content Types. Molly, możesz poprowadzić?\n\n**MW:** Let's define each content type with brutal clarity.\n\n## SEKCJA 3.1: Content Types\n\n**DEEP ANALYSIS (3000+ words)**\n- Purpose: Comprehensive exploration of complex topics\n- Elements: Original research, multiple perspectives, data visualization\n- Success: 80%+ completion rate, 10+ minutes average time\n- Example: \"Why Rust Adoption Stalls: A 6-Month Study of 50 Teams\"\n\n**QUICK TAKES ..."
     },
     {
       "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/03-section-details.md",
       "folder": "2025-07-31-brainstorm",
-      "content_type": "DRAFT",
+      "content_type": "SUGGESTION",
+      "confidence": "likely",
       "platform": "general",
-      "purpose": "publication",
+      "purpose": "ideation",
       "language": "mixed",
-      "status": "complete",
+      "status": "outline",
       "title": "03 Section Details",
-      "preview": "## Głębsze zanurzenie w strukturę - detale sekcji\n\n**Moderator:** OK, mamy zarys głównych kategorii. Zejdźmy głębiej - co konkretnie powinno znaleźć się w każdej sekcji?"
+      "preview": "## Głębsze zanurzenie w strukturę - detale sekcji\n\n**Moderator:** OK, mamy zarys głównych kategorii. Zejdźmy głębiej - co konkretnie powinno znaleźć się w każdej sekcji?\n\n**KS:** I'll start with **Mission & Anti-Mission** because if you fuck this up, nothing else matters:\n\n**MISSION & ANTI-MISSION**\n- One-sentence mission (no bullshit ..."
     },
     {
       "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/10-quality-standards.md",
       "folder": "2025-07-31-brainstorm",
-      "content_type": "DRAFT",
+      "content_type": "SUGGESTION",
+      "confidence": "likely",
       "platform": "general",
-      "purpose": "publication",
+      "purpose": "ideation",
       "language": "mixed",
-      "status": "complete",
+      "status": "outline",
       "title": "10 Quality Standards",
-      "preview": "## SEKCJA 3.2: Quality Standards\n\n**DL:** Quality needs measurable criteria. Here's my framework:\n\n**TECHNICAL ACCURACY**\n- Every claim needs a source or test\n- Code must run in specified environment"
+      "preview": "## SEKCJA 3.2: Quality Standards\n\n**DL:** Quality needs measurable criteria. Here's my framework:\n\n**TECHNICAL ACCURACY**\n- Every claim needs a source or test\n- Code must run in specified environment  \n- Version numbers for all dependencies\n- Performance claims need benchmarks\n- Security assertions need proof\n\nTesting Protocol:\n1. Fresh environment ..."
     },
     {
       "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/12-ethics-corrections.md",
       "folder": "2025-07-31-brainstorm",
-      "content_type": "DRAFT",
+      "content_type": "SUGGESTION",
+      "confidence": "likely",
       "platform": "general",
-      "purpose": "publication",
+      "purpose": "ideation",
       "language": "mixed",
-      "status": "complete",
+      "status": "outline",
       "title": "12 Ethics Corrections",
-      "preview": "## SEKCJA 4.2: Ethics & Corrections\n\n**MW:** Transparency builds trust. Here's how:\n\n**CORRECTION HANDLING**\n- Same prominence as original error\n- \"CORRECTION:\" in title"
+      "preview": "## SEKCJA 4.2: Ethics & Corrections\n\n**MW:** Transparency builds trust. Here's how:\n\n**CORRECTION HANDLING**\n- Same prominence as original error\n- \"CORRECTION:\" in title\n- Explanation of what changed and why\n- Timestamp of correction\n- Original text struck through, not deleted\n\nExample:\n\"CORRECTION: Our analysis stated X. Actually Y because ..."
     },
     {
       "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/04-final-structure.md",
       "folder": "2025-07-31-brainstorm",
-      "content_type": "DRAFT",
+      "content_type": "SUGGESTION",
+      "confidence": "likely",
       "platform": "general",
-      "purpose": "publication",
+      "purpose": "ideation",
       "language": "mixed",
-      "status": "complete",
+      "status": "outline",
       "title": "04 Final Structure",
-      "preview": "## Finalizacja struktury - konsensus\n\n**Moderator:** Świetna dyskusja. Spróbujmy teraz sfinalizować strukturę.\n\n**BT:** Based on our discussion, here's the synthesized structure:"
+      "preview": "## Finalizacja struktury - konsensus\n\n**Moderator:** Świetna dyskusja. Spróbujmy teraz sfinalizować strukturę.\n\n**BT:** Based on our discussion, here's the synthesized structure:\n\n**VECTOR WAVES STYLE GUIDE - FINAL STRUCTURE v1.0**\n\n### 1. FOUNDATION\n- **1.1 Mission & Anti-Mission**\n  - Our purpose (one sentence)\n  - What we always do (3 principl..."
     }
   ],
   "summary": {
-    "by_type": {
-      "DRAFT": 5
-    },
-    "by_platform": {
-      "general": 5
-    },
-    "by_language": {
-      "mixed": 5
-    }
-  }
+    "by_type": {"SUGGESTION": 5, "SOURCE": 0, "DRAFT": 0, "TEMPLATE": 0, "DATA": 0},
+    "by_platform": {"general": 5, "twitter": 0, "linkedin": 0, "newsletter": 0, "medium": 0},
+    "by_language": {"mixed": 5, "EN": 0, "PL": 0}
+  },
+  "notes": [
+    "All files are team brainstorming/outline/ideation documents—they do not match SOURCE (external article/research), DRAFT (original in-progress writing), TEMPLATE, or DATA.",
+    "Classified with high confidence as SUGGESTION based on format, language, structure, and introductory sections.",
+    "All files use both English and Polish (mixed language).",
+    "No file is a publication-ready draft or external research/article.",
+    "No platform-specific (twitter/linkedin/newsletter/medium) signals—intended for internal/general framework use.",
+    "Status is 'outline' for all—documents are partial outlines, not complete.",
+    "No files failed to process or parse; classification is certain based on content.",
+    "If further files are present in other folders, repeat or expand scan as needed."
+  ]
 }
