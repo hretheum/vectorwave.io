@@ -1,0 +1,86 @@
+knowledge_base:
+  name: "Vector Wave CrewAI Knowledge Base"
+  version: "1.0.0"
+  
+  # Performance targets
+  performance:
+    cache_hit_target: 0.85            # 85% cache hit ratio
+    query_latency_p95_ms: 500         # 95th percentile < 500ms
+    availability_target: 0.999        # 99.9% uptime
+    max_concurrent_queries: 100       # Concurrent query limit
+  
+  # Cache configuration
+  cache:
+    memory:
+      enabled: true
+      max_size_mb: 512
+      ttl_seconds: 300                # 5 minutes
+      eviction_policy: "lru"
+    
+    redis:
+      enabled: true
+      url: "redis://localhost:6379"
+      db: 0
+      max_connections: 20
+      ttl_seconds: 3600               # 1 hour
+      prefix: "kb"
+  
+  # Vector store configuration
+  vector_store:
+    provider: "chroma"
+    host: "localhost"
+    port: 8000
+    collection_name: "crewai_knowledge"
+    embedding_function: "all-MiniLM-L6-v2"
+    similarity_metric: "cosine"
+    
+  # Knowledge sources
+  sources:
+    markdown:
+      enabled: true
+      base_path: "./docs"
+      watch_changes: true
+      encoding: "utf-8"
+      
+    vector:
+      enabled: true
+      score_threshold: 0.35
+      max_results: 10
+      
+    web:
+      enabled: true
+      timeout_seconds: 30
+      retry_attempts: 3
+      rate_limit_rpm: 60              # 60 requests per minute
+  
+  # Sync configuration
+  sync:
+    enabled: true
+    scheduler_enabled: true
+    default_frequency: "daily"
+    max_concurrent_syncs: 3
+    
+    sources:
+      - name: "crewai_official"
+        url: "https://docs.crewai.com"
+        frequency: "daily"
+        priority: "high"
+        
+      - name: "github_issues"
+        url: "https://api.github.com/repos/joaomdmoura/crewAI"
+        frequency: "hourly"
+        priority: "medium"
+  
+  # Monitoring
+  monitoring:
+    metrics_enabled: true
+    prometheus_port: 9090
+    health_check_interval_seconds: 30
+    
+  # Security
+  security:
+    api_key_required: false
+    rate_limiting:
+      enabled: true
+      requests_per_minute: 100
+      burst_size: 20
