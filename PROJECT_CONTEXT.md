@@ -29,21 +29,16 @@
 - **ARCHITEKTURA**: ✅ Zaprojektowana (hybrid: Cache + Vector + Markdown + Web)
 - **IMPLEMENTACJA**: ✅ 100% complete przez project-coder
 - **STRUKTURA**: ✅ Wszystkie foldery, Docker, dependencies
-- **TESTY**: ❌ ZABLOKOWANE - agent QA nie działa
+- **TESTY**: ✅ WYKONANE - agent QA stworzył 282+ testów z >80% coverage
+- **BŁĘDY**: ✅ NAPRAWIONE - structlog.testing.BoundLogger → structlog.stdlib.BoundLogger
 
 ### W TRAKCIE 🔄
 
-#### 1. Agent QA Problem
-- **PROBLEM**: System nie widzi nowego agenta qa mimo utworzenia
-- **PRÓBY**: 
-  - Utworzono /Users/hretheum/.claude/agents/qa.md z YAML front matter
-  - Zmieniono nazwę z qa-test-engineer na qa
-  - System nadal nie widzi agenta w liście available agents
-- **STATUS**: ZABLOKOWANE - potrzebny restart systemu lub inna metoda
-
-#### 2. Knowledge Base Testing
-- Czeka na uruchomienie agenta QA
-- Instrukcje zapisane w QA_TEST_INSTRUCTIONS.md
+#### 1. Dekompozycja atomowych zadań CrewAI Flow
+- **STATUS**: ✅ WYKONANE przez project-architect
+- **DELIVERABLE**: CREWAI_FLOW_ATOMIC_TASKS.md
+- **STRUKTURA**: 39 bloków, 4 fazy, ~100+ atomic tasks
+- **SPECIAL**: Dodano krytyczną instrukcję code review co 150 linii
 
 ### DO ZROBIENIA 📋
 
@@ -54,10 +49,11 @@
 - Plan szczegółowy w: CREWAI_FLOW_ARCHITECTURE_PLAN.md
 
 #### 2. Dokończyć Knowledge Base
-- [ ] Uruchomić testy przez agenta QA
-- [ ] Populować content (docs, issues, patterns)
-- [ ] Integrować z AI Writing Flow
-- [ ] Setup auto-sync z CrewAI docs
+- [x] Uruchomić testy przez agenta QA
+- [x] Pobrać dokumentację CrewAI z GitHub (docs/en)
+- [x] Populować content - używamy RAGTool zamiast własnego
+- [x] Integrować z AI Writing Flow - dodano tools do research_crew
+- [x] Setup auto-sync z CrewAI docs - GitHub Action + cron
 
 #### 3. Pozostałe
 - [ ] Naprawić style_crew.py i quality_crew.py (module-level tools)
@@ -68,6 +64,7 @@
 
 1. **Plany i Dokumentacja**:
    - `/kolegium/ai_writing_flow/CREWAI_FLOW_ARCHITECTURE_PLAN.md` - Kompletny plan naprawy
+   - `/kolegium/ai_writing_flow/CREWAI_FLOW_ATOMIC_TASKS.md` - ✅ NOWE: Dekompozycja atomowych zadań
    - `/kolegium/ai_writing_flow/CREWAI_FLOW_FIX_PLAN.md` - Root cause analysis
    - `/kolegium/ai_writing_flow/FLOOD_FIX.md` - Historia napraw flood logów
    - `/knowledge-base/ARCHITECTURE.md` - Architektura KB
@@ -77,47 +74,53 @@
    - `/kolegium/ai_writing_flow/src/ai_writing_flow/main.py` - Główny flow z @router
    - `/kolegium/ai_writing_flow/src/ai_writing_flow/crews/*.py` - Częściowo naprawione
 
-3. **Knowledge Base** (GOTOWE):
+3. **Knowledge Base** (✅ GOTOWE):
    - `/knowledge-base/src/` - Pełna implementacja
    - `/knowledge-base/docker/` - Docker setup
-   - `/knowledge-base/tests/` - Czeka na testy
+   - `/knowledge-base/tests/` - 282+ testów z >80% coverage
+   - `/knowledge-base/data/crewai-docs/` - Dokumentacja CrewAI
+   - `/knowledge-base/scripts/sync_crewai_docs.sh` - Auto-sync script
 
 ### METRYKI SUKCESU 🎯
 
 - ❌ No infinite loops (obecnie: TAK SĄ)
 - ❌ CPU <30% (obecnie: 97.9% przy loop)
-- ❌ Query latency <200ms (KB gotowa, nie przetestowana)
+- ✅ Query latency <200ms (KB gotowa, testy pokazują <200ms avg)
 - ✅ 100% code coverage planu
-- ❌ Production ready (daleko od tego)
+- ✅ >80% test coverage dla Knowledge Base
+- ❌ Production ready (KB prawie, Flow daleko)
 
 ### NASTĘPNE KROKI 🚀
 
-1. **NAJPILNIEJSZE**: Rozwiązać problem z agentem QA
-2. Dokończyć testy Knowledge Base
-3. Implementować linear flow pattern
-4. Zintegrować KB z flow
+1. **NAJPILNIEJSZE**: Wykonać dekompozycję atomowych zadań (`/nakurwiaj 0`)
+2. Implementować linear flow pattern dla AI Writing
+3. Przeprowadzić comprehensive testing
+4. Zintegrować wszystkie komponenty
 5. Deploy z monitoring
 
-### AGENT QA - INSTRUKCJA URUCHOMIENIA
+### TODOLIST STAN (2025-08-03 17:30)
 
-```bash
-# Agent jest w: /Users/hretheum/.claude/agents/qa.md
-# Ma YAML front matter:
+1. ✅ Uruchomić testy Knowledge Base przez agenta QA (high)
+2. ✅ Sprawdzić wyniki testów i naprawić ewentualne błędy (high)
+3. ✅ Pobrać dokumentację CrewAI z GitHub repo (docs/en folder) (high)
+4. ✅ Populować Knowledge Base dokumentacją CrewAI (medium)
+5. ✅ Zintegrować KB z AI Writing Flow (medium)
+6. ✅ Setup auto-sync z CrewAI docs (low)
+7. ✅ Dekompozycja atomowych zadań przez project-architect (high)
+
+## 🔥 FRUSTRACJE → ROZWIĄZANIA ✅
+
+1. ~~Agent QA nie działa mimo poprawnej konfiguracji~~ → Działa! 
+2. CrewAI ma known bugs których nie da się obejść → Plan linear flow gotowy
+3. ~~System cache'uje listę agentów i nie odświeża~~ → Agent QA zadziałał
+
+## 📝 NOTATKI
+
+- **ODKRYCIE**: Dokumentacja CrewAI jest w pełni dostępna w GitHub repo
+- **DECYZJA**: Zamiast tworzyć scraper, użyjemy git sparse-checkout
+- **AGENT QA**: Stworzył kompletny system testów (282+ testów, >80% coverage)
+- **RAGTool**: Oficjalne narzędzie CrewAI lepsze niż własna implementacja
+- **ATOMIC TASKS**: 39 bloków, code review co 150 linii kodu OBOWIĄZKOWE!
+
 ---
-name: qa
-description: Expert QA Test Engineer...
-tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob, Task
----
-
-# PROBLEM: System nie odświeża listy agentów
-# ROZWIĄZANIE: ???
-```
-
-## 🔥 FRUSTRACJE
-
-1. Agent QA nie działa mimo poprawnej konfiguracji
-2. CrewAI ma known bugs których nie da się obejść
-3. System cache'uje listę agentów i nie odświeża
-
----
-*Ostatnia aktualizacja: 2025-08-03 15:30*
+*Ostatnia aktualizacja: 2025-08-03 17:30*

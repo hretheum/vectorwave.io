@@ -4,8 +4,8 @@ import json
 import time
 from typing import Any, Dict, List, Optional, Set
 import structlog
-import aioredis
-from aioredis import Redis
+import redis.asyncio as redis
+from redis.asyncio import Redis
 
 logger = structlog.get_logger()
 
@@ -43,13 +43,13 @@ class RedisCache:
     async def initialize(self) -> None:
         """Initialize Redis connection"""
         try:
-            self._redis = await aioredis.from_url(
+            self._redis = await redis.from_url(
                 self.redis_url,
                 db=self.db,
                 max_connections=self.max_connections,
                 encoding="utf-8",
                 decode_responses=True,
-                retry_on_timeout=True,
+                socket_keepalive=True,
                 health_check_interval=30
             )
             

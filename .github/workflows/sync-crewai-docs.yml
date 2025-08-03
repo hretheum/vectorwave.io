@@ -1,0 +1,58 @@
+name: Sync CrewAI Documentation
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  sync-docs:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Setup Git
+      run: |
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions@github.com"
+    
+    - name: Sync CrewAI Documentation
+      run: |
+        cd knowledge-base/data/crewai-docs
+        
+        # Check current state
+        echo "Current commit:"
+        git log -1 --oneline
+        
+        # Fetch and pull latest
+        git fetch origin main
+        git pull origin main || echo "No updates available"
+        
+        # Check if there were changes
+        if [ $(git rev-parse HEAD) != $(git rev-parse @{u}) ]; then
+          echo "Documentation updated!"
+          
+          # Go back to main repo
+          cd ../../..
+          
+          # Add and commit changes
+          git add knowledge-base/data/crewai-docs
+          git commit -m "chore: Update CrewAI documentation [auto-sync]"
+          
+          # Push changes
+          git push origin main
+        else
+          echo "Documentation is up to date"
+        fi
+    
+    - name: Update Knowledge Base (optional)
+      if: false  # Enable when KB update script is ready
+      run: |
+        python -m pip install -r knowledge-base/requirements.txt
+        python knowledge-base/scripts/update_kb.py
