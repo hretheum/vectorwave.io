@@ -14,6 +14,7 @@ from ai_writing_flow.models.flow_stage import FlowStage
 from ai_writing_flow.managers.stage_manager import StageManager
 from ai_writing_flow.utils.circuit_breaker import StageCircuitBreaker, CircuitBreakerError
 from ai_writing_flow.flow_inputs import FlowPathConfig
+from ai_writing_flow.crews.writer_crew import WriterCrew
 
 logger = logging.getLogger(__name__)
 
@@ -200,14 +201,14 @@ class LinearDraftExecutor:
         return result
     
     def _generate_twitter_draft(self, writing_state) -> str:
-        """Generate Twitter-optimized draft using source content"""
+        """Generate Twitter-optimized draft using source content as input"""
         
-        # Try to read actual source content first
+        # Read source content to use as input for AI processing
         source_content = self._read_source_content(writing_state)
         
         if source_content:
-            logger.info("📄 Using original source content for Twitter draft")
-            return source_content
+            logger.info("📄 Processing original source content with WriterCrew for Twitter draft")
+            return self._process_with_writer_crew(source_content, writing_state)
         
         # Fallback to template generation if no source content
         logger.info("📝 Generating template Twitter draft")
@@ -244,8 +245,8 @@ class LinearDraftExecutor:
         source_content = self._read_source_content(writing_state)
         
         if source_content:
-            logger.info("📄 Using original source content for LinkedIn draft")
-            return source_content
+            logger.info("📄 Processing original source content with WriterCrew for LinkedIn draft")
+            return self._process_with_writer_crew(source_content, writing_state)
         
         # Fallback to template generation if no source content
         logger.info("📝 Generating template LinkedIn draft")
@@ -276,8 +277,8 @@ class LinearDraftExecutor:
         source_content = self._read_source_content(writing_state)
         
         if source_content:
-            logger.info("📄 Using original source content for Blog draft")
-            return source_content
+            logger.info("📄 Processing original source content with WriterCrew for Blog draft")
+            return self._process_with_writer_crew(source_content, writing_state)
         
         # Fallback to template generation if no source content
         logger.info("📝 Generating template Blog draft")
@@ -380,6 +381,53 @@ class LinearDraftExecutor:
         except Exception as e:
             logger.error(f"Error reading source content: {str(e)}")
             return None
+    
+    def _process_with_writer_crew(self, source_content: str, writing_state) -> str:
+        """Process source content using CrewAI WriterCrew"""
+        
+        try:
+            logger.info("🤖 Initializing WriterCrew for content processing")
+            
+            # Initialize WriterCrew
+            writer_crew = WriterCrew()
+            
+            # Prepare research summary from source content
+            research_summary = f"Source content analysis:\n{source_content[:1000]}..."
+            
+            # Use existing audience insights or create basic ones
+            audience_insights = getattr(writing_state, 'audience_insights', 
+                                      f"Tech professionals interested in {writing_state.topic_title}")
+            
+            # Set depth level based on content length and complexity  
+            depth_level = 2 if len(source_content) > 5000 else 1
+            
+            # Basic styleguide context
+            styleguide_context = {
+                "voice": "direct, authentic, technical",
+                "tone": "professional but personal",
+                "style": "data-driven storytelling"
+            }
+            
+            logger.info(f"🎯 Processing with WriterCrew: topic={writing_state.topic_title}, platform={writing_state.platform}")
+            
+            # Execute CrewAI WriterCrew to process the source content
+            draft_content = writer_crew.execute(
+                topic=writing_state.topic_title,
+                platform=writing_state.platform,
+                audience_insights=audience_insights,
+                research_summary=research_summary,
+                depth_level=depth_level,
+                styleguide_context=styleguide_context
+            )
+            
+            logger.info(f"✅ WriterCrew generated {draft_content.word_count} words with {len(draft_content.non_obvious_insights)} insights")
+            
+            return draft_content.draft
+            
+        except Exception as e:
+            logger.error(f"❌ WriterCrew processing failed: {str(e)}")
+            # Fallback to source content with basic formatting
+            return f"# {writing_state.topic_title}\n\n{source_content}\n\n---\n\n*Source content preserved due to processing error*"
     
     def _determine_review_requirement(self, writing_state, result: DraftGenerationResult) -> bool:
         """Determine if human review is required"""
