@@ -18,7 +18,8 @@ try:
         AudienceAlignment,
         DraftContent,
         StyleValidation,
-        QualityAssessment
+        QualityAssessment,
+        ContentAnalysisResult
     )
 except ImportError:
     # Fallback - create minimal compatibility models
@@ -113,6 +114,23 @@ except ImportError:
         requires_human_review: bool = False
         controversy_score: float = 0.0
 
+    class ContentAnalysisResult(BaseModel):
+        """Content analysis result model"""
+        content_type: str = ""
+        viral_score: float = 0.0
+        complexity_level: str = "intermediate"
+        recommended_flow_path: str = "standard_content_flow"
+        kb_insights: List[str] = Field(default_factory=list)
+        processing_time: float = 0.0
+        target_platform: str = ""
+        analysis_confidence: float = 0.8
+        key_themes: List[str] = Field(default_factory=list)
+        audience_indicators: Dict[str, Any] = Field(default_factory=dict)
+        content_structure: Dict[str, Any] = Field(default_factory=dict)
+        kb_available: bool = True
+        search_strategy_used: str = "HYBRID"
+        kb_query_count: int = 0
+
 __all__ = [
     "FlowStage", 
     "FlowControlState", 
@@ -123,5 +141,6 @@ __all__ = [
     "AudienceAlignment", 
     "DraftContent",
     "StyleValidation",
-    "QualityAssessment"
+    "QualityAssessment",
+    "ContentAnalysisResult"
 ]

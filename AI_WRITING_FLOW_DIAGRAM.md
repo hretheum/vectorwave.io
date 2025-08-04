@@ -80,4 +80,4 @@ graph TD
 - `final_draft` - gotowy artykuł
 - `platform_variants` - wersje dla różnych platform
 - `publication_metadata` - metadane do publikacji
-- `quality_score` - finalna ocena jakości
+- `quality_score` - finalna ocena jakościjak 

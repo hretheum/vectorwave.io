@@ -125,3 +125,72 @@ class HumanFeedbackDecision(BaseModel):
     feedback_text: str
     specific_changes: Optional[List[str]] = None
     continue_to_stage: str  # Which stage to continue from
+
+
+class ContentAnalysisResult(BaseModel):
+    """Output model for ContentAnalysisAgent with Knowledge Base integration"""
+    
+    content_type: str = Field(
+        ..., 
+        description="Identified content type (e.g., 'technical_tutorial', 'thought_leadership')"
+    )
+    viral_score: float = Field(
+        ..., 
+        ge=0.0, 
+        le=1.0, 
+        description="Viral potential score based on content analysis"
+    )
+    complexity_level: str = Field(
+        ..., 
+        description="Content complexity level: 'beginner', 'intermediate', 'advanced'"
+    )
+    recommended_flow_path: str = Field(
+        ..., 
+        description="Recommended CrewAI flow path for content generation"
+    )
+    kb_insights: List[str] = Field(
+        default_factory=list,
+        description="Key insights from Knowledge Base search"
+    )
+    processing_time: float = Field(
+        ..., 
+        description="Analysis processing time in seconds"
+    )
+    
+    # Extended analysis details
+    target_platform: str = Field(
+        ..., 
+        description="Target platform for content publication"
+    )
+    analysis_confidence: float = Field(
+        ..., 
+        ge=0.0, 
+        le=1.0, 
+        description="Confidence score for the analysis results"
+    )
+    key_themes: List[str] = Field(
+        default_factory=list,
+        description="Key themes identified for content"
+    )
+    audience_indicators: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Target audience analysis results"
+    )
+    content_structure: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Recommended content structure and format"
+    )
+    
+    # Knowledge Base integration status
+    kb_available: bool = Field(
+        default=True,
+        description="Whether Knowledge Base was available during analysis"
+    )
+    search_strategy_used: str = Field(
+        default="HYBRID",
+        description="Knowledge Base search strategy used"
+    )
+    kb_query_count: int = Field(
+        default=0,
+        description="Number of Knowledge Base queries performed"
+    )
