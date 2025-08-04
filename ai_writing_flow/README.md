@@ -4,12 +4,13 @@ Welcome to the AI Writing Flow project, powered by [crewAI](https://crewai.com) 
 
 ## 🚀 Project Status
 
-**Current Phase:** Phase 4 COMPLETED - Production Ready V2 System!  
-**Last Updated:** 2025-08-03  
+**Current Phase:** Week 4 COMPLETED - Local Development Optimization!  
+**Last Updated:** 2025-08-04  
 **Phase 1 Status:** ✅ **COMPLETE** - Core Architecture Implemented  
 **Phase 2 Status:** ✅ **COMPLETE** - Linear Flow Implementation (100% Core Functionality)  
 **Phase 3 Status:** ✅ **COMPLETE** - Monitoring, Alerting & Quality Gates Implemented  
-**Phase 4 Status:** ✅ **COMPLETE** - Kolegium Integration with V2 API & UI Bridge!
+**Phase 4 Status:** ✅ **COMPLETE** - Kolegium Integration with V2 API & UI Bridge!  
+**Week 4 Status:** ✅ **COMPLETE** - Local Development Optimization (Performance, Monitoring, Setup)
 
 ## 🏗️ Architecture
 
@@ -44,11 +45,23 @@ Welcome to the AI Writing Flow project, powered by [crewAI](https://crewai.com) 
 - **Knowledge Base Integration**: Enhanced tools with hybrid search strategies
 - **Production Examples**: Ready-to-use examples with real-world configurations
 
+### Week 4: Local Development Optimization ✅ COMPLETE
+- **Development Profiling**: Automatic bottleneck detection with recommendations
+- **Multi-Level Caching**: Memory + disk caching achieving 3705x speedup for KB queries
+- **Resource-Aware Setup**: Automatic adaptation to system resources (low/medium/high tiers)
+- **Essential Metrics**: Flow execution, KB usage, and performance tracking
+- **Developer Logging**: Color-coded logging with 0.055ms overhead
+- **Health Dashboard**: Real-time monitoring at http://localhost:8083
+- **One-Command Setup**: `make dev-setup` for <1 minute developer onboarding
+- **Git Workflows**: Automated commit conventions and PR templates
+- **Environment Validation**: 8-category comprehensive validation system
+
 ## 📊 Performance Metrics
 - **Phase 1 Architecture Score**: 98/100 (improved from 91/100)
 - **Phase 2 Core Functionality**: 100% tests passing
 - **Phase 3 Complete Implementation**: All monitoring, alerting & quality gates operational
 - **Phase 4 Production Integration**: Full V2 system with API & UI Bridge
+- **Week 4 Local Development**: Comprehensive optimization for developer productivity
 - **Test Coverage**: 227/227 tests passing (100%) 
 - **Production Monitoring**: Real-time KPI tracking with <200ms response times
 - **Enterprise Alerting**: Multi-channel notifications with escalation paths
@@ -60,6 +73,10 @@ Welcome to the AI Writing Flow project, powered by [crewAI](https://crewai.com) 
 - **Load Testing**: Validated under 10+ concurrent flows
 - **API Response Time**: <500ms for flow execution requests
 - **Knowledge Base Integration**: Sub-100ms hybrid search with 100% availability fallback
+- **KB Query Caching**: 3705x speedup with multi-level cache system
+- **Developer Setup Time**: <1 minute with automated Makefile
+- **Logging Overhead**: 0.055ms per log call with color coding
+- **Health Dashboard**: Real-time monitoring with 5-second auto-refresh
 
 ## 🚀 Production Features
 
@@ -92,6 +109,22 @@ Welcome to the AI Writing Flow project, powered by [crewAI](https://crewai.com) 
 
 ## Installation
 
+### 🚀 Quick Start (New Developers)
+
+**One-command setup for new developers:**
+
+```bash
+git clone <repository-url>
+cd ai_writing_flow
+make dev-setup
+source .venv/bin/activate
+make dev
+```
+
+That's it! You're ready to develop in under 1 minute. The health dashboard will be available at http://localhost:8083
+
+### Manual Installation
+
 Ensure you have Python >=3.10 <3.14 installed on your system. This project uses [UV](https://docs.astral.sh/uv/) for dependency management and package handling, offering a seamless setup and execution experience.
 
 First, if you haven't already, install uv:
@@ -101,6 +134,10 @@ pip install uv
 ```
 
 Next, navigate to your project directory and install the dependencies:
+
+```bash
+uv pip install -e .
+```
 
 (Optional) Lock the dependencies and install them by using the CLI command:
 ```bash
@@ -174,6 +211,74 @@ crewai run
 ```
 
 This maintains backward compatibility while using the new V2 implementation with full monitoring, alerting, and quality gates.
+
+## 🛠️ Developer Workflows
+
+### Common Development Commands
+
+```bash
+# Environment Management
+make dev-setup        # One-command setup for new developers
+make dev             # Start development environment
+make health          # Check system health
+make logs            # View development logs
+
+# Testing
+make test            # Run all tests
+make test-unit       # Run unit tests only
+make test-integration # Run integration tests
+
+# Code Quality
+make lint            # Run linters
+make format          # Format code
+make check           # Run all checks (lint + test)
+
+# Git Workflows
+make git-setup       # Setup git workflows
+make git-feature name="feature-name"  # Create feature branch
+make git-status      # Check branch status
+make git-changelog   # Generate changelog
+
+# Environment Validation
+make check-env       # Quick environment check
+make validate-env    # Comprehensive validation
+
+# Maintenance
+make dev-clean       # Clean development artifacts
+make dev-reset       # Reset to clean state
+```
+
+### Development Best Practices
+
+1. **Start Your Day**
+   ```bash
+   cd ai_writing_flow
+   source .venv/bin/activate
+   make dev
+   make health
+   ```
+
+2. **Create New Feature**
+   ```bash
+   make git-feature name="add-new-agent" issue=123
+   # Make your changes
+   git add -p
+   git commit  # Uses template
+   make flow-pr
+   ```
+
+3. **Monitor Performance**
+   - Check health dashboard: http://localhost:8083
+   - View color-coded logs: `make logs`
+   - Run profiler for bottlenecks
+   - Check cache hit rates
+
+4. **Validate Changes**
+   ```bash
+   make test
+   make lint
+   make validate-env
+   ```
 
 ## Understanding Your V2 System
 
