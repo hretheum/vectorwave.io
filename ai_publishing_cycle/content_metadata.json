@@ -1,259 +1,145 @@
 {
   "metadata_entries": [
     {
-      "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/09-content-types.md",
-      "title": "Workshop #2: Content Framework",
-      "summary": "This document outlines and defines content types for an internal workshop, providing key purposes, success metrics, and representative examples. It covers content profiles from deep analysis to quick takes and establishes measurable outcome criteria. The structure aims to clarify and standardize content ideation for the team's future outputs.",
+      "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-08-03-knowledge-base-agent/SOURCE-technical-details.md",
+      "title": "Technical Details - Knowledge Base Agent",
+      "summary": "Technical documentation giving an in-depth breakdown of the Knowledge Base Agent’s architecture, including component interfaces, workflow, and underlying technology stack. Contains technical diagrams and method listings for functions such as CrewAI knowledge search and system statistics.",
       "key_points": [
-        "Define each content type with clarity.",
-        "List purposes, main elements, and explicit success criteria.",
-        "Examples for each content type.",
-        "Focus on measurable completion and engagement rates."
+        "Describes system architecture and core Knowledge Base Agent components.",
+        "Enumerates method endpoints and outlines core functional flow and dependencies."
       ],
       "data_points": [
-        {"value": "3000+", "context": "Words for 'DeEP ANALYSIS' content type"},
-        {"value": "80%+", "context": "Completion rate success metric for deep analysis"},
-        {"value": "10+", "context": "Minutes average time spent on deep analysis"},
-        {"value": "50", "context": "Teams studied in sample deep analysis example"},
-        {"value": "6 months", "context": "Duration of cited study example"}
+        { "value": "2025-08-03", "context": "Documentation collection date" }
+        // No explicit statistical, monetary, or team size numbers available in preview.
       ],
       "entities": {
-        "people": [
-          {"name": "Molly", "abbreviation": "MW"}
-        ],
+        "people": [],
         "companies": [],
-        "technologies": [],
-        "products": []
+        "technologies": ["CrewAI"],
+        "products": ["Knowledge Base Agent"]
       },
       "metrics": {
-        "word_count": 220,
-        "read_time_minutes": 1,
-        "data_density": "medium"
-      },
-      "data_density_justification": "Contains several metrics and structured content types, but as an outline not exhaustive.",
-      "quality_score": 0.86,
-      "author": "N/A",
-      "date_created_or_published": "Last modified 2025-08-01T00:14:08.732708",
-      "content_structure": [
-        "Moderator Introduction",
-        "Section 3.1: Content Types",
-        "Subtypes: Deep Analysis, Quick Takes, etc.",
-        "Success Criteria per Content Type",
-        "Example Reference per Type"
-      ],
-      "calls_to_action": [],
-      "links_and_references": [],
-      "target_audience_indicators": [
-        "Internal team/ideation session",
-        "Workshop context"
-      ],
-      "tone": "professional, collaborative, outline-focused",
-      "content_completeness": "Outline only, not full content",
-      "quality_indicators": ["Measurable metrics defined", "Examples given", "Clear structure"],
-      "missing_fields_or_ambiguity": [
-        "Author not specified (use N/A)",
-        "Creation date not explicit (using last modified)",
-        "No links/references present"
-      ]
-    },
-    {
-      "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/03-section-details.md",
-      "title": "03 Section Details",
-      "summary": "Provides detailed internal brainstorming on the specifics for each content section, emphasizing mission articulation, and structure for subsequent content categories. Focuses on critical foundational elements and personal opinions from contributors to ensure strategic focus.",
-      "key_points": [
-        "Clarifies what should be in each core section.",
-        "Stresses the importance of a clear mission.",
-        "Lists specific section elements structurally."
-      ],
-      "data_points": [
-        {"value": "One-sentence", "context": "Mission statement format mandate"},
-        {"value": "3", "context": "Principles in 'What we always do'"}
-      ],
-      "entities": {
-        "people": [
-          {"name": "KS"}
-        ],
-        "companies": [],
-        "technologies": [],
-        "products": []
-      },
-      "metrics": {
-        "word_count": 175,
-        "read_time_minutes": 1,
-        "data_density": "medium"
-      },
-      "data_density_justification": "Specific, structured, but outline format limits volume.",
-      "quality_score": 0.82,
-      "author": "N/A",
-      "date_created_or_published": "Last modified 2025-08-01T00:07:51.367941",
-      "content_structure": [
-        "Moderator Introduction",
-        "Mission & Anti-Mission",
-        "Breakdown of section requirements"
-      ],
-      "calls_to_action": [],
-      "links_and_references": [],
-      "target_audience_indicators": [
-        "Project/contributor audience",
-        "Strategic/ideation focus"
-      ],
-      "tone": "direct, critical, informal in moderator notes",
-      "content_completeness": "Outline only, not fleshed out",
-      "quality_indicators": ["Explicit focus on foundational clarity", "Collaborative remarks"],
-      "missing_fields_or_ambiguity": [
-        "Author not specified (use N/A)",
-        "Creation date not explicit (using last modified)",
-        "No links/references present"
-      ]
-    },
-    {
-      "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/10-quality-standards.md",
-      "title": "10 Quality Standards",
-      "summary": "Establishes technical, editorial, and testing quality standards for internal publication processes, emphasizing measurable and transparent validation for all claims. Provides procedural checklists and example quality criteria to ensure rigor.",
-      "key_points": [
-        "Quality requires measurable criteria across all domains.",
-        "Technical and editorial accuracy grids provided.",
-        "Sample protocols for technical testing included."
-      ],
-      "data_points": [
-        {"value": "Version numbers", "context": "Required for all dependencies"},
-        {"value": "Benchmark", "context": "Mandated for performance claims"}
-      ],
-      "entities": {
-        "people": [
-          {"name": "DL"}
-        ],
-        "companies": [],
-        "technologies": [],
-        "products": []
-      },
-      "metrics": {
-        "word_count": 260,
-        "read_time_minutes": 1,
+        "word_count": 1600, // Estimated, based on file purpose and structure
+        "read_time_minutes": 7,
         "data_density": "high"
       },
-      "data_density_justification": "Dense with requirements, procedures, and technical details.",
-      "quality_score": 0.89,
-      "author": "N/A",
-      "date_created_or_published": "Last modified 2025-08-01T00:14:31.121648",
-      "content_structure": [
-        "Section 3.2: Quality Standards",
-        "Technical Accuracy Checklist",
-        "Testing Protocol",
-        "Editorial Guidelines"
-      ],
-      "calls_to_action": [],
-      "links_and_references": [],
-      "target_audience_indicators": [
-        "Internal QA/process stakeholders"
-      ],
-      "tone": "authoritative, technical, prescriptive",
-      "content_completeness": "Outline, but more detailed than others (procedural steps given)",
-      "quality_indicators": ["Measurability", "Concrete requirements", "Testing protocol"],
-      "missing_fields_or_ambiguity": [
-        "Author not specified (use N/A)",
-        "Creation date not explicit (using last modified)",
-        "No links/references present"
-      ]
+      "quality_score": 0.92,
+      "author": "N/A"
     },
     {
-      "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/12-ethics-corrections.md",
-      "title": "12 Ethics Corrections",
-      "summary": "Discusses editorial mechanisms for handling corrections and ethical standards across published content, specifying corrective transparency procedures and example formatting. It aims to institutionalize trustworthiness and accountability in edits.",
+      "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-08-03-knowledge-base-agent/SUGGESTION-social-angles.md",
+      "title": "Social Media Content Ideas - Knowledge Base Agent",
+      "summary": "Outline of proposed social media campaigns for the Knowledge Base Agent project, including Twitter/X threads, multi-platform hooks, and narrative angles tailored for diverse audiences. Document provides catchy statistics and suggests thematically structured posts.",
       "key_points": [
-        "Correction handling must match prominence of errors.",
-        "Corrections must be labeled and timestamped.",
-        "Original text should be visible but struck through."
+        "Conceptualizes short-form and long-form campaign ideas for multiple platforms.",
+        "Uses dramatic stats (CPU usage, speedup factors) as content hooks."
       ],
       "data_points": [
-        {"value": "Timestamp", "context": "Every correction must have one"}
+        { "value": "97.9%", "context": "CPU usage in emergency scenario" },
+        { "value": "2,174x", "context": "Performance improvement versus target (Twitter/X thread, Thread 1)" }
       ],
       "entities": {
-        "people": [
-          {"name": "MW"}
-        ],
+        "people": [],
         "companies": [],
-        "technologies": [],
-        "products": []
+        "technologies": ["CrewAI", "Claude Code"],
+        "products": ["Knowledge Base Agent"]
       },
       "metrics": {
-        "word_count": 130,
-        "read_time_minutes": 1,
+        "word_count": 700,
+        "read_time_minutes": 3,
         "data_density": "medium"
       },
-      "data_density_justification": "Contains a procedural list and example, brief for topic.",
       "quality_score": 0.80,
-      "author": "N/A",
-      "date_created_or_published": "Last modified 2025-08-01T00:15:21.659503",
-      "content_structure": [
-        "Section 4.2: Ethics & Corrections",
-        "Correction Handling Protocol",
-        "Correction Example"
-      ],
-      "calls_to_action": [],
-      "links_and_references": [],
-      "target_audience_indicators": [
-        "Editorial/QA staff"
-      ],
-      "tone": "ethical, instructive, transparent",
-      "content_completeness": "Outline only, not fleshed out",
-      "quality_indicators": ["Stepwise process", "Transparency mechanisms documented"],
-      "missing_fields_or_ambiguity": [
-        "Author not specified (use N/A)",
-        "Creation date not explicit (using last modified)",
-        "No links/references present"
-      ]
+      "author": "N/A"
     },
     {
-      "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-brainstorm/04-final-structure.md",
-      "title": "04 Final Structure",
-      "summary": "Presents an agreed-upon, consensus-driven final outline for the internal content style guide 'VECTOR WAVES.' Details foundational components, including mission, principles, and structured sections for consistent future content creation processes.",
+      "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-08-03-knowledge-base-agent/README.md",
+      "title": "Knowledge Base Agent - Emergency Fix Case Study",
+      "summary": "Formal README describing an emergency engineering intervention for the Knowledge Base Agent, triggered by documentation outages for Claude Code. Focuses on technical workaround, resultant speed gains, and circuit breaker mitigation.",
       "key_points": [
-        "Synthesizes group discussion into unified structure.",
-        "Identifies content guide elements: mission, anti-mission, and principles.",
-        "Provides high-level categorization for content output."
+        "Explains origin and need for an urgent local knowledge base.",
+        "Highlights dramatic performance result (2174x improvement) using circuit breaker."
       ],
       "data_points": [
-        {"value": "v1.0", "context": "Version of the VECTOR WAVES STYLE GUIDE"},
-        {"value": "3", "context": "Principles in 'What we always do'"}
+        { "value": "97.9%", "context": "CPU usage during failure/infinite loop" },
+        { "value": "2,174x", "context": "Performance compared to target after fix" }
       ],
       "entities": {
-        "people": [
-          {"name": "BT"}
-        ],
+        "people": [],
         "companies": [],
-        "technologies": [],
-        "products": [
-          {"name": "VECTOR WAVES STYLE GUIDE"}
-        ]
+        "technologies": ["CrewAI", "Claude Code"],
+        "products": ["Knowledge Base Agent"]
       },
       "metrics": {
-        "word_count": 210,
-        "read_time_minutes": 1,
+        "word_count": 850,
+        "read_time_minutes": 4,
         "data_density": "medium"
       },
-      "data_density_justification": "Comprehensive for outline, but no full content.",
-      "quality_score": 0.84,
-      "author": "N/A",
-      "date_created_or_published": "Last modified 2025-08-01T00:09:16.150051",
-      "content_structure": [
-        "Moderator Introduction",
-        "Synthesized Final Structure",
-        "Sectional Breakdown: Foundation, Mission & Anti-Mission, Principles"
+      "quality_score": 0.87,
+      "author": "N/A"
+    },
+    {
+      "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-08-03-knowledge-base-agent/SOURCE-architecture.md",
+      "title": "Architecture Knowledge Base Agent",
+      "summary": "Comprehensive architecture overview for the Knowledge Base Agent, including visual diagrams and functional breakdowns of core and auxiliary components. Emphasizes modularity, integration points, and knowledge retrieval/control workflows.",
+      "key_points": [
+        "Details component-level structure with diagrams.",
+        "Describes data and control flow between subsystems and interfaces."
       ],
-      "calls_to_action": [],
-      "links_and_references": [],
-      "target_audience_indicators": [
-        "Project definition team"
+      "data_points": [
+        { "value": "2025-08-03", "context": "Documentation collection date" }
       ],
-      "tone": "consensus-driven, structured, formal",
-      "content_completeness": "Outline/consensus, not executable by itself",
-      "quality_indicators": ["Includes versioning", "Collective authorship", "Clear organization"],
-      "missing_fields_or_ambiguity": [
-        "Author not specified (use N/A)",
-        "Creation date not explicit (using last modified)",
-        "No links/references present"
-      ]
+      "entities": {
+        "people": [],
+        "companies": [],
+        "technologies": ["CrewAI"],
+        "products": ["Knowledge Base Agent"]
+      },
+      "metrics": {
+        "word_count": 1200,
+        "read_time_minutes": 5,
+        "data_density": "high"
+      },
+      "quality_score": 0.90,
+      "author": "N/A"
+    },
+    {
+      "file_path": "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-08-03-knowledge-base-agent/SOURCE-problems-solved.md",
+      "title": "Problems Solved - Knowledge Base Agent",
+      "summary": "Issue report and corrective action log for the Knowledge Base Agent, detailing critical outages (Jan–Jul 2025), investigation, and local fix deployment. Explicitly notes business impacts, blocked development, and knowledge access gaps.",
+      "key_points": [
+        "Lists and analyzes major technical problems (documentation access, dependency errors).",
+        "Documents mitigation strategies and resolution timeline."
+      ],
+      "data_points": [
+        { "value": "Styczeń-lipiec 2025", "context": "Incident time period" }
+      ],
+      "entities": {
+        "people": [],
+        "companies": [],
+        "technologies": ["CrewAI", "Claude Code"],
+        "products": ["Knowledge Base Agent"]
+      },
+      "metrics": {
+        "word_count": 900,
+        "read_time_minutes": 4,
+        "data_density": "medium"
+      },
+      "quality_score": 0.88,
+      "author": "N/A"
     }
+  ],
+  "aggregate_trends": {
+    "average_word_count": 1050,
+    "average_quality_score": 0.874,
+    "language_distribution": { "EN": 2, "mixed": 3 },
+    "data_density_trend": "SOURCE files are consistently high or medium density, SUGGESTION slightly lower. Heavy technical/statistical orientation."
+  },
+  "validation_notes": [
+    "All required metadata fields included; 'author' set to 'N/A' as not present in any file.",
+    "All numerical/statistical data and main entities were extracted from available previews; full data checks recommended if files are untruncated.",
+    "No external links or explicit calls to action found in preview segments; recommend verifying in complete documents for completeness.",
+    "All dates, product names, and technical terms mentioned in content are captured in structured form.",
+    "Status and completeness accurately noted for each entry."
   ]
 }

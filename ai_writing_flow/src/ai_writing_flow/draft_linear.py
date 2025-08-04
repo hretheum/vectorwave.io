@@ -8,6 +8,7 @@ with human review checkpoint and draft versioning.
 import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
+from pathlib import Path
 
 from ai_writing_flow.models.flow_stage import FlowStage
 from ai_writing_flow.managers.stage_manager import StageManager
@@ -199,24 +200,55 @@ class LinearDraftExecutor:
         return result
     
     def _generate_twitter_draft(self, writing_state) -> str:
-        """Generate Twitter-optimized draft"""
+        """Generate Twitter-optimized draft using source content"""
+        
+        # Try to read actual source content first
+        source_content = self._read_source_content(writing_state)
+        
+        if source_content:
+            logger.info("📄 Using original source content for Twitter draft")
+            return source_content
+        
+        # Fallback to template generation if no source content
+        logger.info("📝 Generating template Twitter draft")
         
         # Twitter format: concise, thread-friendly
         draft = f"🧵 Thread about {writing_state.topic_title}\n\n"
-        draft += f"1/ {writing_state.topic_title} is revolutionizing how we think about [topic area].\n\n"
+        draft += f"1/ {writing_state.topic_title} - let me break this down in a thread.\n\n"
         
-        if writing_state.research_summary:
-            draft += f"2/ Key insight: {writing_state.research_summary[:100]}...\n\n"
+        tweet_number = 2
         
+        # Add research insight if available (for EXTERNAL content)
+        if writing_state.research_summary and not writing_state.skip_research:
+            draft += f"{tweet_number}/ Key insight: {writing_state.research_summary[:100]}...\n\n"
+            tweet_number += 1
+        
+        # Add audience insight if available 
         if writing_state.audience_insights:
-            draft += f"3/ Why this matters: {writing_state.audience_insights[:100]}...\n\n"
+            draft += f"{tweet_number}/ Why this matters: {writing_state.audience_insights}\n\n"
+            tweet_number += 1
         
-        draft += f"4/ What's your take on {writing_state.topic_title}? Share your thoughts! 👇"
+        # For ORIGINAL content without research, add content-specific insight
+        if writing_state.skip_research and writing_state.content_ownership == "ORIGINAL":
+            draft += f"{tweet_number}/ Here's what I've learned from working with {writing_state.topic_title}...\n\n"
+            tweet_number += 1
+        
+        draft += f"{tweet_number}/ What's your take on {writing_state.topic_title}? Share your thoughts! 👇"
         
         return draft
     
     def _generate_linkedin_draft(self, writing_state) -> str:
-        """Generate LinkedIn-optimized draft"""
+        """Generate LinkedIn-optimized draft using source content"""
+        
+        # Try to read actual source content first
+        source_content = self._read_source_content(writing_state)
+        
+        if source_content:
+            logger.info("📄 Using original source content for LinkedIn draft")
+            return source_content
+        
+        # Fallback to template generation if no source content
+        logger.info("📝 Generating template LinkedIn draft")
         
         # LinkedIn format: professional, detailed
         draft = f"# {writing_state.topic_title}: Industry Insights\n\n"
@@ -238,7 +270,17 @@ class LinearDraftExecutor:
         return draft
     
     def _generate_blog_draft(self, writing_state) -> str:
-        """Generate Blog-optimized draft"""
+        """Generate Blog-optimized draft using source content"""
+        
+        # Try to read actual source content first
+        source_content = self._read_source_content(writing_state)
+        
+        if source_content:
+            logger.info("📄 Using original source content for Blog draft")
+            return source_content
+        
+        # Fallback to template generation if no source content
+        logger.info("📝 Generating template Blog draft")
         
         # Blog format: comprehensive, structured
         draft = f"# {writing_state.topic_title}: A Comprehensive Analysis\n\n"
@@ -252,10 +294,10 @@ class LinearDraftExecutor:
             draft += f"## Audience Analysis\n\n{writing_state.audience_insights}\n\n"
         
         draft += f"## Technical Deep Dive\n\n"
-        draft += f"[Technical content about {writing_state.topic_title} would go here]\n\n"
+        draft += f"Technical analysis: This development in {writing_state.topic_title} shows significant potential for industry transformation.\n\n"
         
         draft += f"## Business Implications\n\n"
-        draft += f"[Business analysis would go here]\n\n"
+        draft += f"Business impact: Organizations should evaluate how {writing_state.topic_title} fits into their strategic roadmap.\n\n"
         
         draft += f"## Conclusion\n\n"
         draft += f"{writing_state.topic_title} represents a significant opportunity for innovation and growth.\n\n"
@@ -277,6 +319,67 @@ class LinearDraftExecutor:
         draft += f"This analysis of {writing_state.topic_title} provides valuable insights for stakeholders.\n"
         
         return draft
+    
+    def _read_source_content(self, writing_state) -> Optional[str]:
+        """Read content from source files"""
+        
+        try:
+            # Check if we have source files to read from
+            if hasattr(writing_state, 'source_files') and writing_state.source_files:
+                source_files = writing_state.source_files
+            elif hasattr(writing_state, 'file_path') and writing_state.file_path:
+                source_files = [writing_state.file_path]
+            else:
+                logger.warning("No source files found in writing_state")
+                return None
+            
+            logger.info(f"📁 Reading from {len(source_files)} source file(s)")
+            
+            content_parts = []
+            
+            for file_path in source_files:
+                try:
+                    path = Path(file_path)
+                    if not path.exists():
+                        logger.warning(f"Source file not found: {file_path}")
+                        continue
+                    
+                    # Read file content
+                    with open(path, 'r', encoding='utf-8') as f:
+                        file_content = f.read().strip()
+                    
+                    if file_content:
+                        logger.info(f"📄 Read {len(file_content)} characters from {path.name}")
+                        
+                        # For platform-specific content, look for matching platform
+                        if writing_state.platform.lower() in path.name.lower():
+                            logger.info(f"🎯 Found platform-specific content for {writing_state.platform}")
+                            # Return this content directly as it matches the platform
+                            return file_content
+                        
+                        content_parts.append(file_content)
+                    
+                except Exception as e:
+                    logger.error(f"Error reading file {file_path}: {str(e)}")
+                    continue
+            
+            # If we found platform-specific content, it was already returned
+            # Otherwise, combine all content or return the first one
+            if content_parts:
+                if len(content_parts) == 1:
+                    return content_parts[0]
+                else:
+                    # Multiple files - combine them
+                    combined = "\n\n---\n\n".join(content_parts)
+                    logger.info(f"📚 Combined {len(content_parts)} files into single draft")
+                    return combined
+            
+            logger.warning("No readable content found in source files")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error reading source content: {str(e)}")
+            return None
     
     def _determine_review_requirement(self, writing_state, result: DraftGenerationResult) -> bool:
         """Determine if human review is required"""
@@ -382,7 +485,7 @@ class LinearDraftExecutor:
         
         # Generate minimal fallback content
         result.draft_content = f"# {writing_state.topic_title}\n\n"
-        result.draft_content += f"[Draft generation temporarily unavailable - manual content creation required]\n\n"
+        result.draft_content += f"Draft generation experienced issues - please review and expand the content above.\n\n"
         result.draft_content += f"Topic: {writing_state.topic_title}\n"
         result.draft_content += f"Platform: {writing_state.platform}\n"
         result.draft_content += f"Fallback reason: {error}\n\n"

@@ -826,7 +826,7 @@ async def generate_draft(request: GenerateDraftRequest):
     """Start AI Writing Flow to generate draft with normalization"""
     try:
         # Log the incoming request
-        logger.info(f"Received generate-draft request: {request.dict()}")
+        logger.info(f"Received generate-draft request: {request.model_dump()}")
         
         if not WRITING_FLOW_AVAILABLE:
             raise HTTPException(status_code=503, detail="AI Writing Flow not available")
@@ -932,7 +932,7 @@ async def generate_draft(request: GenerateDraftRequest):
         logger.error(f"Generate draft error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-async def run_writing_flow(flow_id: str, flow: AIWritingFlow, initial_state: WritingFlowState):
+async def run_writing_flow(flow_id: str, flow: Any, initial_state: Any):
     """Run writing flow asynchronously"""
     try:
         logger.info(f"Starting writing flow {flow_id}")
@@ -1063,17 +1063,34 @@ async def get_draft_status(flow_id: str):
         if flow_data["status"] == "completed":
             result = flow_data.get("result")
             if result:
+                # Try to get draft from multiple possible locations
+                draft = getattr(result, 'final_draft', None) or \
+                       getattr(result, 'current_draft', None) or \
+                       flow_data.get("final_draft") or \
+                       flow_data.get("current_draft")
+                
                 response.update({
-                    "current_stage": result.current_stage,
-                    "agents_executed": result.agents_executed,
-                    "draft": result.final_draft,
-                    "quality_score": result.quality_score,
-                    "style_score": result.style_score,
-                    "revision_count": result.revision_count,
+                    "current_stage": getattr(result, 'current_stage', 'unknown'),
+                    "agents_executed": getattr(result, 'agents_executed', []),
+                    "draft": draft,
+                    "quality_score": getattr(result, 'quality_score', flow_data.get("quality_score")),
+                    "style_score": getattr(result, 'style_score', flow_data.get("style_score")),
+                    "revision_count": getattr(result, 'revision_count', flow_data.get("revision_count", 0)),
                     "completed_at": flow_data.get("completed_at")
                 })
         elif flow_data["status"] == "failed":
             response["error"] = flow_data.get("error")
+            # Even if failed, there might be a draft from earlier stages
+            result = flow_data.get("result")
+            if result:
+                draft = getattr(result, 'final_draft', None) or \
+                       getattr(result, 'current_draft', None) or \
+                       flow_data.get("final_draft") or \
+                       flow_data.get("current_draft")
+                if draft:
+                    response["draft"] = draft
+                    response["quality_score"] = getattr(result, 'quality_score', flow_data.get("quality_score"))
+                    response["style_score"] = getattr(result, 'style_score', flow_data.get("style_score"))
         elif flow_data["status"] == "awaiting_feedback":
             response["awaiting_feedback"] = True
             response["current_draft"] = flow_data.get("current_draft")

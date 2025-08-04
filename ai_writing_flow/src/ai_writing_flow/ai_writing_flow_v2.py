@@ -129,17 +129,13 @@ class AIWritingFlowV2:
         )
         
         # Initialize DashboardAPI
-        self.dashboard_api = DashboardAPI(
-            metrics=self.flow_metrics,
-            enable_health_checks=True
-        )
+        self.dashboard_api = DashboardAPI(self.flow_metrics)
         
         # Initialize storage
         storage_config = StorageConfig(
             storage_path=storage_path or "metrics_data",
             retention_days=30,
-            enable_aggregation=True,
-            aggregation_intervals=["1m", "5m", "1h", "1d"]
+            aggregation_intervals=[60, 300, 3600, 86400]  # 1m, 5m, 1h, 1d in seconds
         )
         
         self.metrics_storage = MetricsStorage(storage_config)
@@ -279,7 +275,7 @@ class AIWritingFlowV2:
         self._current_execution_id = session_id  # Use session ID as execution ID
         
         if self.monitoring_enabled:
-            self.flow_metrics.start_flow_execution(self._current_execution_id)
+            self.flow_metrics.record_flow_start(self._current_execution_id, "flow_start")
         
         try:
             # Validate inputs
@@ -342,7 +338,7 @@ class AIWritingFlowV2:
         finally:
             # Cleanup monitoring
             if self.monitoring_enabled and hasattr(self, 'flow_metrics'):
-                self.flow_metrics.end_flow_execution(self._current_execution_id)
+                self.flow_metrics.record_flow_completion(self._current_execution_id, True)
     
     def _validate_and_convert_inputs(self, inputs: Dict[str, Any]) -> WritingFlowInputs:
         """Validate and convert input dictionary to WritingFlowInputs"""
@@ -369,7 +365,7 @@ class AIWritingFlowV2:
         except ValidationError as e:
             logger.error(f"❌ Input validation failed: {e}")
             if self.monitoring_enabled:
-                self.flow_metrics.record_error("input_validation", str(e))
+                self.flow_metrics.record_stage_completion(self._current_execution_id or "unknown", "input_validation", 0.0, False)
             raise
     
     def _run_pre_execution_quality_gates(self) -> None:
@@ -387,10 +383,10 @@ class AIWritingFlowV2:
                     self._current_execution_id
                 )
             
-            if not validation_result["overall_status"]["passed"]:
+            if not validation_result.get("quality_gate_passed", True):
                 failed_rules = [
-                    rule for rule in validation_result["rule_results"] 
-                    if not validation_result["rule_results"][rule]["passed"]
+                    result.rule_id for result in validation_result.get("validation_results", [])
+                    if not result.passed
                 ]
                 
                 logger.warning(f"⚠️ Quality gate failures: {failed_rules}")
@@ -418,7 +414,7 @@ class AIWritingFlowV2:
             
             validation_result = self.quality_gate.run_validation(context)
             
-            if validation_result["overall_status"]["passed"]:
+            if validation_result.get("quality_gate_passed", True):
                 logger.info("✅ Post-execution quality gates passed")
             else:
                 logger.warning("⚠️ Some post-execution quality gates failed")
@@ -432,11 +428,12 @@ class AIWritingFlowV2:
         execution_time = (datetime.now(timezone.utc) - self._flow_start_time).total_seconds()
         
         # Record execution metrics
-        self.flow_metrics.record_execution_time(execution_time)
+        self.flow_metrics.record_stage_completion(self._current_execution_id, "execution_completed", execution_time, True)
         self.flow_metrics.record_stage_completion(
+            self._current_execution_id,
             final_state.current_stage,
-            success=True,
-            duration=execution_time
+            execution_time,
+            True
         )
         
         # Store metrics
@@ -453,8 +450,8 @@ class AIWritingFlowV2:
         execution_time = (datetime.now(timezone.utc) - self._flow_start_time).total_seconds()
         
         # Record error metrics
-        self.flow_metrics.record_error("flow_execution", error_message)
-        self.flow_metrics.record_execution_time(execution_time)
+        self.flow_metrics.record_stage_completion(self._current_execution_id or "unknown", "flow_execution", execution_time, False)
+        self.flow_metrics.record_stage_completion(self._current_execution_id, "execution_completed", execution_time, True)
         
         # Store error metrics
         if hasattr(self, 'metrics_storage'):
@@ -517,7 +514,7 @@ class AIWritingFlowV2:
             if self.monitoring_enabled:
                 health_status["components"]["monitoring"] = {
                     "status": "healthy",
-                    "metrics_count": len(self.flow_metrics.execution_history),
+                    "metrics_count": len(self.flow_metrics._completed_flows) + len(self.flow_metrics._failed_flows),
                     "storage_status": "connected" if hasattr(self, 'metrics_storage') else "disabled"
                 }
             
@@ -556,7 +553,8 @@ class AIWritingFlowV2:
         # Stop monitoring
         if self.monitoring_enabled and hasattr(self, 'flow_metrics'):
             try:
-                self.flow_metrics.emergency_stop()
+                # FlowMetrics emergency stop - reset metrics
+                self.flow_metrics.reset_metrics()
             except Exception as e:
                 logger.error(f"❌ Failed to stop monitoring: {e}")
         

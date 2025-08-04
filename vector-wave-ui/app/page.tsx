@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { ChatPanel } from "@/components/ChatPanel";
 import { Modal } from "@/components/ui/modal";
+import { DraftEditor } from "@/components/DraftEditor";
 
 export default function Home() {
   const [folders, setFolders] = useState<any[]>([]);
@@ -22,6 +23,7 @@ export default function Home() {
   const [reportCopied, setReportCopied] = useState(false);
   const [useFullAnalysis, setUseFullAnalysis] = useState(false);
   const [chatDocked, setChatDocked] = useState(true);
+  const [editingDraft, setEditingDraft] = useState<{draft: string, topic: string, platform: string} | null>(null);
 
   // Auto-load content folders on mount
   useEffect(() => {
@@ -259,6 +261,17 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
     URL.revokeObjectURL(url);
   };
 
+  const handleEditDraft = (draft: string, topicTitle: string, platform: string) => {
+    setEditingDraft({ draft, topic: topicTitle, platform });
+  };
+
+  const handlePublishDraft = async (finalDraft: string) => {
+    // TODO: Implement publish logic
+    console.log('Publishing draft:', finalDraft);
+    alert('Draft zapisany i gotowy do publikacji!');
+    setEditingDraft(null);
+  };
+
   const analyzeFolder = async (folderName: string) => {
     console.log('🎯 Starting analysis for:', folderName);
     console.log('📊 Current state - isAnalyzing:', isAnalyzing, 'selectedFolder:', selectedFolder);
@@ -308,18 +321,19 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
       console.log('✅ Analysis result set');
     } catch (error) {
       console.error('❌ Analysis failed:', error);
-      console.error('❌ Error details:', error.message, error.stack);
+      const errorObj = error as Error;
+      console.error('❌ Error details:', errorObj.message, errorObj.stack);
       // Show error to user
       let errorMessage = 'Nie udało się przeanalizować folderu.';
       
-      if (error.message.includes('CrewAI Flow')) {
+      if (errorObj.message?.includes('CrewAI Flow')) {
         errorMessage = 'Błąd CrewAI Flow. Sprawdź konfigurację i czy wszystkie zależności są zainstalowane.';
-      } else if (error.message.includes('fetch')) {
+      } else if (errorObj.message?.includes('fetch')) {
         errorMessage = 'Błąd połączenia z backendem. Sprawdź czy serwer działa na porcie 8001.';
-      } else if (error.message.includes('validation error')) {
+      } else if (errorObj.message?.includes('validation error')) {
         errorMessage = 'Błąd walidacji danych. Sprawdź czy folder zawiera pliki markdown.';
       } else {
-        errorMessage = `Błąd analizy: ${error.message}`;
+        errorMessage = `Błąd analizy: ${errorObj.message || 'Nieznany błąd'}`;
       }
       
       setAnalysisResult({
@@ -393,7 +407,21 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
 
       {/* Main Area */}
       <div className="flex-1 overflow-y-auto">
-        {/* Main Content */}
+        {/* Show Editor or Main Content */}
+        {editingDraft ? (
+          <div className={cn(
+            "transition-all duration-300",
+            chatDocked && "pr-96"
+          )}>
+            <DraftEditor
+              initialDraft={editingDraft.draft}
+              topicTitle={editingDraft.topic}
+              platform={editingDraft.platform}
+              onBack={() => setEditingDraft(null)}
+              onPublish={handlePublishDraft}
+            />
+          </div>
+        ) : (
         <main className={cn(
           "container mx-auto px-4 py-8 transition-all duration-300",
           chatDocked && "pr-96"
@@ -788,6 +816,7 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
           </Card>
         )}
       </main>
+        )}
       </div>
 
       {/* Footer - Full Width */}
@@ -867,6 +896,7 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
             onAnalyzeFolder={analyzeFolder}
             analysisResult={analysisResult}
             folders={folders}
+            onEditDraft={handleEditDraft}
           />
         </div>
       )}
@@ -877,6 +907,7 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
           onAnalyzeFolder={analyzeFolder}
           analysisResult={analysisResult}
           folders={folders}
+          onEditDraft={handleEditDraft}
         />
       )}
     </div>

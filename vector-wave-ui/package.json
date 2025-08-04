@@ -15,6 +15,7 @@
     "@copilotkit/react-ui": "^1.9.3",
     "@copilotkit/runtime": "^1.9.3",
     "@copilotkit/runtime-client-gql": "^1.9.3",
+    "@radix-ui/react-progress": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
@@ -29,8 +30,8 @@
   },
   "devDependencies": {
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.7",
     "tailwindcss": "^3.4.0",
     "typescript": "^5"
   }

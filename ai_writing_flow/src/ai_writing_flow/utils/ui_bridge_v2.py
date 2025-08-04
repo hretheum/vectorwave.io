@@ -107,7 +107,7 @@ class UIBridgeV2:
         
         # Record session start in metrics
         if self.flow_metrics:
-            self.flow_metrics.record_session_start(session_id, inputs)
+            self.flow_metrics.record_flow_start(session_id, "session_start", inputs)
         
         logger.info(f"🚀 Started flow session: {session_id}")
         return session_id
@@ -154,10 +154,11 @@ class UIBridgeV2:
         
         # Record metrics
         if self.flow_metrics:
-            self.flow_metrics.record_draft_generated(
+            self.flow_metrics.record_stage_completion(
                 session_id or "unknown",
-                metadata.get("word_count", 0),
-                metadata.get("structure_type", "unknown")
+                "draft_generated", 
+                1.0,  # execution_time placeholder
+                True  # success
             )
         
         # Notify UI via callback system
@@ -255,10 +256,11 @@ class UIBridgeV2:
         
         # Record feedback metrics
         if self.flow_metrics:
-            self.flow_metrics.record_human_feedback(
+            self.flow_metrics.record_stage_completion(
                 review_id or "unknown",
-                feedback_type,
-                response_time
+                f"human_feedback_{feedback_type}",
+                response_time,
+                True
             )
         
         logger.info(f"📥 Received feedback: {feedback_type} - {selected_message}")
@@ -397,7 +399,8 @@ class UIBridgeV2:
         if self.flow_metrics:
             self.flow_metrics.record_flow_completion(
                 session_id or "unknown",
-                completion_data["metrics"]
+                True,  # success
+                "flow_completed"  # final_stage
             )
         
         # Notify UI

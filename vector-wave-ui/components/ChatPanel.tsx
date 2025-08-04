@@ -23,9 +23,10 @@ interface ChatPanelProps {
   onAnalyzeFolder?: (folderName: string) => void;
   analysisResult?: any;
   folders?: any[];
+  onEditDraft?: (draft: string, topicTitle: string, platform: string) => void;
 }
 
-export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: ChatPanelProps) {
+export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [], onEditDraft }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -189,8 +190,9 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: Cha
                             contextActions: [{
                               label: '📝 Edytuj draft',
                               action: () => {
-                                // TODO: Open editor with draft
-                                console.log('Edit draft:', statusData.draft);
+                                if (onEditDraft && statusData.draft) {
+                                  onEditDraft(statusData.draft, topic.title, topic.platform);
+                                }
                               }
                             }, {
                               label: '📤 Publikuj',
@@ -262,12 +264,37 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: Cha
                           }]);
                         } else if (statusData.status === 'failed') {
                           clearInterval(pollInterval);
-                          setMessages(prev => [...prev, {
-                            id: `draft-error-${Date.now()}`,
-                            role: 'assistant',
-                            content: `❌ Błąd podczas generowania draftu:\n\n${statusData.error || 'Nieznany błąd'}`,
-                            timestamp: new Date()
-                          }]);
+                          
+                          // Check if there's a draft despite failure
+                          if (statusData.draft) {
+                            setMessages(prev => [...prev, {
+                              id: `draft-partial-${Date.now()}`,
+                              role: 'assistant',
+                              content: `⚠️ Draft wygenerowany mimo błędów!\n\n**${topic.title}**\n\n${statusData.draft}\n\n❌ **Błąd:** ${statusData.error || 'Quality gates failed'}\n\n📊 Metryki:\n• Quality Score: ${statusData.quality_score || 'N/A'}\n• Style Score: ${statusData.style_score || 'N/A'}`,
+                              timestamp: new Date(),
+                              contextActions: [{
+                                label: '📝 Edytuj draft',
+                                action: () => {
+                                  if (onEditDraft && statusData.draft) {
+                                    onEditDraft(statusData.draft, topic.title, topic.platform);
+                                  }
+                                }
+                              }, {
+                                label: '🔄 Spróbuj ponownie',
+                                action: () => {
+                                  // TODO: Restart generation
+                                  console.log('Retry generation');
+                                }
+                              }]
+                            }]);
+                          } else {
+                            setMessages(prev => [...prev, {
+                              id: `draft-error-${Date.now()}`,
+                              role: 'assistant',
+                              content: `❌ Błąd podczas generowania draftu:\n\n${statusData.error || 'Nieznany błąd'}`,
+                              timestamp: new Date()
+                            }]);
+                          }
                         }
                       }, 2000); // Poll every 2 seconds
                       
@@ -542,8 +569,6 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [] }: Cha
                   components={{
                     p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                     strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                    ul: ({ children }) => <ul className="list-disc list-inside mb-2">{children}</ul>,
-                    li: ({ children }) => <li className="mb-1">{children}</li>,
                     hr: () => <hr className="my-2 border-gray-300" />,
                   }}
                 >

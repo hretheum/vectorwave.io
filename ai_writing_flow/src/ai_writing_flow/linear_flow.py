@@ -444,11 +444,9 @@ class LinearAIWritingFlow:
     def _set_initial_flow_state(self) -> None:
         """Set initial flow state and stage"""
         
-        # Update flow control state
-        self.flow_state.add_transition(
-            FlowStage.INPUT_VALIDATION,
-            reason="Flow initialization completed"
-        )
+        # Flow control state already starts at INPUT_VALIDATION
+        # No need to transition to the same state
+        logger.info("Flow initialized at INPUT_VALIDATION stage")
         
         # Update writing state
         self.writing_state.current_stage = "topic_received"
@@ -840,12 +838,15 @@ class LinearAIWritingFlow:
         """Core finalization logic"""
         logger.info("🏁 Finalizing linear flow execution...")
         
+        # Set final_draft from current_draft
+        writing_state.final_draft = writing_state.current_draft
+        
         # Mark flow as completed
         self.stage_manager.complete_stage(
             FlowStage.FINALIZED,
             success=True,
             result={
-                "final_draft": writing_state.current_draft,
+                "final_draft": writing_state.final_draft,
                 "completion_time": datetime.now(timezone.utc).isoformat(),
                 "agents_executed": writing_state.agents_executed
             }

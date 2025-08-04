@@ -212,11 +212,9 @@ class LinearAudienceExecutor:
         return result
     
     def _generate_insights(self, result: AudienceAlignmentResult, writing_state) -> str:
-        """Generate audience insights based on scores"""
+        """Generate content insights for audience alignment"""
         
-        insights = []
-        
-        # Primary audience identification
+        # Determine primary audience
         scores = {
             "Technical Founders": result.technical_founder_score,
             "Startup Ecosystem": result.startup_ecosystem_score,
@@ -225,23 +223,16 @@ class LinearAudienceExecutor:
         }
         
         primary_audience = max(scores, key=scores.get)
-        insights.append(f"Primary audience: {primary_audience} (score: {scores[primary_audience]:.2f})")
         
-        # Depth level reasoning
-        depth_map = {1: "Introductory", 2: "Moderate", 3: "Advanced"}
-        depth_desc = depth_map.get(result.recommended_depth_level, "Custom")
-        insights.append(f"Recommended depth: {depth_desc} (level {result.recommended_depth_level})")
-        
-        # Platform-specific insights
-        insights.append(f"Platform optimization: Content tailored for {writing_state.platform} audience")
-        
-        # Viral potential insights
-        if writing_state.viral_score >= 8.0:
-            insights.append("High viral potential - content should appeal to broader audience")
-        elif writing_state.viral_score <= 3.0:
-            insights.append("Low viral potential - focus on niche technical audience")
-        
-        return " | ".join(insights)
+        # Generate content-focused insights based on primary audience
+        if primary_audience == "Technical Founders":
+            return f"This resonates with technical leaders who understand the implementation challenges and strategic implications of {writing_state.topic_title}."
+        elif primary_audience == "Startup Ecosystem":
+            return f"The startup community will find this particularly relevant as it addresses key growth challenges around {writing_state.topic_title}."
+        elif primary_audience == "Investors":
+            return f"From an investment perspective, {writing_state.topic_title} represents a significant market opportunity with measurable impact."
+        else:  # General Business
+            return f"Business leaders need to understand how {writing_state.topic_title} transforms operational efficiency and competitive positioning."
     
     def _generate_adjustments(self, result: AudienceAlignmentResult, writing_state) -> List[str]:
         """Generate target adjustments based on analysis"""

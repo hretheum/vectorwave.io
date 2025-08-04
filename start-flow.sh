@@ -19,7 +19,9 @@ fi
 # Load environment variables if .env exists
 if [ -f .env ]; then
     echo "📋 Loading environment variables from .env..."
-    export $(cat .env | grep -v '^#' | xargs)
+    set -a
+    source .env
+    set +a
 fi
 
 # Function to kill processes on exit
@@ -47,7 +49,7 @@ elif [ -d ".venv" ]; then
     source .venv/bin/activate
 fi
 
-cd ai_publishing_cycle && python src/ai_publishing_cycle/copilot_backend.py &
+cd ai_publishing_cycle && USE_CREWAI_FLOW=true python src/ai_publishing_cycle/copilot_backend.py &
 BACKEND_PID=$!
 cd "$SCRIPT_DIR"
 
