@@ -20,6 +20,7 @@ from ..agents.research_agent import ResearchAgent
 from ..tasks.content_analysis_task import ContentAnalysisTask
 from ..tasks.research_task import ResearchTask
 from ..logging import get_decision_logger
+from ..persistence import get_state_manager
 
 # Configure structured logging
 logger = structlog.get_logger(__name__)
@@ -104,10 +105,17 @@ class ResearchFlow(Flow[ResearchFlowState]):
         # Initialize decision logger
         self.decision_logger = get_decision_logger()
         
+        # Initialize state manager
+        self.state_manager = get_state_manager()
+        
+        # Try to recover from checkpoint
+        self._recover_from_checkpoint()
+        
         logger.info(
             "ResearchFlow initialized",
             flow_id=self.state.flow_id,
-            config=self.config
+            config=self.config,
+            recovered=hasattr(self, '_recovered_from_checkpoint')
         )
     
     @start()
@@ -177,6 +185,12 @@ class ResearchFlow(Flow[ResearchFlowState]):
                 viral_score=analysis_result.viral_score,
                 duration=self.state.analysis_time
             )
+            
+            # Save checkpoint after analysis
+            self._save_checkpoint("content_analysis", {
+                "content_type": analysis_result.content_type,
+                "viral_score": analysis_result.viral_score
+            })
             
             return {
                 "analysis": analysis_result,
@@ -301,6 +315,12 @@ class ResearchFlow(Flow[ResearchFlowState]):
             kb_guidance=kb_routing_guidance,
             execution_time_ms=execution_time_ms
         )
+        
+        # Save checkpoint after routing decision
+        self._save_checkpoint("routing_decision", {
+            "routing": routing_decision,
+            "reasoning": reasoning
+        })
         
         return routing_decision
     
@@ -879,3 +899,81 @@ class ResearchFlow(Flow[ResearchFlowState]):
             search_strategy_used="KEYWORD_ANALYSIS",
             kb_query_count=0
         )
+    
+    def _recover_from_checkpoint(self):
+        """Try to recover flow from saved checkpoint"""
+        if hasattr(self, 'state') and hasattr(self.state, 'flow_id') and self.state.flow_id:
+            recovery = self.state_manager.recover_flow(
+                self.state.flow_id,
+                ResearchFlowState
+            )
+            
+            if recovery:
+                recovered_state, stage = recovery
+                # Update state fields instead of replacing the whole object
+                for field, value in recovered_state.model_dump().items():
+                    setattr(self.state, field, value)
+                self._recovered_from_checkpoint = True
+                logger.info(
+                    "Flow recovered from checkpoint",
+                    flow_id=self.state.flow_id,
+                    stage=stage
+                )
+    
+    def _save_checkpoint(self, stage: str, metadata: Optional[Dict[str, Any]] = None):
+        """Save current flow state as checkpoint"""
+        try:
+            self.state_manager.save_state(
+                flow_id=self.state.flow_id,
+                state=self.state,
+                stage=stage,
+                metadata=metadata
+            )
+        except Exception as e:
+            logger.error(
+                "Failed to save checkpoint",
+                flow_id=self.state.flow_id,
+                stage=stage,
+                error=str(e)
+            )
+    
+    def complete_flow(self, results: Dict[str, Any]):
+        """Mark flow as completed and save final state"""
+        try:
+            self.state_manager.save_completed_flow(
+                flow_id=self.state.flow_id,
+                state=self.state,
+                results=results
+            )
+            logger.info(
+                "Flow completed and saved",
+                flow_id=self.state.flow_id
+            )
+        except Exception as e:
+            logger.error(
+                "Failed to save completed flow",
+                flow_id=self.state.flow_id,
+                error=str(e)
+            )
+    
+    def handle_flow_error(self, error: Exception, stage: str):
+        """Handle flow error and save failed state"""
+        try:
+            self.state_manager.save_failed_flow(
+                flow_id=self.state.flow_id,
+                state=self.state,
+                error=error,
+                stage=stage
+            )
+            logger.error(
+                "Flow failed and saved",
+                flow_id=self.state.flow_id,
+                stage=stage,
+                error_type=type(error).__name__
+            )
+        except Exception as e:
+            logger.error(
+                "Failed to save failed flow",
+                flow_id=self.state.flow_id,
+                error=str(e)
+            )
