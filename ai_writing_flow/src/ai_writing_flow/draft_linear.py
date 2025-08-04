@@ -14,7 +14,7 @@ from ai_writing_flow.models.flow_stage import FlowStage
 from ai_writing_flow.managers.stage_manager import StageManager
 from ai_writing_flow.utils.circuit_breaker import StageCircuitBreaker, CircuitBreakerError
 from ai_writing_flow.flow_inputs import FlowPathConfig
-from ai_writing_flow.crews.writer_crew import WriterCrew
+from ai_writing_flow.crewai_flow.flows.standard_content_flow import StandardContentFlow
 
 logger = logging.getLogger(__name__)
 
@@ -207,8 +207,8 @@ class LinearDraftExecutor:
         source_content = self._read_source_content(writing_state)
         
         if source_content:
-            logger.info("📄 Processing original source content with WriterCrew for Twitter draft")
-            return self._process_with_writer_crew(source_content, writing_state)
+            logger.info("📄 Processing original source content with CrewAI StandardContentFlow for Twitter draft")
+            return self._process_with_crewai_flow(source_content, writing_state)
         
         # Fallback to template generation if no source content
         logger.info("📝 Generating template Twitter draft")
@@ -245,8 +245,8 @@ class LinearDraftExecutor:
         source_content = self._read_source_content(writing_state)
         
         if source_content:
-            logger.info("📄 Processing original source content with WriterCrew for LinkedIn draft")
-            return self._process_with_writer_crew(source_content, writing_state)
+            logger.info("📄 Processing original source content with CrewAI StandardContentFlow for LinkedIn draft")
+            return self._process_with_crewai_flow(source_content, writing_state)
         
         # Fallback to template generation if no source content
         logger.info("📝 Generating template LinkedIn draft")
@@ -277,8 +277,8 @@ class LinearDraftExecutor:
         source_content = self._read_source_content(writing_state)
         
         if source_content:
-            logger.info("📄 Processing original source content with WriterCrew for Blog draft")
-            return self._process_with_writer_crew(source_content, writing_state)
+            logger.info("📄 Processing original source content with CrewAI StandardContentFlow for Blog draft")
+            return self._process_with_crewai_flow(source_content, writing_state)
         
         # Fallback to template generation if no source content
         logger.info("📝 Generating template Blog draft")
@@ -382,52 +382,73 @@ class LinearDraftExecutor:
             logger.error(f"Error reading source content: {str(e)}")
             return None
     
-    def _process_with_writer_crew(self, source_content: str, writing_state) -> str:
-        """Process source content using CrewAI WriterCrew"""
+    def _process_with_crewai_flow(self, source_content: str, writing_state) -> str:
+        """Process source content using official CrewAI StandardContentFlow"""
         
         try:
-            logger.info("🤖 Initializing WriterCrew for content processing")
+            logger.info("🤖 Initializing CrewAI StandardContentFlow for content processing")
             
-            # Initialize WriterCrew
-            writer_crew = WriterCrew()
+            # Initialize StandardContentFlow - prawdziwy multi-agent CrewAI Flow
+            content_flow = StandardContentFlow(config={
+                'verbose': True,
+                'min_sources': 1,  # Source content counts as one source
+                'quality_threshold': 0.7
+            })
             
-            # Prepare research summary from source content
-            research_summary = f"Source content analysis:\n{source_content[:1000]}..."
-            
-            # Use existing audience insights or create basic ones
-            audience_insights = getattr(writing_state, 'audience_insights', 
-                                      f"Tech professionals interested in {writing_state.topic_title}")
-            
-            # Set depth level based on content length and complexity  
-            depth_level = 2 if len(source_content) > 5000 else 1
-            
-            # Basic styleguide context
-            styleguide_context = {
-                "voice": "direct, authentic, technical",
-                "tone": "professional but personal",
-                "style": "data-driven storytelling"
+            # Prepare flow inputs based on source content and writing state
+            flow_inputs = {
+                'topic_title': writing_state.topic_title,
+                'platform': writing_state.platform,
+                'key_themes': self._extract_themes_from_source(source_content),
+                'editorial_recommendations': f"Process existing source content: {source_content[:200]}...",
+                'source_content': source_content,  # Pass source content as additional context
+                'content_type': 'standard'
             }
             
-            logger.info(f"🎯 Processing with WriterCrew: topic={writing_state.topic_title}, platform={writing_state.platform}")
+            logger.info(f"🎯 Executing CrewAI Flow: {flow_inputs['topic_title']} for {flow_inputs['platform']}")
             
-            # Execute CrewAI WriterCrew to process the source content
-            draft_content = writer_crew.execute(
-                topic=writing_state.topic_title,
-                platform=writing_state.platform,
-                audience_insights=audience_insights,
-                research_summary=research_summary,
-                depth_level=depth_level,
-                styleguide_context=styleguide_context
-            )
+            # Execute prawdziwy CrewAI Flow z @start, @listen decorators
+            # To uruchomi cały pipeline: research → audience → writing → style → quality
+            result = content_flow.kickoff(inputs=flow_inputs)
             
-            logger.info(f"✅ WriterCrew generated {draft_content.word_count} words with {len(draft_content.non_obvious_insights)} insights")
-            
-            return draft_content.draft
+            # Extract final draft from flow result
+            if result and 'final_content' in result:
+                final_draft = result['final_content']
+                logger.info(f"✅ CrewAI Flow completed successfully - generated content")
+                return final_draft
+            elif result and 'draft_content' in result:
+                draft_content = result['draft_content']
+                logger.info(f"✅ CrewAI Flow completed - using draft content")
+                return draft_content.draft if hasattr(draft_content, 'draft') else str(draft_content)
+            else:
+                logger.warning("⚠️ CrewAI Flow completed but no content found in result")
+                # Fallback to processed source content
+                return f"# {writing_state.topic_title}\n\n{source_content}\n\n---\n\n*Processed by CrewAI Flow*"
             
         except Exception as e:
-            logger.error(f"❌ WriterCrew processing failed: {str(e)}")
+            logger.error(f"❌ CrewAI StandardContentFlow failed: {str(e)}")
             # Fallback to source content with basic formatting
-            return f"# {writing_state.topic_title}\n\n{source_content}\n\n---\n\n*Source content preserved due to processing error*"
+            return f"# {writing_state.topic_title}\n\n{source_content}\n\n---\n\n*Source content preserved due to CrewAI Flow error: {str(e)}*"
+    
+    def _extract_themes_from_source(self, source_content: str) -> List[str]:
+        """Extract key themes from source content for CrewAI Flow"""
+        
+        themes = []
+        content_lower = source_content.lower()
+        
+        # Extract themes based on content analysis
+        if 'adhd' in content_lower:
+            themes.extend(['adhd', 'neurodiversity', 'productivity'])
+        if 'ai' in content_lower or 'artificial intelligence' in content_lower:
+            themes.extend(['artificial_intelligence', 'automation'])
+        if 'tech' in content_lower or 'development' in content_lower:
+            themes.extend(['technology', 'software_development'])
+        if 'system' in content_lower:
+            themes.extend(['systems_thinking', 'optimization'])
+        if 'twitter' in content_lower or 'thread' in content_lower:
+            themes.extend(['social_media', 'content_strategy'])
+        
+        return themes if themes else ['general_content']
     
     def _determine_review_requirement(self, writing_state, result: DraftGenerationResult) -> bool:
         """Determine if human review is required"""
