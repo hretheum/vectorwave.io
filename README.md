@@ -1,10 +1,10 @@
 # Vector Wave - AI Content Generation Platform
 
-AI-powered content platform
+AI-powered content generation platform with comprehensive automated auditing
 
 ## 🚀 Overview
 
-Vector Wave is an advanced content generation platform that uses AI agents to automatically create, optimize, and publish content across multiple channels.
+Vector Wave is an advanced content generation platform that uses AI agents to automatically create, optimize, and publish content across multiple channels. The platform includes a comprehensive audit framework for continuous monitoring and quality assurance.
 
 ## 📦 Project Structure
 
@@ -55,11 +55,103 @@ git push
 - **Multi-Channel Publishing** - Support for various social media platforms
 - **Visual Generation** - Integration with design tools
 - **Analytics** - Performance tracking and optimization
+- **Automated Auditing** - Comprehensive multi-repo audit framework
+- **Quality Assurance** - Continuous monitoring and quality gates
+
+## 🔍 System Auditing
+
+Vector Wave includes a comprehensive audit framework for continuous monitoring and quality assurance across all submodules.
+
+### Quick Start Audit (Recommended First Run)
+
+For immediate system assessment, run these essential audits:
+
+```bash
+# 1. Install audit dependencies
+pip install requests psutil docker safety bandit
+
+# 2. Create audit directories
+mkdir -p audit/reports/{daily,weekly,monthly,quarterly,continuous}
+
+# 3. Run essential audits (15-20 minutes total)
+python audit/scripts/health_check.py          # 2 min  - System health
+python audit/scripts/security_audit.py        # 10 min - Security scan  
+python audit/scripts/performance_audit.py     # 5 min  - Performance baseline
+```
+
+### Comprehensive One-Time Audit
+
+For complete system analysis, run all audit types:
+
+```bash
+# Install all audit tools
+pip install requests psutil docker safety bandit radon pytest-cov
+
+# Run complete audit suite (45-60 minutes total)
+python audit/scripts/health_check.py          # System health validation
+python audit/scripts/security_audit.py        # Security vulnerability scan
+python audit/scripts/performance_audit.py     # Performance & resource analysis
+python audit/scripts/code_quality_audit.py    # Code quality & standards
+python audit/scripts/architecture_review.py   # Architecture compliance
+bash audit/scripts/business_continuity.sh     # Backup & recovery testing
+```
+
+### Audit Results
+
+All audit results are stored in structured reports:
+
+```
+audit/reports/
+├── continuous/     # Health check results (every 5 min when automated)
+├── daily/          # Security & performance audits
+├── weekly/         # Code quality reports  
+├── monthly/        # Architecture reviews
+└── quarterly/      # Business continuity assessments
+```
+
+### Quality Gates
+
+Each audit type has defined quality gates:
+
+- **Health Check**: All services UP, response time <2s
+- **Security**: 0 critical issues, ≤5 high-severity issues
+- **Performance**: 0 critical issues, ≤3 high-severity issues  
+- **Code Quality**: Score ≥60, ≤15 complexity issues
+- **Architecture**: Score ≥80, 0 critical architecture issues
+- **Business Continuity**: ≥90% success rate for backup/recovery tests
+
+### Emergency Audit
+
+If you suspect system issues, run immediate diagnostic:
+
+```bash
+# Emergency health check (30 seconds)
+python audit/scripts/health_check.py
+
+# If performance issues suspected
+python audit/scripts/performance_audit.py
+
+# Check for security incidents  
+python audit/scripts/security_audit.py
+```
+
+**📖 Audit Documentation**:
+- [Quick Start Guide](./AUDIT_QUICK_START.md) - Fast-track audit execution
+- [Complete Audit Plan](./VECTOR_WAVE_AUDIT_PLAN.md) - Comprehensive framework documentation
 
 ## 📚 Documentation
 
+### Core Documentation
+- [Vector Wave Audit Plan](./VECTOR_WAVE_AUDIT_PLAN.md) - Comprehensive audit framework
+- [Project Context](./PROJECT_CONTEXT.md) - Current project status and roadmap
 - [Tech Blog Style Guide](./tech-blog-styleguide.md)
 - [5 Tech Blog Influencers Analysis](./5-tech-blog-influencers-analysis.md)
+
+### Module Documentation
+- [AI Kolegium](./kolegium/PROJECT_CONTEXT.md) - AI agents and CrewAI flows
+- [Knowledge Base](./knowledge-base/KB_INTEGRATION_GUIDE.md) - Knowledge management system
+- [LinkedIn Automation](./linkedin/PROJECT_CONTEXT.md) - LinkedIn publishing automation
+- [n8n Workflows](./n8n/PROJECT_CONTEXT.md) - Content automation pipelines
 
 ## 🔐 License
 

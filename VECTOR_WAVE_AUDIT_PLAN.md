@@ -79,6 +79,86 @@ Tools: Backup validation, Recovery testing, DR procedures
 
 ---
 
+## ⚡ QUICK START - ON-DEMAND AUDIT
+
+### First-Time Audit Execution
+
+**Cel**: Baseline assessment przed implementacją cyklicznych audytów
+
+#### Essential Audit (Rekomendowane - 15-20 minut)
+```bash
+# 1. Setup
+pip install requests psutil docker safety bandit
+mkdir -p audit/reports/{daily,weekly,monthly,quarterly,continuous}
+
+# 2. Core audits (w kolejności priorytetów)
+python audit/scripts/health_check.py          # 2 min  - System health check
+python audit/scripts/security_audit.py        # 10 min - Critical security scan
+python audit/scripts/performance_audit.py     # 5 min  - Performance baseline
+```
+
+#### Comprehensive Audit (Complete analysis - 45-60 minut)
+```bash
+# 1. Install all tools
+pip install requests psutil docker safety bandit radon pytest-cov
+
+# 2. Full audit suite
+python audit/scripts/health_check.py          # System health validation
+python audit/scripts/security_audit.py        # Security vulnerability assessment
+python audit/scripts/performance_audit.py     # Performance & resource analysis
+python audit/scripts/code_quality_audit.py    # Code quality & standards compliance
+python audit/scripts/architecture_review.py   # Architecture compliance review
+bash audit/scripts/business_continuity.sh     # Backup & recovery validation
+```
+
+#### Emergency Diagnostic (Suspected issues - 2-5 minut)
+```bash
+# Quick system diagnostic
+python audit/scripts/health_check.py          # 30 sec - Service availability
+python audit/scripts/performance_audit.py     # 3 min  - Resource utilization
+
+# Security incident check
+python audit/scripts/security_audit.py        # If security concerns
+```
+
+### Expected First-Run Results
+
+**Health Check**:
+- LIKELY: Mixed results (some services UP, others DOWN)
+- ACTION: Fix non-responsive services before proceeding
+
+**Security Audit**:
+- EXPECTED: 5-10 dependency vulnerabilities, Docker config issues
+- CRITICAL: Watch for .env files in git history (immediate fix required)
+
+**Performance Audit**:
+- WATCH FOR: CPU >80% (indicates CrewAI infinite loops)
+- BASELINE: Establishes performance metrics for future comparison
+
+**Architecture Review** (if run):
+- PREDICTED SCORE: 60-70/100
+- EXPECTED: Medium coupling, missing Clean Architecture layers
+
+### Quality Gate Interpretation
+
+| Result | Status | Action Required |
+|--------|--------|-----------------|
+| ✅ PASS | All quality gates met | Proceed with cykliczne audyty setup |
+| ⚠️ WARN | Minor issues found | Address warnings, then proceed |
+| ❌ FAIL | Critical issues detected | **STOP** - Fix critical issues first |
+
+### Abort Conditions
+
+**Stop execution immediately if**:
+- All services show DOWN in health check
+- Critical security issues found (.env exposure, etc.)
+- CPU utilization >90% sustained
+- Any audit script crashes with unhandled exceptions
+
+**Reason**: System instability requires immediate intervention
+
+---
+
 ## 🔧 IMPLEMENTATION FRAMEWORK
 
 ### Directory Structure
