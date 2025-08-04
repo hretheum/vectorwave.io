@@ -396,6 +396,117 @@ class DecisionLogger:
             )
         }
     
+    def log_feedback_processing(
+        self,
+        flow_id: str,
+        stage: str,
+        decision: str,
+        action: str,
+        has_feedback: bool = False
+    ):
+        """
+        Log feedback processing decision
+        
+        Args:
+            flow_id: Flow identifier
+            stage: Current stage
+            decision: Human decision
+            action: Processing action taken
+            has_feedback: Whether feedback text was provided
+        """
+        decision_data = {
+            "decision_id": f"feedback_{flow_id}_{int(time.time() * 1000)}",
+            "decision_type": "feedback_processing",
+            "context": {
+                "flow_id": flow_id,
+                "timestamp": time.time(),
+                "stage": stage,
+                "has_feedback": has_feedback
+            },
+            "inputs": {"decision": decision, "stage": stage},
+            "analysis_result": {"action": action},
+            "routing_decision": action,
+            "reasoning": f"Processing {decision} decision as {action}",
+            "confidence": 1.0,
+            "kb_consulted": False,
+            "kb_guidance": None,
+            "execution_time_ms": 0,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Log to session file
+        with open(self.session_file, 'a') as f:
+            f.write(json.dumps(decision_data) + '\n')
+        
+        logger.info(
+            "Feedback processing logged",
+            flow_id=flow_id,
+            decision=decision,
+            action=action
+        )
+    
+    def log_human_review(
+        self,
+        flow_id: str,
+        review_point: str,
+        decision: str,
+        feedback: Optional[str] = None,
+        execution_time_ms: float = 0,
+        context: Optional[Dict[str, Any]] = None
+    ):
+        """
+        Log human review decision
+        
+        Args:
+            flow_id: Flow identifier
+            review_point: Review stage identifier
+            decision: Human decision (approve/edit/revise/redirect/skip)
+            feedback: Optional human feedback text
+            execution_time_ms: Time taken for review
+            context: Additional context
+        """
+        # Create a human review decision entry similar to routing decision
+        decision_data = {
+            "decision_id": f"review_{flow_id}_{int(time.time() * 1000)}",
+            "decision_type": "human_review",
+            "context": {
+                "flow_id": flow_id,
+                "timestamp": time.time(),
+                "topic_title": context.get("topic_title", "") if context else "",
+                "platform": context.get("platform", "") if context else "",
+                "key_themes": context.get("key_themes", []) if context else [],
+                "editorial_recommendations": "",
+                "kb_available": False,
+                "performance_metrics": {
+                    "review_time_ms": execution_time_ms
+                }
+            },
+            "inputs": {"review_point": review_point},
+            "analysis_result": {"human_decision": decision, "feedback": feedback},
+            "routing_decision": decision,  # Human decision acts as routing
+            "reasoning": f"Human review at {review_point}",
+            "confidence": 1.0,  # Human decisions have full confidence
+            "kb_consulted": False,
+            "kb_guidance": None,
+            "execution_time_ms": execution_time_ms,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Log to session file
+        with open(self.session_file, 'a') as f:
+            f.write(json.dumps(decision_data) + '\n')
+        
+        # Update session decisions count
+        self.session_decisions_count += 1
+        
+        logger.info(
+            "Human review logged",
+            flow_id=flow_id,
+            review_point=review_point,
+            decision=decision,
+            has_feedback=feedback is not None
+        )
+    
     def export_session_report(self, output_file: Optional[str] = None) -> str:
         """
         Export comprehensive session report
