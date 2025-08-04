@@ -10,3 +10,6 @@
 [submodule "n8n"]
 	path = n8n
 	url = git@github.com:hretheum/vector-wave-n8n-workflows.git
+[submodule "linkedin"]
+	path = linkedin
+	url = git@github.com:hretheum/vector-wave-linkedin.git
