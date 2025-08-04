@@ -96,6 +96,7 @@ class DecisionLogger:
         
         # In-memory buffer for current session
         self.session_decisions: List[DecisionRecord] = []
+        self.session_decisions_count = 0
         
         # Performance tracking
         self.metrics = {
