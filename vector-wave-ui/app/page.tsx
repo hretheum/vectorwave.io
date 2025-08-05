@@ -321,9 +321,9 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
         }
       }
       
-      // Fallback na stary endpoint
-      console.log('📤 Sending request to /api/analyze-content');
-      const response = await fetch('http://localhost:8001/api/analyze-content', {
+      // Fallback na nowy endpoint CrewAI
+      console.log('📤 Sending request to /api/crewai/analyze-content');
+      const response = await fetch('/api/crewai/analyze-content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

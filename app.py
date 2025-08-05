@@ -453,3 +453,80 @@ async def list_content_folders():
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading content folders: {str(e)}")
+
+class AnalyzeContentRequest(BaseModel):
+    folder: str
+    use_flow: bool = False
+
+@app.post("/api/analyze-content")
+async def analyze_content(request: AnalyzeContentRequest):
+    """Analizuje zawartość folderu - kompatybilność z frontendem"""
+    
+    try:
+        folder_name = request.folder
+        base_path = "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw"
+        folder_path = os.path.join(base_path, folder_name)
+        
+        if not os.path.exists(folder_path):
+            raise HTTPException(status_code=404, detail=f"Folder {folder_name} not found")
+        
+        # Znajdź pliki .md w folderze
+        md_files = [f for f in os.listdir(folder_path) if f.endswith('.md')]
+        
+        if not md_files:
+            raise HTTPException(status_code=404, detail=f"No .md files found in {folder_name}")
+        
+        # Przeczytaj zawartość plików (uproszczona analiza)
+        content_analysis = {
+            "folder": folder_name,
+            "totalFiles": len(md_files),
+            "mdFiles": md_files,
+            "analysisDate": datetime.now().isoformat(),
+            "contentType": "ORIGINAL",  # Zakładamy że to content własny
+            "suggestedPlatform": "LinkedIn",
+            "topTopics": [],
+            "viralPotential": 7.5,
+            "audienceAlignment": 8.0,
+            "contentOwnership": "ORIGINAL"
+        }
+        
+        # Przeczytaj pierwszy plik dla analizy tematów
+        first_file = os.path.join(folder_path, md_files[0])
+        try:
+            with open(first_file, 'r', encoding='utf-8') as f:
+                content = f.read()[:1000]  # Pierwsze 1000 znaków
+                
+                # Prosta analiza tematów (mock)
+                if "adhd" in content.lower():
+                    content_analysis["topTopics"] = ["ADHD", "Mental Health", "Productivity"]
+                elif "knowledge" in content.lower():
+                    content_analysis["topTopics"] = ["Knowledge Management", "AI", "Technology"]
+                elif "brain" in content.lower():
+                    content_analysis["topTopics"] = ["Brainstorming", "Strategy", "Planning"]
+                else:
+                    content_analysis["topTopics"] = ["General", "Content", "Writing"]
+                    
+        except Exception as e:
+            print(f"Error reading file {first_file}: {e}")
+            content_analysis["topTopics"] = ["General", "Content", "Writing"]
+        
+        return content_analysis
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error analyzing content: {str(e)}")
+
+@app.post("/api/analyze-folder")
+async def analyze_folder(request: dict):
+    """Alias dla analyze-content - kompatybilność z różnymi route.ts"""
+    
+    # Konwertuj request na AnalyzeContentRequest format
+    folder_path = request.get("folder_path", request.get("folder", ""))
+    
+    if not folder_path:
+        raise HTTPException(status_code=400, detail="folder_path or folder is required")
+    
+    # Wyciągnij tylko nazwę folderu jeśli podano pełną ścieżkę
+    folder_name = os.path.basename(folder_path)
+    
+    analyze_request = AnalyzeContentRequest(folder=folder_name, use_flow=False)
+    return await analyze_content(analyze_request)
