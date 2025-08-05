@@ -167,7 +167,26 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [], onEdi
                     
                     const data = await response.json();
                     
-                    if (data.status === 'started' && data.flow_id) {
+                    // Handle new synchronous response format
+                    if (data.success && data.draft) {
+                      // Replace generating message with result
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === generatingMsgId 
+                          ? { 
+                              ...msg, 
+                              content: `✅ Draft gotowy!\n\n**${topic.title}** (${topic.platform})\n\n${data.draft.content}\n\n📊 Metryki:\n• Słowa: ${data.draft.word_count}\n• Znaki: ${data.draft.character_count}\n• Viral Score: ${data.draft.viral_score}`,
+                              contextActions: [{
+                                label: '📝 Edytuj draft',
+                                action: () => {
+                                  if (onEditDraft) {
+                                    onEditDraft(data.draft.content, topic.title, topic.platform);
+                                  }
+                                }
+                              }]
+                            }
+                          : msg
+                      ));
+                    } else if (data.status === 'started' && data.flow_id) {
                       // Update message with flow ID
                       setMessages(prev => prev.map(msg => 
                         msg.id === generatingMsgId 
