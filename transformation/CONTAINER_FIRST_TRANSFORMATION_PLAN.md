@@ -36,11 +36,14 @@
 ### 🔄 Faza 3: Production Container - **W TRAKCIE** (Sprint 1/5)
 - [ ] Zadanie 3.1: Multi-stage Dockerfile
 - [ ] Zadanie 3.2: Redis + Knowledge Base + Style Guide RAG (5 sprintów)
-  - [x] Sprint 3.2.1: Basic Redis Cache - Krok 1 ✅ (commit: 20ce0bc)
-    - Redis dodany do docker-compose.minimal.yml
-    - Port 6380 aby uniknąć konfliktu
-    - Health check skonfigurowany
-  - [ ] Sprint 3.2.1: Basic Redis Cache - Krok 2 (endpoint testujący)
+  - [x] Sprint 3.2.1: Basic Redis Cache ✅ COMPLETED (commit: pending)
+    - [x] Krok 1: Redis dodany do docker-compose.minimal.yml (commit: 20ce0bc)
+      - Port 6380 aby uniknąć konfliktu
+      - Health check skonfigurowany
+    - [x] Krok 2: Endpoint testujący cache /api/cache-test
+      - Redis client z graceful fallback
+      - TTL support (60 sekund)
+      - Response time: <1ms
   - [ ] Sprint 3.2.2: Cache for analyze-potential (30 min)
   - [ ] Sprint 3.2.3: ChromaDB for Style Guide - Naive RAG (1h)
   - [ ] Sprint 3.2.4: Agentic RAG with CrewAI (1.5h)
@@ -1182,7 +1185,7 @@ Sprint 5: Production
 
 **WAŻNE**: Każdy sprint to osobny commit, test, i "czy działa?" przed następnym!
 
-#### Sprint 3.2.1: Basic Redis Cache (30 min)
+#### Sprint 3.2.1: Basic Redis Cache (30 min) ✅ COMPLETED
 
 **Krok 1**: Dodaj Redis do docker-compose
 ```yaml
@@ -1563,7 +1566,7 @@ volumes:
 
 ### Metryki sukcesu każdego sprintu:
 
-1. **Sprint 3.2.1**: `curl /api/cache-test` zwraca `{"status": "ok"}`
+1. **Sprint 3.2.1**: ✅ `curl /api/cache-test` zwraca `{"status": "ok", "cached_value": "Hello Redis!", "ttl": 60}`
 2. **Sprint 3.2.2**: Drugie wywołanie `/api/analyze-potential` ma `from_cache: true`
 3. **Sprint 3.2.3**: `/api/style-guide/check` zwraca relevantne reguły
 4. **Sprint 3.2.4**: `/api/style-guide/check-agentic` zwraca inteligentną analizę

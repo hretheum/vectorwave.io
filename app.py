@@ -4,6 +4,9 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 import time
 import os
+import redis
+import json
+import hashlib
 from crewai import Agent, Task, Crew
 from langchain_openai import ChatOpenAI
 
@@ -45,6 +48,15 @@ llm = ChatOpenAI(
     api_key=os.getenv("OPENAI_API_KEY")
 )
 
+# Redis connection
+try:
+    redis_client = redis.Redis(host='redis', port=6379, decode_responses=True)
+    redis_client.ping()
+    print("✅ Redis connected")
+except:
+    redis_client = None
+    print("⚠️ Redis not available - running without cache")
+
 class ContentRequest(BaseModel):
     """Content metadata for generation requests"""
     title: str
@@ -67,6 +79,23 @@ def root():
 def health():
     """Health check endpoint for container monitoring"""
     return {"status": "healthy", "container": "running"}
+
+@app.get("/api/cache-test", tags=["diagnostics"])
+async def test_cache():
+    """Test Redis cache functionality"""
+    if not redis_client:
+        return {"status": "no_cache", "message": "Redis not connected"}
+    
+    # Test set/get
+    test_key = f"test:{datetime.now().isoformat()}"
+    redis_client.setex(test_key, 60, "Hello Redis!")
+    value = redis_client.get(test_key)
+    
+    return {
+        "status": "ok",
+        "cached_value": value,
+        "ttl": redis_client.ttl(test_key)
+    }
 
 @app.post("/api/test-routing", tags=["flow"], deprecated=True)
 def test_routing(content: ContentRequest):
