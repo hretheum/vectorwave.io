@@ -7,12 +7,16 @@
 - [x] Zadanie 0.2: Docker Compose setup
 - [x] Zadanie 0.3: Basic CI/CD (Makefile)
 
-### ✅ Faza 1: CrewAI Integration Container - **UKOŃCZONA**
+### ✅ Faza 1: CrewAI Integration Container - **UKOŃCZONA & ZWERYFIKOWANA**
 - [x] Zadanie 1.1: Research Agent Endpoint ✅
-- [x] Zadanie 1.2: Writer Agent Endpoint ✅ (verified 2025-08-05)
+- [x] Zadanie 1.2: Writer Agent Endpoint ✅ (verified 2025-08-05, commit: 6cec870)
+  - **VERIFIED**: Używa prawdziwego OpenAI GPT-4 API
+  - Dodano endpoint `/api/verify-openai` do weryfikacji
+  - Comprehensive tests added
 - [x] Zadanie 1.3: Complete Flow Endpoint ✅
 
 **🚨 CRITICAL: Working version saved in commit `2c960c1` (2025-08-05 16:44:00 CEST)**
+**✅ VERIFIED: Real OpenAI API in commit `6cec870` (2025-08-05 17:37:52 CEST)**
 **⚠️ DO NOT MODIFY without backing up this state first!**
 
 ### 🚧 Faza 2: Frontend Integration & Flow Diagnostics - **W TRAKCIE**
@@ -401,9 +405,16 @@ curl -X POST http://localhost:8000/api/research \
 
 ---
 
-### Zadanie 1.2: Writer Agent Endpoint (2h)
+### Zadanie 1.2: Writer Agent Endpoint (2h) ✅ VERIFIED
 
 **Cel**: Dodaj endpoint który generuje content przez WriterAgent
+
+**Status**: ✅ Zweryfikowane 2025-08-05
+- **Commit**: `6cec870bd7ff1a96f2cccdc4c56b4fc4aa0cb8a2`
+- **VERIFIED**: Używa prawdziwego OpenAI GPT-4 API
+- Dodano endpoint `/api/verify-openai` do weryfikacji autentyczności
+- Dodano 5 testów pokrywających różne scenariusze
+- Rozszerzono Makefile o komendy: `test-writer`, `test-writer-research`, `test-complete-flow`
 
 ```python
 @app.post("/api/generate-draft")
