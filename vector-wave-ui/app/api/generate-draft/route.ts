@@ -36,6 +36,18 @@ export async function POST(req: NextRequest) {
     }
     
     const data = await response.json();
+    
+    // Transform backend response to match frontend expectations
+    if (data.status === "completed" && data.draft) {
+      // Frontend expects this format for successful generation
+      return Response.json({
+        status: "accepted",
+        taskId: `task_${Date.now()}`,
+        draft: data.draft,
+        metadata: data.metadata
+      });
+    }
+    
     return Response.json(data);
     
   } catch (error) {
