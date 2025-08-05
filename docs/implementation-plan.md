@@ -49,27 +49,28 @@
   - Source verification
   - Quality scoring system
 
-### Sprint 3.3: Custom Ideas Analysis (NEW)
+### Sprint 3.3: Custom Ideas Analysis (NEW) - Container-First Approach
 
-#### Sprint 3.3.1: Backend Implementation (2h)
-- [ ] Dodaj endpoint /api/analyze-custom-ideas
-- [ ] Implementuj analyze_folder_content helper
-- [ ] Dodaj caching z Redis (5 min TTL)
-- [ ] Integracja z AI dla oceny pomysłów w kontekście folderu
+#### Phase 1: Backend Foundation (1.5h)
+- [ ] **Step 1** (15min): Basic endpoint z mock data + curl test
+- [ ] **Step 2** (20min): Folder context analysis (mock → real)
+- [ ] **Step 3** (30min): Single idea analysis z static scores
+- [ ] **Step 4** (20min): Redis cache integration + test
+- [ ] **Step 5** (30min): AI integration dla real scoring
 
-#### Sprint 3.3.2: Frontend Implementation (3h)
-- [ ] Dodaj przycisk "Mam swoje propozycje" pod wynikami analizy
-- [ ] Implementuj CustomIdeasEditor component z inline display
-- [ ] Obsługa Option+Enter (Alt+Enter) dla multiline input
-- [ ] Integracja z nowym API endpoint
-- [ ] Display wyników analizy w czacie
+#### Phase 2: Frontend Minimal UI (1.5h)
+- [ ] **Step 1** (10min): Mock button w results + console.log test
+- [ ] **Step 2** (15min): Basic textarea toggle + Enter handling
+- [ ] **Step 3** (20min): API integration + console response
+- [ ] **Step 4** (15min): Option+Enter support cross-platform
+- [ ] **Step 5** (20min): Results display w UI + best highlight
 
-#### Sprint 3.3.3: Testing & Polish (1h)
-- [ ] Test różnych kombinacji pomysłów
-- [ ] Test cache behavior
-- [ ] Test keyboard shortcuts (Option+Enter)
-- [ ] Edge cases (puste pomysły, długie listy)
-- [ ] Polish UI/UX transitions
+#### Phase 3: Polish & Edge Cases (1h)
+- [ ] **Step 1** (15min): Error handling + loading states
+- [ ] **Step 2** (15min): UI transitions + responsive design
+- [ ] **Step 3** (20min): Integration tests + edge cases
+
+**Total: ~4h w małych, testowalnych krokach**
   - Assessment events
 #### Tydzień 4: Frontend Foundation
 - [ ] **Day 22-24**: React Setup z CopilotKit

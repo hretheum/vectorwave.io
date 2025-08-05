@@ -273,26 +273,116 @@ async def analyze_single_idea(idea: str, folder_context: Dict, platform: str) ->
    - Każdy pomysł ma score i rekomendację
    - Najlepszy pomysł jest wyróżniony
 
-## Implementation Steps
+## Implementation Steps - Minimal Increments
 
-1. **Backend** (1-2h)
-   - [ ] Dodaj endpoint /api/analyze-custom-ideas
-   - [ ] Implementuj analyze_folder_content helper
-   - [ ] Dodaj caching z Redis
-   - [ ] Integracja z AI dla oceny pomysłów
+### Phase 1: Backend Foundation (Container-First)
 
-2. **Frontend** (2-3h)
-   - [ ] Dodaj przycisk pod wynikami analizy
-   - [ ] Implementuj CustomIdeasEditor component
-   - [ ] Obsługa Option+Enter dla multiline
-   - [ ] Integracja z API
-   - [ ] Display wyników analizy
+#### Step 1: Basic Endpoint (15 min)
+```bash
+# Test: curl -X POST http://localhost:8000/api/analyze-custom-ideas \
+#   -H "Content-Type: application/json" \
+#   -d '{"folder": "test", "ideas": ["idea 1"]}'
+```
+- [ ] Add endpoint that returns mock data
+- [ ] Test in container with curl
+- [ ] Verify response structure
 
-3. **Testing** (1h)
-   - [ ] Test różnych kombinacji pomysłów
-   - [ ] Test cache behavior
-   - [ ] Test keyboard shortcuts
-   - [ ] Edge cases (puste pomysły, długie listy)
+#### Step 2: Folder Context (20 min)
+```python
+# Najpierw mock, potem real implementation
+async def analyze_folder_content(folder: str) -> Dict:
+    return {
+        "files": ["file1.md", "file2.md"],
+        "main_topics": ["distributed", "tracing"],
+        "technical_depth": "high"
+    }
+```
+- [ ] Add analyze_folder_content with mock data
+- [ ] Test endpoint returns folder context
+- [ ] Verify in container
+
+#### Step 3: Single Idea Analysis (30 min)
+- [ ] Implement analyze_single_idea with static scores
+- [ ] Test single idea analysis works
+- [ ] Add proper response model
+
+#### Step 4: Redis Cache Integration (20 min)
+- [ ] Add cache check/set logic
+- [ ] Test with redis-cli in container
+- [ ] Verify cache hit on second request
+
+#### Step 5: AI Integration (30 min)
+- [ ] Replace mock scores with AI call
+- [ ] Use existing LLM client from app
+- [ ] Test with real content analysis
+
+### Phase 2: Frontend - Minimal UI (Container-First)
+
+#### Step 1: Mock Button (10 min)
+```typescript
+// Najpierw hardcoded button
+<button onClick={() => console.log('Custom ideas clicked')}>
+  Mam swoje propozycje
+</button>
+```
+- [ ] Add button to existing results component
+- [ ] Test click logs to console
+- [ ] Deploy to container, verify
+
+#### Step 2: Basic Text Input (15 min)
+```typescript
+// Simple textarea, no fancy editor yet
+const [showInput, setShowInput] = useState(false);
+const [text, setText] = useState('');
+
+{showInput && (
+  <textarea 
+    value={text} 
+    onChange={e => setText(e.target.value)}
+    onKeyDown={e => {
+      if (e.key === 'Enter' && !e.altKey) {
+        e.preventDefault();
+        console.log('Submit:', text);
+      }
+    }}
+  />
+)}
+```
+- [ ] Add basic textarea toggle
+- [ ] Test Enter submits
+- [ ] Verify in container
+
+#### Step 3: API Integration (20 min)
+- [ ] Call real endpoint from frontend
+- [ ] Display response in console
+- [ ] Test with mock ideas
+
+#### Step 4: Option+Enter Support (15 min)
+- [ ] Add Alt+Enter handling for newline
+- [ ] Test keyboard shortcuts
+- [ ] Verify cross-platform (Mac/Windows)
+
+#### Step 5: Results Display (20 min)
+- [ ] Show analysis results in UI
+- [ ] Highlight best idea
+- [ ] Test with multiple ideas
+
+### Phase 3: Polish & Edge Cases
+
+#### Step 1: Error Handling (15 min)
+- [ ] Handle empty ideas list
+- [ ] Handle API errors gracefully
+- [ ] Show loading state
+
+#### Step 2: UI Polish (15 min)
+- [ ] Add transitions/animations
+- [ ] Improve button/editor styling
+- [ ] Mobile responsive check
+
+#### Step 3: Integration Tests (20 min)
+- [ ] Full flow test: button → input → API → results
+- [ ] Cache behavior verification
+- [ ] Edge cases (long lists, special chars)
 
 ## Future Enhancements
 
