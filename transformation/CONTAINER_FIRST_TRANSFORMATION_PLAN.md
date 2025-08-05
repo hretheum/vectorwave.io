@@ -1550,3 +1550,127 @@ Ten plan transformuje AI Writing Flow w nowoczesny, container-first system gdzie
 - [ ] Dodać UI dla Human Review Queue (opcjonalne)
 
 **Data ostatniej aktualizacji**: 2025-08-05
+
+---
+
+## 🚀 PRAGMATYCZNY PLAN NAPRAWY BŁĘDU 404 - Przyciski "Wygeneruj Draft"
+
+### 🎯 Problem
+Przyciski "wygeneruj draft" zwracają błąd 404, ponieważ frontend wywołuje `/api/generate-draft-v2` który nie istnieje w backendzie.
+
+### ⚡ PLAN MINIMUM VIABLE CHANGE (MVC)
+
+#### **Krok 1: Napraw tylko błąd 404 (5 minut)**
+```
+ZMIANA: 1 linia w frontend proxy
+- Z: /api/generate-draft-v2
+- Na: /api/generate-draft
+```
+**Efekt**: Przyciski przestaną zwracać 404
+
+#### **Krok 2: Minimalna transformacja danych (10 minut)**
+```
+ZMIANA: 5 linii w frontend proxy
+- Mapuj: topic_title → title
+- Zawiń w: content: { ... }
+```
+**Efekt**: Backend otrzyma dane których oczekuje
+
+#### **Krok 3: STOP - Testuj co działa**
+- Czy generuje drafty? ✓
+- Jak długo trwa? Zmierz
+- Co użytkownicy mówią? Zapytaj
+
+### 📊 CZEGO NIE ROBIMY:
+- ❌ NIE piszemy nowego routera
+- ❌ NIE implementujemy skomplikowanej logiki  
+- ❌ NIE refaktorujemy całego backendu
+- ❌ NIE dodajemy 10 nowych features
+
+### ✅ PRZYROSTOWE ULEPSZENIA (tylko jeśli potrzebne):
+
+#### **Faza A: Wykorzystaj skip_research (jeśli za wolno)**
+```python
+# Dodaj 3 linie do istniejącego endpointu
+if request_data.get("skip_research", False):
+    research_data = None  # Pomijamy
+```
+**Zysk**: -20 sekund dla ORIGINAL content
+
+#### **Faza B: Wykorzystaj viral_score (jeśli użytkownicy chcą)**
+```python
+# Dodaj 2 linie do writer prompt
+if request_data.get("viral_score", 0) > 7:
+    prompt += " Make it viral and engaging!"
+```
+**Zysk**: Lepsze dopasowanie stylu
+
+#### **Faza C: Cache (jeśli dużo powtórzeń)**
+```python
+# Dodaj prosty dict cache
+draft_cache = {}
+cache_key = f"{title}:{platform}"
+if cache_key in draft_cache:
+    return draft_cache[cache_key]
+```
+**Zysk**: Instant response dla powtórzeń
+
+### 🛡️ ZASADY BEZPIECZEŃSTWA:
+
+1. **Każda zmiana < 30 minut**
+   - Jeśli dłużej = za skomplikowane
+   
+2. **Każda zmiana = osobny commit**
+   - Łatwy rollback gdy coś nie działa
+
+3. **Każda zmiana = test z użytkownikiem**
+   - "Czy to pomogło?" przed następną zmianą
+
+4. **NIE DODAWAJ jeśli działa**
+   - "Good enough" > "Perfect"
+
+### 📈 METRYKI DECYZYJNE:
+
+Robimy kolejny krok TYLKO gdy:
+- Użytkownicy narzekają na konkretny problem
+- Mamy dane że coś jest za wolne (>30s)
+- Wiemy dokładnie co chcemy poprawić
+
+### 🎮 PRZYKŁAD ŚCIEŻKI:
+
+**Dzień 1**: 
+- Fix 404 (5 min) ✓
+- Test → Działa? → Stop
+
+**Dzień 7** (jeśli użytkownicy: "za wolno dla własnych notatek"):
+- Add skip_research (10 min) ✓
+- Test → Szybciej? → Stop
+
+**Dzień 14** (jeśli użytkownicy: "chcemy więcej viral"):
+- Add viral_score usage (10 min) ✓
+- Test → Lepiej? → Stop
+
+### ❌ CZEGO UNIKAMY (lekcja z "linear flow"):
+
+1. **NIE** - "Przepiszmy całość na nową architekturę"
+2. **NIE** - "Dodajmy 5 typów flow od razu"
+3. **NIE** - "Zróbmy super AI router"
+4. **NIE** - "Zoptymalizujmy wszystko"
+
+### ✅ CO ROBIMY:
+
+1. **TAK** - "Naprawmy błąd 404"
+2. **TAK** - "Zobaczmy czy to wystarczy"
+3. **TAK** - "Dodajmy 1 małą rzecz jeśli trzeba"
+4. **TAK** - "Zatrzymajmy się gdy działa"
+
+### 💡 KLUCZOWA LEKCJA:
+
+Po doświadczeniu z "linear flow" które pochłonęło 2 dni i nie działało, stosujemy zasadę:
+> "Mały problem → Małe rozwiązanie → Działa? → Stop"
+
+To jak różnica między:
+- **Źle**: "Zbudujmy nowy dom bo drzwi skrzypią"
+- **Dobrze**: "Naoliwmy zawiasy i zobaczmy"
+
+**Data ostatniej aktualizacji**: 2025-08-05
