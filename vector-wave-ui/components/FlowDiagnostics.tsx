@@ -40,24 +40,50 @@ interface FlowStep {
 interface FlowDiagnosticsProps {
   topicTitle: string;
   platform: string;
+  flowId?: string;
   onRefresh?: () => void;
 }
 
-export function FlowDiagnostics({ topicTitle, platform, onRefresh }: FlowDiagnosticsProps) {
+export function FlowDiagnostics({ topicTitle, platform, flowId, onRefresh }: FlowDiagnosticsProps) {
   const [steps, setSteps] = useState<FlowStep[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
 
-  // Mock data - in real implementation, this would fetch from backend
   useEffect(() => {
-    // Simulate loading flow diagnostics
     const fetchDiagnostics = async () => {
       setLoading(true);
       
-      // Mock API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockSteps: FlowStep[] = [
+      try {
+        if (flowId) {
+          // Użyj prawdziwego API jeśli mamy flowId
+          const response = await fetch(`/api/crewai/flow-diagnostics/${flowId}`);
+          if (response.ok) {
+            const data = await response.json();
+            
+            // Mapuj dane z backendu na format UI
+            const mappedSteps: FlowStep[] = data.steps.map((step: any) => ({
+              id: step.id,
+              name: step.name,
+              status: step.status,
+              startTime: step.start_time,
+              endTime: step.end_time,
+              duration: step.end_time && step.start_time ? 
+                new Date(step.end_time).getTime() - new Date(step.start_time).getTime() : undefined,
+              input: step.input,
+              output: step.output,
+              errors: step.errors || [],
+              agentDecisions: step.agent_decisions || [],
+              contentLoss: step.content_loss
+            }));
+            
+            setSteps(mappedSteps);
+            setLoading(false);
+            return;
+          }
+        }
+        
+        // Fallback na mock data jeśli nie ma flowId lub API niedostępne
+        const mockSteps: FlowStep[] = [
         {
           id: 'input_validation',
           name: 'Walidacja Wejścia',
@@ -188,12 +214,17 @@ export function FlowDiagnostics({ topicTitle, platform, onRefresh }: FlowDiagnos
         }
       ];
 
-      setSteps(mockSteps);
-      setLoading(false);
+        setSteps(mockSteps);
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to fetch diagnostics:', error);
+        // W przypadku błędu użyj mock data
+        setLoading(false);
+      }
     };
 
     fetchDiagnostics();
-  }, [topicTitle, platform]);
+  }, [topicTitle, platform, flowId]);
 
   const toggleStepExpanded = (stepId: string) => {
     const newExpanded = new Set(expandedSteps);

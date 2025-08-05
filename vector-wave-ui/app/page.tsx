@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChatPanel } from "@/components/ChatPanel";
 import { Modal } from "@/components/ui/modal";
 import { DraftEditor } from "@/components/DraftEditor";
+import { FlowDiagnostics } from "@/components/FlowDiagnostics";
 
 export default function Home() {
   const [folders, setFolders] = useState<any[]>([]);
@@ -24,6 +25,7 @@ export default function Home() {
   const [useFullAnalysis, setUseFullAnalysis] = useState(false);
   const [chatDocked, setChatDocked] = useState(true);
   const [editingDraft, setEditingDraft] = useState<{draft: string, topic: string, platform: string} | null>(null);
+  const [showFlowDiagnostics, setShowFlowDiagnostics] = useState(false);
 
   // Auto-load content folders on mount
   useEffect(() => {
@@ -286,13 +288,47 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
     console.log('🔄 State updated - isAnalyzing should be true now');
     
     try {
+      // Jeśli useFullAnalysis, użyj nowego endpointu CrewAI
+      if (useFullAnalysis) {
+        console.log('📤 Using new CrewAI tracked flow endpoint');
+        const response = await fetch('/api/crewai/execute-flow-tracked', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: folderName,
+            content_type: 'STANDARD',
+            platform: 'LinkedIn',
+            content_ownership: 'EXTERNAL'
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Flow tracked data:', data);
+          
+          // Ustaw flow ID dla diagnostyki
+          if (data.flow_id) {
+            setAnalysisResult({
+              folder: folderName,
+              flowId: data.flow_id,
+              flowExecuted: true,
+              finalDraft: data.final_draft,
+              diagnosticUrl: data.diagnostic_url
+            });
+            console.log('📊 Flow diagnostics available at:', data.diagnostic_url);
+            return;
+          }
+        }
+      }
+      
+      // Fallback na stary endpoint
       console.log('📤 Sending request to /api/analyze-content');
       const response = await fetch('http://localhost:8001/api/analyze-content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           folder: folderName,
-          use_flow: useFullAnalysis 
+          use_flow: false 
         })
       });
       
@@ -809,6 +845,18 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
                     Weryfikuj źródła
                   </Button>
                 )}
+                {analysisResult.flowId && (
+                  <Button 
+                    size="lg" 
+                    variant="outline"
+                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                    onClick={() => setShowFlowDiagnostics(true)}
+                    data-action="flow-diagnostics"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    Flow Diagnostics
+                  </Button>
+                )}
               </div>
                 </>
               )}
@@ -879,6 +927,21 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
               {reportContent}
             </div>
           </div>
+        </div>
+      </Modal>
+      
+      {/* Flow Diagnostics Modal */}
+      <Modal isOpen={showFlowDiagnostics} onClose={() => setShowFlowDiagnostics(false)}>
+        <div className="max-w-4xl max-h-[80vh] overflow-hidden">
+          <FlowDiagnostics 
+            topicTitle={analysisResult?.folder || 'Unknown Topic'}
+            platform={analysisResult?.suggestedPlatform || 'Unknown Platform'}
+            flowId={analysisResult?.flowId}
+            onRefresh={() => {
+              // TODO: Implement refresh logic if needed
+              console.log('Refreshing flow diagnostics');
+            }}
+          />
         </div>
       </Modal>
       
