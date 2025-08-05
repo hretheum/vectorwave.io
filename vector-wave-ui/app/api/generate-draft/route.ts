@@ -13,7 +13,8 @@ export async function POST(req: NextRequest) {
         platform: body.platform || "LinkedIn",
         content_ownership: body.content_ownership || "EXTERNAL"
       },
-      research_data: body.skip_research ? null : undefined
+      research_data: body.skip_research ? null : undefined,
+      skip_research: body.skip_research || false
     };
     
     console.log('Transformed payload:', backendPayload);

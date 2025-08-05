@@ -149,13 +149,21 @@ def extract_key_points(text: str) -> list:
 class GenerateDraftRequest(BaseModel):
     content: ContentRequest
     research_data: Optional[Dict] = None
+    skip_research: Optional[bool] = False  # New field from frontend
 
 @app.post("/api/generate-draft")
 async def generate_draft(request: GenerateDraftRequest):
     """Generuje draft używając CrewAI Writer Agent"""
     
+    start_time = time.time()
+    
     content = request.content
     research_data = request.research_data
+    
+    # Log optimization
+    if request.skip_research or content.content_ownership == "ORIGINAL":
+        print(f"🚀 OPTIMIZED: Skipping research for ORIGINAL content - {content.title}")
+        print(f"⏱️  Starting draft generation at: {datetime.now().strftime('%H:%M:%S.%f')[:-3]}")
     
     # Writer Agent
     writer = Agent(
@@ -170,6 +178,11 @@ async def generate_draft(request: GenerateDraftRequest):
     context = ""
     if research_data and research_data.get("findings"):
         context = f"Research findings: {research_data['findings']['summary']}"
+    elif request.skip_research or content.content_ownership == "ORIGINAL":
+        # For ORIGINAL content, add context about using internal knowledge
+        context = """This is ORIGINAL content - use your internal knowledge and creativity.
+        No external research needed. Focus on creating engaging, authentic content.
+        The author has their own materials and perspective on this topic."""
     
     # Writing task
     writing_task = Task(
@@ -194,6 +207,14 @@ async def generate_draft(request: GenerateDraftRequest):
     try:
         result = crew.kickoff()
         
+        # Calculate total execution time
+        execution_time = time.time() - start_time
+        
+        # Log optimization results
+        if request.skip_research or content.content_ownership == "ORIGINAL":
+            print(f"✅ Draft generated in {execution_time:.1f} seconds (research skipped)")
+            print(f"💡 Time saved: ~{max(0, 25 - execution_time):.0f} seconds")
+        
         return {
             "status": "completed",
             "draft": {
@@ -206,7 +227,9 @@ async def generate_draft(request: GenerateDraftRequest):
             "metadata": {
                 "generated_at": datetime.now().isoformat(),
                 "content_type": content.content_type,
-                "used_research": research_data is not None
+                "used_research": research_data is not None,
+                "execution_time_seconds": round(execution_time, 2),
+                "optimization_applied": request.skip_research or content.content_ownership == "ORIGINAL"
             }
         }
     except Exception as e:
