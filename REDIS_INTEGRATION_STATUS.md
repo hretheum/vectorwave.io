@@ -117,8 +117,8 @@ redis:
 - [x] Sprint 3.2.1 Step 1: Add Redis to docker-compose ✅
 - [x] Sprint 3.2.1 Step 2: Implement cache test endpoint ✅
 - [x] Sprint 3.2.2: Cache for analyze-potential ✅
-- [ ] Sprint 3.2.3: ChromaDB for Style Guide
-- [ ] Sprint 3.2.4: Agentic RAG
+- [x] Sprint 3.2.3: ChromaDB for Style Guide - Naive RAG ✅
+- [ ] Sprint 3.2.4: Agentic RAG with CrewAI
 - [ ] Sprint 3.2.5: Production setup
 
 ## 📊 Sprint 3.2.1 Summary
@@ -173,3 +173,37 @@ curl -X POST http://localhost:8003/api/analyze-potential \
 ```
 
 **Next Sprint**: 3.2.3 - ChromaDB for Style Guide with Naive RAG
+
+## 📊 Sprint 3.2.3 Summary
+
+**Status**: ✅ COMPLETED (2025-08-05 23:08)
+
+**What was achieved**:
+1. Added ChromaDB to docker-compose.minimal.yml
+2. Configured ChromaDB with persistent storage
+3. Integrated ChromaDB client in app.py
+4. Created Vector Wave style guide collection
+5. Implemented `/api/style-guide/seed` endpoint with 8 style rules
+6. Implemented `/api/style-guide/check` endpoint with Naive RAG
+
+**Key features**:
+- Naive RAG using ChromaDB similarity search
+- Rule categories: tone, structure, engagement, platform-specific
+- Style scoring system (0-100)
+- Violation detection with suggestions
+- Platform-specific rules (LinkedIn, Twitter, etc.)
+
+**Verification**:
+```bash
+# Seed style guide
+curl -X POST http://localhost:8003/api/style-guide/seed
+# Response: {"status": "success", "rules_added": 8, "total_rules": 8}
+
+# Check content
+curl -X POST http://localhost:8003/api/style-guide/check \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Unpopular opinion: ...", "platform": "LinkedIn"}'
+# Response: {"style_score": 100, "violations": [], ...}
+```
+
+**Next Sprint**: 3.2.4 - Agentic RAG with CrewAI

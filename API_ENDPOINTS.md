@@ -198,13 +198,13 @@ GET /api/verify-openai
 ```
 Verifies that the system is using real OpenAI API.
 
-### 10. Cache Test (Coming in Sprint 3.2.1 Step 2)
+### 10. Cache Test
 ```bash
 GET /api/cache-test
 ```
 Tests Redis cache functionality.
 
-**Expected Response:**
+**Response:**
 ```json
 {
   "status": "ok",
@@ -213,14 +213,65 @@ Tests Redis cache functionality.
 }
 ```
 
+### 11. Style Guide Seed
+```bash
+POST /api/style-guide/seed
+```
+Seeds ChromaDB with Vector Wave style guide rules.
+
 **Response:**
 ```json
 {
-  "status": "verified",
-  "api_type": "OpenAI GPT-4",
-  "response": "Generated message with timestamp",
-  "execution_time_seconds": 1.2,
-  "model": "gpt-4"
+  "status": "success",
+  "rules_added": 8,
+  "total_rules": 8
+}
+```
+
+### 12. Style Guide Check (Naive RAG)
+```bash
+POST /api/style-guide/check
+```
+Checks content against Vector Wave style guide using Naive RAG.
+
+**Request:**
+```json
+{
+  "content": "Your content here...",
+  "platform": "LinkedIn",
+  "check_categories": ["tone", "structure", "engagement"]
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "style_score": 85,
+  "relevant_rules": [
+    {
+      "rule_id": "linkedin-1",
+      "rule": "LinkedIn posts should start with a pattern interrupt",
+      "category": "platform-linkedin",
+      "priority": "high",
+      "relevance_score": 0.85
+    }
+  ],
+  "violations": [
+    {
+      "rule": "Use short paragraphs (max 3 sentences)",
+      "severity": "low",
+      "suggestion": "Break up long paragraphs for better readability"
+    }
+  ],
+  "suggestions": [
+    {
+      "rule": "Ask questions to encourage comments",
+      "suggestion": "Add a question at the end like 'What's your experience with this?'"
+    }
+  ],
+  "platform": "LinkedIn",
+  "checked_categories": ["tone", "structure", "engagement"]
 }
 ```
 

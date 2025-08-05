@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🚀 Added - 2025-08-05
 
-#### Redis Cache Layer - Sprint 3.2.1 & 3.2.2 ✅ COMPLETED
+#### Redis Cache & ChromaDB Integration - Sprint 3.2.1, 3.2.2 & 3.2.3 ✅ COMPLETED
 Sprint 3.2.1:
 - ✅ Added Redis 7-alpine to docker-compose.minimal.yml (commit: 20ce0bc)
 - ✅ Configured Redis on port 6380 to avoid local conflicts
@@ -27,7 +27,18 @@ Sprint 3.2.2:
 - ✅ Added `from_cache` field to response
 - ✅ Verified: First call returns `from_cache: false`, subsequent calls `from_cache: true`
 - 📊 Performance: Cache hits reduce response time from ~2ms to ~1ms
-- 🚀 Next Sprint: 3.2.3 - ChromaDB for Style Guide with Naive RAG
+
+Sprint 3.2.3:
+- ✅ Added ChromaDB to docker-compose.minimal.yml on port 8001
+- ✅ Configured persistent storage for ChromaDB
+- ✅ Integrated ChromaDB client with health check
+- ✅ Created Vector Wave style guide collection
+- ✅ Implemented `/api/style-guide/seed` endpoint with 8 initial rules
+- ✅ Implemented `/api/style-guide/check` endpoint with Naive RAG
+- ✅ Style scoring system (0-100) with violations and suggestions
+- ✅ Platform-specific rules (LinkedIn, Twitter, etc.)
+- 📊 Performance: Naive RAG queries return in <5ms
+- 🚀 Next Sprint: 3.2.4 - Agentic RAG with CrewAI
 
 #### Draft Generation Fixes & Optimization
 - ✅ Fixed "Failed to start writing flow" error (was returning 404)

@@ -9,6 +9,8 @@ import json
 import hashlib
 from crewai import Agent, Task, Crew
 from langchain_openai import ChatOpenAI
+import chromadb
+from chromadb.config import Settings
 
 app = FastAPI(
     title="AI Writing Flow - Container First",
@@ -57,6 +59,28 @@ except:
     redis_client = None
     print("⚠️ Redis not available - running without cache")
 
+# ChromaDB connection
+try:
+    chroma_client = chromadb.HttpClient(
+        host='chromadb',
+        port=8000,
+        settings=Settings(anonymized_telemetry=False)
+    )
+    # Test connection
+    chroma_client.heartbeat()
+    print("✅ ChromaDB connected")
+    
+    # Create or get style guide collection
+    style_guide_collection = chroma_client.get_or_create_collection(
+        name="vector_wave_style_guide",
+        metadata={"description": "Vector Wave content style guidelines"}
+    )
+    print(f"📚 Style guide collection ready: {style_guide_collection.count()} rules")
+except Exception as e:
+    chroma_client = None
+    style_guide_collection = None
+    print(f"⚠️ ChromaDB not available: {e}")
+
 class ContentRequest(BaseModel):
     """Content metadata for generation requests"""
     title: str
@@ -96,6 +120,200 @@ async def test_cache():
         "cached_value": value,
         "ttl": redis_client.ttl(test_key)
     }
+
+@app.post("/api/style-guide/seed", tags=["content"])
+async def seed_style_guide():
+    """Seed ChromaDB with Vector Wave style guide rules"""
+    if not style_guide_collection:
+        return {"status": "error", "message": "ChromaDB not connected"}
+    
+    # Vector Wave style guide rules
+    style_rules = [
+        {
+            "id": "tone-1",
+            "rule": "Use conversational, approachable tone",
+            "category": "tone",
+            "examples": ["Let's dive into...", "Here's the thing about..."],
+            "priority": "high"
+        },
+        {
+            "id": "tone-2",
+            "rule": "Avoid corporate jargon and buzzwords",
+            "category": "tone",
+            "examples": ["synergy", "leverage", "paradigm shift"],
+            "priority": "high"
+        },
+        {
+            "id": "structure-1",
+            "rule": "Start with a hook that grabs attention",
+            "category": "structure",
+            "examples": ["Ever wondered why...", "The moment I realized..."],
+            "priority": "high"
+        },
+        {
+            "id": "structure-2",
+            "rule": "Use short paragraphs (max 3 sentences)",
+            "category": "structure",
+            "examples": ["Break up long text", "White space is your friend"],
+            "priority": "medium"
+        },
+        {
+            "id": "linkedin-1",
+            "rule": "LinkedIn posts should start with a pattern interrupt",
+            "category": "platform-linkedin",
+            "examples": ["Unpopular opinion:", "I was wrong about..."],
+            "priority": "high"
+        },
+        {
+            "id": "linkedin-2",
+            "rule": "Include a clear CTA at the end",
+            "category": "platform-linkedin",
+            "examples": ["What's your experience?", "Drop a comment if..."],
+            "priority": "medium"
+        },
+        {
+            "id": "technical-1",
+            "rule": "Explain technical concepts with analogies",
+            "category": "technical",
+            "examples": ["Redis is like a sticky note on your monitor..."],
+            "priority": "high"
+        },
+        {
+            "id": "engagement-1",
+            "rule": "Ask questions to encourage comments",
+            "category": "engagement",
+            "examples": ["What would you do?", "Have you tried...?"],
+            "priority": "medium"
+        }
+    ]
+    
+    # Clear existing rules
+    try:
+        existing_ids = style_guide_collection.get()['ids']
+        if existing_ids:
+            style_guide_collection.delete(ids=existing_ids)
+    except:
+        pass
+    
+    # Add rules to ChromaDB
+    documents = []
+    metadatas = []
+    ids = []
+    
+    for rule in style_rules:
+        documents.append(f"{rule['rule']}. Examples: {', '.join(rule['examples'])}")
+        metadatas.append({
+            "category": rule["category"],
+            "priority": rule["priority"],
+            "rule_text": rule["rule"]
+        })
+        ids.append(rule["id"])
+    
+    style_guide_collection.add(
+        documents=documents,
+        metadatas=metadatas,
+        ids=ids
+    )
+    
+    return {
+        "status": "success",
+        "rules_added": len(style_rules),
+        "total_rules": style_guide_collection.count()
+    }
+
+class StyleCheckRequest(BaseModel):
+    """Request for style guide checking"""
+    content: str
+    platform: str = "LinkedIn"
+    check_categories: List[str] = ["tone", "structure", "engagement"]
+
+@app.post("/api/style-guide/check", tags=["content"])
+async def check_style_guide(request: StyleCheckRequest):
+    """Check content against Vector Wave style guide using Naive RAG"""
+    if not style_guide_collection:
+        return {"status": "error", "message": "ChromaDB not connected"}
+    
+    try:
+        # Query relevant rules based on content and platform
+        query_text = f"{request.platform} content: {request.content[:200]}..."
+        
+        # Naive RAG - simple similarity search
+        results = style_guide_collection.query(
+            query_texts=[query_text],
+            n_results=5,
+            where={"$or": [
+                {"category": cat} for cat in request.check_categories
+            ] + [
+                {"category": f"platform-{request.platform.lower()}"}
+            ]}
+        )
+        
+        # Extract relevant rules
+        relevant_rules = []
+        if results['ids'] and results['ids'][0]:
+            for i, rule_id in enumerate(results['ids'][0]):
+                metadata = results['metadatas'][0][i]
+                relevant_rules.append({
+                    "rule_id": rule_id,
+                    "rule": metadata.get('rule_text', ''),
+                    "category": metadata.get('category', ''),
+                    "priority": metadata.get('priority', 'medium'),
+                    "relevance_score": 1 - (results['distances'][0][i] if results['distances'] else 0)
+                })
+        
+        # Simple rule-based checks
+        violations = []
+        suggestions = []
+        
+        # Check for pattern interrupt (LinkedIn)
+        if request.platform.lower() == "linkedin":
+            starters = ["Unpopular opinion:", "I was wrong about", "Ever wondered"]
+            if not any(request.content.startswith(s) for s in starters):
+                violations.append({
+                    "rule": "LinkedIn posts should start with a pattern interrupt",
+                    "severity": "medium",
+                    "suggestion": "Consider starting with: 'Unpopular opinion:' or 'Ever wondered why...'"
+                })
+        
+        # Check paragraph length
+        paragraphs = request.content.split('\n\n')
+        long_paragraphs = [p for p in paragraphs if len(p.split('.')) > 3]
+        if long_paragraphs:
+            violations.append({
+                "rule": "Use short paragraphs (max 3 sentences)",
+                "severity": "low",
+                "suggestion": "Break up long paragraphs for better readability"
+            })
+        
+        # Check for questions (engagement)
+        if '?' not in request.content:
+            suggestions.append({
+                "rule": "Ask questions to encourage comments",
+                "suggestion": "Add a question at the end like 'What's your experience with this?'"
+            })
+        
+        # Calculate style score
+        style_score = 100
+        style_score -= len(violations) * 15
+        style_score -= len(suggestions) * 5
+        style_score = max(0, min(100, style_score))
+        
+        return {
+            "status": "success",
+            "style_score": style_score,
+            "relevant_rules": relevant_rules,
+            "violations": violations,
+            "suggestions": suggestions,
+            "platform": request.platform,
+            "checked_categories": request.check_categories
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "message": "Failed to check style guide"
+        }
 
 @app.post("/api/test-routing", tags=["flow"], deprecated=True)
 def test_routing(content: ContentRequest):
