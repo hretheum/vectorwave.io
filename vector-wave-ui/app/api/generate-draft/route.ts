@@ -36,18 +36,28 @@ export async function POST(req: NextRequest) {
     }
     
     const data = await response.json();
+    console.log('Backend response:', JSON.stringify(data).substring(0, 200) + '...');
     
     // Transform backend response to match frontend expectations
     if (data.status === "completed" && data.draft) {
-      // Frontend expects this format for successful generation
-      return Response.json({
-        status: "accepted",
-        taskId: `task_${Date.now()}`,
-        draft: data.draft,
+      // Frontend expects synchronous success format
+      const transformedResponse = {
+        success: true,
+        draft: {
+          content: data.draft.content,
+          title: data.draft.title,
+          platform: data.draft.platform,
+          word_count: data.draft.word_count,
+          character_count: data.draft.content.length,
+          viral_score: 7 // Default viral score since backend doesn't return it
+        },
         metadata: data.metadata
-      });
+      };
+      console.log('Transformed response:', transformedResponse);
+      return Response.json(transformedResponse);
     }
     
+    console.log('Returning raw data:', data);
     return Response.json(data);
     
   } catch (error) {
