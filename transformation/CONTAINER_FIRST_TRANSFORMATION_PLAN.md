@@ -9,14 +9,14 @@
 
 ### ✅ Faza 1: CrewAI Integration Container - **UKOŃCZONA**
 - [x] Zadanie 1.1: Research Agent Endpoint ✅
-- [x] Zadanie 1.2: Writer Agent Endpoint ✅
+- [x] Zadanie 1.2: Writer Agent Endpoint ✅ (verified 2025-08-05)
 - [x] Zadanie 1.3: Complete Flow Endpoint ✅
 
 **🚨 CRITICAL: Working version saved in commit `2c960c1` (2025-08-05 16:44:00 CEST)**
 **⚠️ DO NOT MODIFY without backing up this state first!**
 
 ### 🚧 Faza 2: Frontend Integration & Flow Diagnostics - **W TRAKCIE**
-- [x] Zadanie 2.1: Flow Diagnostics Endpoint ✅ (2025-08-05)
+- [x] Zadanie 2.1: Flow Diagnostics Endpoint ✅ (2025-08-05, commit: 3e3e3a3)
 - [ ] Zadanie 2.2: Frontend Backend Switch
 - [ ] Zadanie 2.3: Human Review UI Integration
 
@@ -266,7 +266,7 @@ make full-test
 
 ---
 
-## 📋 Faza 1: CrewAI Integration Container (1 dzień) ✅ UKOŃCZONA
+## 📋 Faza 1: CrewAI Integration Container (1 dzień) 
 
 ### Zadanie 1.1: Research Agent Endpoint (2h)
 
@@ -554,10 +554,13 @@ curl -X POST http://localhost:8000/api/execute-flow \
 **Cel**: Dodaj endpoint zwracający rzeczywiste dane wykonania flow dla UI
 
 **Status**: ✅ Wykonane 2025-08-05
+- **Commit**: `3e3e3a3b404ae721ccb3a10a709b3c25a554bb92` (2025-08-05 17:09:54 +0200)
 - Dodano endpoint `/api/execute-flow-tracked` z pełnym śledzeniem
 - Dodano endpoint `/api/flow-diagnostics/{flow_id}` dla szczegółów wykonania
 - Dodano endpoint `/api/flow-diagnostics` dla listy wykonań
 - Przetestowano z EXTERNAL (z research) i ORIGINAL (bez research) content
+- Rozszerzono testy o 5 nowych test cases pokrywających wszystkie aspekty
+- Dodano komendy Makefile: `test-diagnostics` i `list-flows`
 
 ```python
 # Dodaj do app.py
