@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  ai-writing-flow:
+    build:
+      context: .
+      dockerfile: Dockerfile.minimal
+    ports:
+      - "8003:8000"
+    environment:
+      - ENV=development
+      - LOG_LEVEL=debug
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - ./app.py:/app/app.py  # Hot reload dla development
