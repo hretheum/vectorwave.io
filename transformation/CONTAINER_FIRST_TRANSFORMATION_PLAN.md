@@ -33,7 +33,7 @@
   - **OPTIMIZED**: skip_research for ORIGINAL content (20% faster)
 - [ ] Zadanie 2.3: Human Review UI Integration
 
-### 🔄 Faza 3: Production Container - **W TRAKCIE** (Sprint 3/5)
+### 🔄 Faza 3: Production Container - **W TRAKCIE** (Sprint 4/5)
 - [ ] Zadanie 3.1: Multi-stage Dockerfile
 - [ ] Zadanie 3.2: Redis + Knowledge Base + Style Guide RAG (5 sprintów)
   - [x] Sprint 3.2.1: Basic Redis Cache ✅ COMPLETED (commit: dfa44ee)
@@ -48,12 +48,16 @@
     - Cache key: `analysis:{folder_name}`
     - TTL: 300 sekund (5 minut)
     - Performance: ~50% faster on cache hits
-  - [x] Sprint 3.2.3: ChromaDB for Style Guide - Naive RAG ✅ COMPLETED (commit: pending)
+  - [x] Sprint 3.2.3: ChromaDB for Style Guide - Naive RAG ✅ COMPLETED (commit: 39158cb)
     - ChromaDB na porcie 8001
     - Style guide collection z 8 regułami
     - Naive RAG similarity search
     - Style score 0-100
-  - [ ] Sprint 3.2.4: Agentic RAG with CrewAI (1.5h)
+  - [x] Sprint 3.2.4: Agentic RAG with CrewAI ✅ COMPLETED (commit: pending)
+    - Style Guide Expert Agent
+    - Intelligent analysis with context
+    - Alternative openings & CTAs
+    - Compare endpoint
   - [ ] Sprint 3.2.5: Production Docker Compose (30 min)
 - [ ] Zadanie 3.3: Environment configuration
 
@@ -1401,7 +1405,7 @@ curl -X POST http://localhost:8003/api/style-guide/check \
   -d '"Check my post about AI automation"'
 ```
 
-#### Sprint 3.2.4: Agentic RAG with CrewAI (1.5h)
+#### Sprint 3.2.4: Agentic RAG with CrewAI (1.5h) ✅ COMPLETED
 
 **Krok 1**: Dodaj Style Guide Agent
 ```python
@@ -1576,7 +1580,7 @@ volumes:
 1. **Sprint 3.2.1**: ✅ `curl /api/cache-test` zwraca `{"status": "ok", "cached_value": "Hello Redis!", "ttl": 60}`
 2. **Sprint 3.2.2**: ✅ Drugie wywołanie `/api/analyze-potential` ma `from_cache: true`
 3. **Sprint 3.2.3**: ✅ `/api/style-guide/check` zwraca relevantne reguły, violations i style score
-4. **Sprint 3.2.4**: `/api/style-guide/check-agentic` zwraca inteligentną analizę
+4. **Sprint 3.2.4**: ✅ `/api/style-guide/check-agentic` zwraca inteligentną analizę z alternatywnymi openingami
 5. **Sprint 3.2.5**: `docker-compose -f docker-compose.production.yml up` startuje wszystko
     `ports:`
       `- "80:80"`

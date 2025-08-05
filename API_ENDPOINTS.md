@@ -275,6 +275,63 @@ Checks content against Vector Wave style guide using Naive RAG.
 }
 ```
 
+### 13. Style Guide Check - Agentic RAG
+```bash
+POST /api/style-guide/check-agentic
+```
+Intelligent style analysis using CrewAI agent with context awareness.
+
+**Request:**
+```json
+{
+  "content": "Your content here...",
+  "platform": "LinkedIn",
+  "focus_areas": ["engagement", "clarity", "viral_potential"],
+  "context": "Technical achievement post"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "analysis_type": "agentic",
+  "style_score": 70,
+  "agent_analysis": "Overall Style Score: 70/100\n\nWhat Works Well:\n1. Clear communication...\n\nCritical Improvements:\n1. Lacks strong hook...\n\nAlternative Opening: \"Guess how we boosted...\"\n\nRecommended CTA: \"Share your experiences...\"",
+  "relevant_rules_used": 7,
+  "execution_time_seconds": 17.74,
+  "cost_estimate": "$0.02-0.05 (GPT-4)"
+}
+```
+
+### 14. Compare Style Check Methods
+```bash
+POST /api/style-guide/compare
+```
+Compare Naive RAG vs Agentic RAG analysis for the same content.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "comparison": {
+    "naive_rag": {
+      "score": 65,
+      "violations": 2,
+      "suggestions": 1,
+      "execution_time": 0.293
+    },
+    "agentic_rag": {
+      "score": 65,
+      "has_alternative_opening": true,
+      "has_cta_recommendation": true,
+      "execution_time": 12.498
+    }
+  },
+  "recommendation": "Use Naive RAG for real-time validation, Agentic RAG for deep analysis"
+}
+```
+
 ## 🔧 Frontend Proxy Endpoints
 
 ### Generate Draft (Frontend Proxy)

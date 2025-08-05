@@ -7,6 +7,7 @@ import os
 import redis
 import json
 import hashlib
+import re
 from crewai import Agent, Task, Crew
 from langchain_openai import ChatOpenAI
 import chromadb
@@ -314,6 +315,156 @@ async def check_style_guide(request: StyleCheckRequest):
             "error": str(e),
             "message": "Failed to check style guide"
         }
+
+class AgenticStyleCheckRequest(BaseModel):
+    """Request for agentic style guide checking"""
+    content: str
+    platform: str = "LinkedIn"
+    focus_areas: List[str] = ["engagement", "clarity", "brand_voice"]
+    context: Optional[str] = None
+
+@app.post("/api/style-guide/check-agentic", tags=["content"])
+async def check_style_agentic(request: AgenticStyleCheckRequest):
+    """Check content against style guide using CrewAI agent for intelligent analysis"""
+    if not style_guide_collection:
+        return {"status": "error", "message": "ChromaDB not connected"}
+    
+    try:
+        # First get relevant rules from ChromaDB (RAG)
+        results = style_guide_collection.query(
+            query_texts=[f"{request.platform} {request.content[:200]}"],
+            n_results=8,
+            where={"$or": [
+                {"category": f"platform-{request.platform.lower()}"},
+                {"category": "tone"},
+                {"category": "structure"},
+                {"category": "engagement"}
+            ]}
+        )
+        
+        # Format rules for agent
+        relevant_rules = []
+        if results['ids'] and results['ids'][0]:
+            for i, rule_id in enumerate(results['ids'][0]):
+                metadata = results['metadatas'][0][i]
+                relevant_rules.append(f"- {metadata.get('rule_text', '')}")
+        
+        # Create Style Guide Expert Agent
+        style_expert = Agent(
+            role="Vector Wave Style Guide Expert",
+            goal="Provide intelligent, context-aware style guidance that goes beyond simple rule matching",
+            backstory="""You are an expert content strategist who understands the nuances of viral content.
+            You know that great content balances authenticity with engagement, and you can spot opportunities
+            for improvement that simple rule-based systems miss. You understand platform-specific best practices
+            and can provide actionable, creative suggestions.""",
+            verbose=True,
+            llm=llm
+        )
+        
+        # Create analysis task
+        analysis_task = Task(
+            description=f"""
+            Analyze this content for Vector Wave style guide compliance and viral potential:
+            
+            Content: "{request.content}"
+            Platform: {request.platform}
+            Context: {request.context or 'General business content'}
+            Focus Areas: {', '.join(request.focus_areas)}
+            
+            Relevant style rules from our guide:
+            {chr(10).join(relevant_rules)}
+            
+            Provide:
+            1. Overall style score (0-100) with reasoning
+            2. What works well (be specific)
+            3. Critical improvements needed
+            4. Creative suggestions to boost {request.platform} engagement
+            5. Alternative opening if current one is weak
+            6. Recommended CTA if missing
+            
+            Be constructive and specific. Focus on actionable improvements.
+            """,
+            agent=style_expert,
+            expected_output="Detailed style analysis with score, strengths, improvements, and creative suggestions"
+        )
+        
+        # Execute with CrewAI
+        crew = Crew(
+            agents=[style_expert],
+            tasks=[analysis_task],
+            verbose=True
+        )
+        
+        start_time = time.time()
+        result = crew.kickoff()
+        execution_time = time.time() - start_time
+        
+        # Parse agent's analysis (in production, use structured output)
+        analysis_text = str(result)
+        
+        # Extract score from analysis (simple regex, improve in production)
+        import re
+        score_match = re.search(r'score[:\s]+(\d+)', analysis_text, re.IGNORECASE)
+        style_score = int(score_match.group(1)) if score_match else 75
+        
+        return {
+            "status": "success",
+            "analysis_type": "agentic",
+            "style_score": style_score,
+            "agent_analysis": analysis_text,
+            "relevant_rules_used": len(relevant_rules),
+            "platform": request.platform,
+            "focus_areas": request.focus_areas,
+            "execution_time_seconds": round(execution_time, 2),
+            "cost_estimate": "$0.02-0.05 (GPT-4)"
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "message": "Failed to perform agentic style analysis"
+        }
+
+@app.post("/api/style-guide/compare", tags=["content"])
+async def compare_style_methods(request: StyleCheckRequest):
+    """Compare Naive RAG vs Agentic RAG results for the same content"""
+    
+    # Run Naive RAG
+    naive_start = time.time()
+    naive_result = await check_style_guide(request)
+    naive_time = time.time() - naive_start
+    
+    # Run Agentic RAG
+    agentic_request = AgenticStyleCheckRequest(
+        content=request.content,
+        platform=request.platform,
+        focus_areas=["engagement", "clarity", "brand_voice"],
+        context=None
+    )
+    agentic_start = time.time()
+    agentic_result = await check_style_agentic(agentic_request)
+    agentic_time = time.time() - agentic_start
+    
+    return {
+        "status": "success",
+        "content_preview": request.content[:100] + "...",
+        "comparison": {
+            "naive_rag": {
+                "score": naive_result.get("style_score", 0),
+                "violations": len(naive_result.get("violations", [])),
+                "suggestions": len(naive_result.get("suggestions", [])),
+                "execution_time": round(naive_time, 3)
+            },
+            "agentic_rag": {
+                "score": agentic_result.get("style_score", 0),
+                "has_alternative_opening": "Alternative opening" in agentic_result.get("agent_analysis", ""),
+                "has_cta_recommendation": "Recommended CTA" in agentic_result.get("agent_analysis", ""),
+                "execution_time": round(agentic_time, 3)
+            }
+        },
+        "recommendation": "Use Naive RAG for real-time validation, Agentic RAG for deep analysis"
+    }
 
 @app.post("/api/test-routing", tags=["flow"], deprecated=True)
 def test_routing(content: ContentRequest):
