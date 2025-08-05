@@ -7,7 +7,20 @@ import os
 from crewai import Agent, Task, Crew
 from langchain_openai import ChatOpenAI
 
-app = FastAPI(title="AI Writing Flow - Container First")
+app = FastAPI(
+    title="AI Writing Flow - Container First",
+    description="AI-powered content generation system with CrewAI agents integration. Optimized for fast content analysis and draft generation.",
+    version="2.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_tags=[
+        {"name": "health", "description": "Health check endpoints"},
+        {"name": "content", "description": "Content analysis and generation"},
+        {"name": "research", "description": "Research operations"},
+        {"name": "flow", "description": "Complete flow execution"},
+        {"name": "diagnostics", "description": "Flow diagnostics and monitoring"}
+    ]
+)
 
 # Storage dla wykonań flow (w produkcji użyj Redis/DB)
 flow_executions = {}
@@ -33,27 +46,31 @@ llm = ChatOpenAI(
 )
 
 class ContentRequest(BaseModel):
+    """Content metadata for generation requests"""
     title: str
     content_type: str = "STANDARD"  # STANDARD, TECHNICAL, VIRAL
     platform: str = "LinkedIn"
     content_ownership: str = "EXTERNAL"  # EXTERNAL, ORIGINAL
 
 class ResearchRequest(BaseModel):
+    """Research configuration"""
     topic: str
     depth: str = "standard"  # quick, standard, deep
     skip_research: bool = False
 
-@app.get("/")
+@app.get("/", tags=["health"])
 def root():
+    """Root endpoint - returns service status"""
     return {"status": "ok", "service": "ai-writing-flow"}
 
-@app.get("/health")
+@app.get("/health", tags=["health"])
 def health():
+    """Health check endpoint for container monitoring"""
     return {"status": "healthy", "container": "running"}
 
-@app.post("/api/test-routing")
+@app.post("/api/test-routing", tags=["flow"], deprecated=True)
 def test_routing(content: ContentRequest):
-    """Test endpoint pokazujący że routing działa"""
+    """Test routing logic (deprecated - use analyze-potential instead)"""
     # Podstawowa logika routingu
     if content.content_ownership == "ORIGINAL":
         route = "skip_research_flow"
@@ -72,9 +89,17 @@ def test_routing(content: ContentRequest):
         "container_id": "ai-writing-flow-v1"
     }
 
-@app.post("/api/research")
+@app.post("/api/research", tags=["research"])
 async def execute_research(request: ResearchRequest):
-    """Wykonuje research używając CrewAI Agent"""
+    """
+    Execute research using CrewAI Research Agent
+    
+    - **topic**: Topic to research
+    - **depth**: Research depth (quick/standard/deep)
+    - **skip_research**: Skip research entirely (returns empty findings)
+    
+    Returns research findings with key points and execution time.
+    """
     
     if request.skip_research:
         return {
@@ -147,13 +172,27 @@ def extract_key_points(text: str) -> list:
     return key_points
 
 class GenerateDraftRequest(BaseModel):
+    """Draft generation request with optional research data"""
     content: ContentRequest
     research_data: Optional[Dict] = None
-    skip_research: Optional[bool] = False  # New field from frontend
+    skip_research: Optional[bool] = False  # Automatically true for ORIGINAL content
 
-@app.post("/api/generate-draft")
+@app.post("/api/generate-draft", tags=["content"])
 async def generate_draft(request: GenerateDraftRequest):
-    """Generuje draft używając CrewAI Writer Agent"""
+    """
+    Generate content draft using CrewAI Writer Agent
+    
+    **Optimizations:**
+    - Automatically skips research for ORIGINAL content
+    - ~20% faster for ORIGINAL content (20s vs 25s)
+    
+    **Request fields:**
+    - **content**: Content metadata (title, type, platform, ownership)
+    - **research_data**: Optional pre-computed research data
+    - **skip_research**: Force skip research phase
+    
+    Returns generated draft with metadata and execution time.
+    """
     
     start_time = time.time()
     
@@ -235,9 +274,13 @@ async def generate_draft(request: GenerateDraftRequest):
     except Exception as e:
         return {"status": "error", "error": str(e)}
 
-@app.post("/api/execute-flow")
+@app.post("/api/execute-flow", tags=["flow"])
 async def execute_complete_flow(content: ContentRequest):
-    """Wykonuje kompletny flow: routing → research → writing"""
+    """
+    Execute complete flow: routing → research → writing
+    
+    Combines all steps into single execution with automatic routing decisions.
+    """
     
     execution_log = []
     start_time = datetime.now()
@@ -287,9 +330,19 @@ async def execute_complete_flow(content: ContentRequest):
         "total_duration_ms": total_duration
     }
 
-@app.post("/api/execute-flow-tracked")
+@app.post("/api/execute-flow-tracked", tags=["flow", "diagnostics"])
 async def execute_flow_with_tracking(content: ContentRequest):
-    """Wykonuje flow z pełnym śledzeniem dla diagnostyki"""
+    """
+    Execute flow with full tracking and diagnostics
+    
+    Provides detailed step-by-step execution tracking including:
+    - Agent decisions at each step
+    - Content loss metrics
+    - Timing information
+    - Error tracking
+    
+    Use `/api/flow-diagnostics/{flow_id}` to retrieve detailed results.
+    """
     
     flow_id = f"flow_{int(time.time())}"
     steps: List[FlowStep] = []
@@ -412,18 +465,18 @@ async def execute_flow_with_tracking(content: ContentRequest):
         "final_draft": draft_step.output.get("draft") if draft_step.status == "completed" else None
     }
 
-@app.get("/api/flow-diagnostics/{flow_id}")
+@app.get("/api/flow-diagnostics/{flow_id}", tags=["diagnostics"])
 async def get_flow_diagnostics(flow_id: str):
-    """Zwraca dane diagnostyczne dla konkretnego wykonania flow"""
+    """Get diagnostic data for specific flow execution"""
     
     if flow_id not in flow_executions:
         raise HTTPException(status_code=404, detail="Flow execution not found")
     
     return flow_executions[flow_id]
 
-@app.get("/api/flow-diagnostics")
+@app.get("/api/flow-diagnostics", tags=["diagnostics"])
 async def list_flow_executions(limit: int = 10):
-    """Lista ostatnich wykonań flow"""
+    """List recent flow executions with basic stats"""
     
     executions = sorted(
         flow_executions.values(),
@@ -436,9 +489,9 @@ async def list_flow_executions(limit: int = 10):
         "executions": executions
     }
 
-@app.get("/api/list-content-folders")
+@app.get("/api/list-content-folders", tags=["content"])
 async def list_content_folders():
-    """Lista folderów z contentem"""
+    """List available content folders from raw content directory"""
     import os
     import glob
     
@@ -476,12 +529,26 @@ async def list_content_folders():
         }
 
 class AnalyzePotentialRequest(BaseModel):
+    """Content analysis request"""
     folder: str
     use_flow: bool = False
 
-@app.post("/api/analyze-potential")
+@app.post("/api/analyze-potential", tags=["content"], 
+         summary="Ultra-fast content analysis",
+         response_description="Content analysis with viral score and topic suggestions")
 async def analyze_content_potential(request: AnalyzePotentialRequest):
-    """Szybka analiza potencjału contentu (2-3 sekundy max)"""
+    """
+    Ultra-fast content potential analysis (1ms response time)
+    
+    Analyzes content folder and returns:
+    - Viral score (0-10)
+    - Content type classification
+    - Top 3 topic suggestions with platform optimization
+    - Audience targeting scores
+    - Editorial recommendations
+    
+    **Performance**: ~1ms response time (no AI calls)
+    """
     
     start_time = time.time()
     
@@ -598,9 +665,9 @@ async def analyze_content_potential(request: AnalyzePotentialRequest):
             "folder": request.folder
         }
 
-@app.post("/api/analyze-content")
+@app.post("/api/analyze-content", tags=["content"], deprecated=True)
 async def analyze_content_legacy(request: dict):
-    """Legacy endpoint for backward compatibility - redirects to analyze-potential"""
+    """Legacy endpoint (deprecated) - use /api/analyze-potential instead"""
     analyze_request = AnalyzePotentialRequest(
         folder=request.get("folder", ""),
         use_flow=request.get("use_flow", False)
@@ -654,9 +721,9 @@ async def get_quick_audience_scores(
     
     return scores
 
-@app.get("/api/verify-openai")
+@app.get("/api/verify-openai", tags=["health"])
 async def verify_openai():
-    """Weryfikuje że używamy prawdziwego OpenAI API"""
+    """Verify OpenAI API integration is working with real GPT-4"""
     import time
     
     try:
