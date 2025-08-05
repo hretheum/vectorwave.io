@@ -1,5 +1,34 @@
 # 🐳 Container-First Transformation Plan - AI Writing Flow
 
+## 📊 Status Wykonania
+
+### ✅ Faza 0: Minimal Container Foundation - **UKOŃCZONA**
+- [x] Zadanie 0.1: Minimalny kontener FastAPI
+- [x] Zadanie 0.2: Docker Compose setup
+- [x] Zadanie 0.3: Basic CI/CD (Makefile)
+
+### ✅ Faza 1: CrewAI Integration Container - **UKOŃCZONA**
+- [x] Zadanie 1.1: Research Agent Endpoint
+- [x] Zadanie 1.2: Writer Agent Endpoint
+- [x] Zadanie 1.3: Complete Flow Endpoint
+
+### 🚧 Faza 2: Frontend Integration & Flow Diagnostics - **W TRAKCIE**
+- [x] Zadanie 2.1: Flow Diagnostics Endpoint ✅ (2025-08-05)
+- [ ] Zadanie 2.2: Frontend Backend Switch
+- [ ] Zadanie 2.3: Human Review UI Integration
+
+### ⏳ Faza 3: Production Container - **OCZEKUJE**
+- [ ] Zadanie 3.1: Multi-stage Dockerfile
+- [ ] Zadanie 3.2: Health checks & monitoring
+- [ ] Zadanie 3.3: Environment configuration
+
+### ⏳ Faza 4: Full Integration - **OCZEKUJE**
+- [ ] Zadanie 4.1: Knowledge Base Integration
+- [ ] Zadanie 4.2: Complete Flow Testing
+- [ ] Zadanie 4.3: Documentation
+
+---
+
 ## 🎯 Filozofia: Container-First Development
 
 **Zamiast**: Budować skomplikowany system i potem go konteneryzować  
@@ -13,7 +42,7 @@
 
 ---
 
-## 📋 Faza 0: Minimal Container Foundation (2 godziny)
+## 📋 Faza 0: Minimal Container Foundation (2 godziny) ✅ UKOŃCZONA
 
 ### Zadanie 0.1: Minimalny kontener FastAPI (45 min)
 
@@ -234,7 +263,7 @@ make full-test
 
 ---
 
-## 📋 Faza 1: CrewAI Integration Container (1 dzień)
+## 📋 Faza 1: CrewAI Integration Container (1 dzień) ✅ UKOŃCZONA
 
 ### Zadanie 1.1: Research Agent Endpoint (2h)
 
@@ -517,9 +546,15 @@ curl -X POST http://localhost:8000/api/execute-flow \
 
 **Kontekst**: Frontend (Next.js) już istnieje ale łączy się ze starym backendem (8001). Trzeba go połączyć z nowym backendem CrewAI (8003) i dodać rzeczywiste dane diagnostyczne.
 
-### Zadanie 2.1: Flow Diagnostics Endpoint (2h)
+### Zadanie 2.1: Flow Diagnostics Endpoint (2h) ✅ UKOŃCZONE
 
 **Cel**: Dodaj endpoint zwracający rzeczywiste dane wykonania flow dla UI
+
+**Status**: ✅ Wykonane 2025-08-05
+- Dodano endpoint `/api/execute-flow-tracked` z pełnym śledzeniem
+- Dodano endpoint `/api/flow-diagnostics/{flow_id}` dla szczegółów wykonania
+- Dodano endpoint `/api/flow-diagnostics` dla listy wykonań
+- Przetestowano z EXTERNAL (z research) i ORIGINAL (bez research) content
 
 ```python
 # Dodaj do app.py
@@ -1441,3 +1476,25 @@ echo "✅ All tests completed!"
 5. **Message Queue** - RabbitMQ/Kafka dla async
 
 Ten plan transformuje AI Writing Flow w nowoczesny, container-first system gdzie każdy krok jest testowalny i produkcyjny od pierwszego dnia.
+
+---
+
+## 📈 Podsumowanie Postępu
+
+### Wykonane do tej pory:
+- **Faza 0**: ✅ 100% - Podstawowy kontener z FastAPI działa
+- **Faza 1**: ✅ 100% - Pełna integracja CrewAI z prawdziwymi agentami
+- **Faza 2**: 🚧 33% - Flow Diagnostics gotowe, czeka integracja z frontendem
+
+### Kluczowe osiągnięcia:
+1. **Działający backend CrewAI** na porcie 8003 z prawdziwymi agentami AI
+2. **Pełne śledzenie wykonania** - każdy krok flow jest monitorowany
+3. **Diagnostyka w czasie rzeczywistym** - metryki, decyzje agentów, content loss
+4. **Intelligent routing** - ORIGINAL content pomija research automatycznie
+
+### Następne kroki:
+- [ ] Połączyć frontend z nowym backendem (port 8003)
+- [ ] Zaktualizować FlowDiagnostics.tsx do użycia prawdziwych danych
+- [ ] Dodać UI dla Human Review Queue (opcjonalne)
+
+**Data ostatniej aktualizacji**: 2025-08-05
