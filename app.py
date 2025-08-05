@@ -452,6 +452,185 @@ async def list_content_folders():
             "folders": []
         }
 
+class AnalyzePotentialRequest(BaseModel):
+    folder: str
+    use_flow: bool = False
+
+@app.post("/api/analyze-potential")
+async def analyze_content_potential(request: AnalyzePotentialRequest):
+    """Szybka analiza potencjału contentu (2-3 sekundy max)"""
+    
+    start_time = time.time()
+    
+    try:
+        folder_name = request.folder
+        
+        # Simple analysis without ContentAnalysisAgent
+        # Analyze folder name for themes
+        title = folder_name.replace('-', ' ').title()
+        themes = []
+        
+        # Extract key themes from folder name
+        tech_keywords = ['ai', 'ml', 'api', 'database', 'cloud', 'automation', 'framework', 'workflow', 'agent']
+        for keyword in tech_keywords:
+            if keyword in folder_name.lower():
+                themes.append(keyword.upper())
+        
+        if not themes:
+            # Extract any significant words
+            words = folder_name.split('-')
+            themes = [w.upper() for w in words if len(w) > 3][:3]
+        
+        # Calculate viral score based on folder name
+        viral_score = 0.5  # Base score
+        viral_keywords = ['solution', 'hack', 'secret', 'mistake', 'truth', 'guide', 'tips']
+        for keyword in viral_keywords:
+            if keyword in folder_name.lower():
+                viral_score += 0.1
+        
+        # Platform-specific boost
+        if 'linkedin' in folder_name.lower():
+            viral_score += 0.05
+        
+        viral_score = min(viral_score, 1.0)
+        
+        # Count actual files in folder
+        import glob
+        file_path = f"/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/{folder_name}"
+        files_count = len(glob.glob(f"{file_path}/*")) if os.path.exists(file_path) else 0
+        
+        # Determine content type and complexity
+        content_type = "TECHNICAL" if any(kw in folder_name.lower() for kw in ['code', 'api', 'implementation']) else "GENERAL"
+        complexity_level = "advanced" if any(kw in folder_name.lower() for kw in ['advanced', 'expert', 'deep']) else "intermediate"
+        
+        # Generate topic suggestions
+        top_topics = []
+        
+        # LinkedIn topic
+        top_topics.append({
+            "title": f"5 Lessons from {title} Implementation",
+            "platform": "LinkedIn",
+            "viralScore": min(10, int(viral_score * 10 + 1))
+        })
+        
+        # Twitter topic
+        main_theme = themes[0] if themes else 'Tech'
+        top_topics.append({
+            "title": f"The {main_theme} Mistake Everyone Makes",
+            "platform": "Twitter",
+            "viralScore": min(10, int(viral_score * 10 + 2))
+        })
+        
+        # Blog topic
+        top_topics.append({
+            "title": f"{title}: A Complete Guide",
+            "platform": "Blog",
+            "viralScore": min(10, int(viral_score * 10))
+        })
+        
+        # Generate recommendation
+        if viral_score > 0.7:
+            recommendation = "🔥 High viral potential! Publish immediately on LinkedIn for maximum reach."
+        elif viral_score > 0.5:
+            recommendation = "✅ Good potential. Consider adding controversial angles to boost engagement."
+        else:
+            recommendation = "📊 Niche content. Focus on technical communities for better reception."
+        
+        # Get audience scores
+        audience_scores = await get_quick_audience_scores(
+            title,
+            'LinkedIn',
+            timeout=1.0,
+            fallback_scores={
+                "technical_founder": 0.7,
+                "senior_engineer": 0.6,
+                "decision_maker": 0.5,
+                "skeptical_learner": 0.8
+            }
+        )
+        
+        # Build response
+        analysis_result = {
+            "folder": folder_name,
+            "filesCount": files_count,
+            "contentType": content_type,
+            "contentOwnership": "ORIGINAL" if "adhd" in folder_name.lower() or "personal" in folder_name.lower() else "EXTERNAL",
+            "valueScore": round(viral_score * 10, 1),
+            "viral_score": viral_score,
+            "complexity_level": complexity_level,
+            "key_themes": themes,
+            "topTopics": top_topics,
+            "recommendation": recommendation,
+            "audience_scores": audience_scores,
+            "processing_time_ms": int((time.time() - start_time) * 1000),
+            "confidence": 0.75  # Fixed confidence for simple analysis
+        }
+        
+        return analysis_result
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "folder": request.folder
+        }
+
+@app.post("/api/analyze-content")
+async def analyze_content_legacy(request: dict):
+    """Legacy endpoint for backward compatibility - redirects to analyze-potential"""
+    analyze_request = AnalyzePotentialRequest(
+        folder=request.get("folder", ""),
+        use_flow=request.get("use_flow", False)
+    )
+    return await analyze_content_potential(analyze_request)
+
+async def get_quick_audience_scores(
+    title: str, 
+    platform: str, 
+    timeout: float = 1.0,
+    fallback_scores: Dict[str, float] = None
+) -> Dict[str, float]:
+    """Get audience scores with simple heuristics"""
+    
+    if fallback_scores is None:
+        fallback_scores = {
+            "technical_founder": 0.6,
+            "senior_engineer": 0.6,
+            "decision_maker": 0.5,
+            "skeptical_learner": 0.7
+        }
+    
+    # Simple scoring based on title keywords
+    title_lower = title.lower()
+    
+    scores = fallback_scores.copy()
+    
+    # Adjust scores based on keywords
+    if any(word in title_lower for word in ['framework', 'workflow', 'process', 'solution']):
+        scores["technical_founder"] += 0.2
+        scores["decision_maker"] += 0.1
+    
+    if any(word in title_lower for word in ['architecture', 'code', 'technical', 'engineering', 'implementation']):
+        scores["senior_engineer"] += 0.2
+        scores["technical_founder"] += 0.1
+    
+    if any(word in title_lower for word in ['ai', 'automation', 'efficiency']):
+        scores["skeptical_learner"] += 0.1
+        scores["decision_maker"] += 0.1
+    
+    # Platform adjustments
+    if platform.lower() == "linkedin":
+        scores["decision_maker"] += 0.1
+    elif platform.lower() == "twitter":
+        scores["technical_founder"] += 0.1
+        scores["senior_engineer"] += 0.1
+    
+    # Normalize scores to max 1.0
+    for key in scores:
+        scores[key] = min(scores[key], 1.0)
+    
+    return scores
+
 @app.get("/api/verify-openai")
 async def verify_openai():
     """Weryfikuje że używamy prawdziwego OpenAI API"""

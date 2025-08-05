@@ -1055,6 +1055,29 @@ npm run dev
 # - Sprawdź Review Queue dla pending items
 ---
 
+
+```
+
+---
+
+
+
+
+
+
+
+
+
+```yaml
+
+```
+
+```python
+
+```
+
+---
+
 ## 📋 Faza 3: Production Container (1 dzień)
 
 ### Zadanie 3.1: Multi-stage Dockerfile (1h)
@@ -1103,106 +1126,102 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
 ```
 
----
-
 ### Zadanie 3.2: Redis + Knowledge Base Integration (2h)
 
 **Cel**: Pełny stack z Redis i Knowledge Base
 
-```yaml
-# docker-compose.production.yml
-version: '3.8'
+# `docker-compose.production.yml`
+`services:`
+  `ai-writing-flow:`
+    `build:`
+      `context: .`
+      `dockerfile: Dockerfile.production`
+    `ports:`
+      `- "8000:8000"`
+    `environment:`
+      `- REDIS_URL=redis://redis:6379`
+      `- KNOWLEDGE_BASE_URL=http://knowledge-base:8082`
+      `- OPENAI_API_KEY=${OPENAI_API_KEY}`
+    `depends_on:`
+      `redis:`
+        `condition: service_healthy`
+      `knowledge-base:`
+        `condition: service_healthy`
+    `healthcheck:`
+      `test: ["CMD", "curl", "-f", "http://localhost:8000/health"]`
+      `interval: 30s`
+      `timeout: 10s`
+      `retries: 3`
+    `restart: unless-stopped`
 
-services:
-  ai-writing-flow:
-    build:
-      context: .
-      dockerfile: Dockerfile.production
-    ports:
-      - "8000:8000"
-    environment:
-      - REDIS_URL=redis://redis:6379
-      - KNOWLEDGE_BASE_URL=http://knowledge-base:8082
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-    depends_on:
-      redis:
-        condition: service_healthy
-      knowledge-base:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
+  `redis:`
+    `image: redis:7-alpine`
+    `ports:`
+      `- "6379:6379"`
+    `healthcheck:`
+      `test: ["CMD", "redis-cli", "ping"]`
+      `interval: 30s`
+      `timeout: 10s`
+      `retries: 3`
+    `restart: unless-stopped`
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
+  `knowledge-base:`
+    `image: chromadb/chroma:latest`
+    `ports:`
+      `- "8082:8000"`
+    `environment:`
+      `- ANONYMIZED_TELEMETRY=false`
+    `healthcheck:`
+      `test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]`
+      `interval: 30s`
+      `timeout: 10s`
+      `retries: 3`
+    `restart: unless-stopped`
 
-  knowledge-base:
-    image: chromadb/chroma:latest
-    ports:
-      - "8082:8000"
-    environment:
-      - ANONYMIZED_TELEMETRY=false
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
+  `nginx:`
+    `image: nginx:alpine`
+    `ports:`
+      `- "80:80"`
+    `volumes:`
+      `- ./nginx.conf:/etc/nginx/nginx.conf:ro`
+    `depends_on:`
+      `- ai-writing-flow`
+    `restart: unless-stopped`
 
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - ai-writing-flow
-    restart: unless-stopped
+`networks:`
+  `default:`
+    `driver: bridge`
 
-networks:
-  default:
-    driver: bridge
+`volumes:`
+  `redis-data:`
+  `chroma-data:`
 
-volumes:
-  redis-data:
-  chroma-data:
-```
 
-```python
-# app.py - dodaj Redis support
-import redis
-from typing import Optional
 
-# Redis connection
-redis_client = redis.from_url(
-    os.getenv("REDIS_URL", "redis://localhost:6379"),
-    decode_responses=True
-)
+# `app.py - dodaj Redis support`
+`import redis`
+`from typing import Optional`
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize services on startup"""
-    try:
-        redis_client.ping()
-        print("✅ Redis connected")
-    except:
-        print("⚠️ Redis not available - using in-memory storage")
+# `Redis connection`
+`redis_client = redis.from_url(`
+    `os.getenv("REDIS_URL", "redis://localhost:6379"),`
+    `decode_responses=True`
+`)`
 
-# Update review queue to use Redis
-async def request_human_review(draft: dict, review_type: str = "editorial"):
-    """Dodaje draft do kolejki review (Redis-backed)"""
-    
+`@app.on_event("startup")`
+`async def startup_event():`
+    `"""Initialize services on startup"""`
+    `try:`
+        `redis_client.ping()`
+        `print("✅ Redis connected")`
+    `except:`
+        `print("⚠️ Redis not available - using in-memory storage")`
+
+# `Update review queue to use Redis`
+`async def request_human_review(draft: dict, review_type: str = "editorial"):`
+    `"""Dodaje draft do kolejki review (Redis-backed)"""`
+``    
+
     review_id = str(uuid4())
     review_item = {
         "review_id": review_id,
@@ -1221,9 +1240,8 @@ async def request_human_review(draft: dict, review_type: str = "editorial"):
         review_queue[review_id] = review_item
     
     return {"review_id": review_id, "status": ReviewStatus.PENDING}
-```
 
----
+
 
 ### Zadanie 3.3: Monitoring Dashboard (2h)
 
