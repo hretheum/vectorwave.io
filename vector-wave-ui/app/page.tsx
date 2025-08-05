@@ -26,6 +26,8 @@ export default function Home() {
   const [chatDocked, setChatDocked] = useState(true);
   const [editingDraft, setEditingDraft] = useState<{draft: string, topic: string, platform: string} | null>(null);
   const [showFlowDiagnostics, setShowFlowDiagnostics] = useState(false);
+  const [currentFlowId, setCurrentFlowId] = useState<string | null>(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   // Auto-load content folders on mount
   useEffect(() => {
@@ -34,16 +36,21 @@ export default function Home() {
         console.log('🔄 Loading folders...');
         const response = await fetch('/api/crewai/list-content-folders');
         console.log('📡 Response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`❌ CRITICAL ERROR: Failed to fetch folders - HTTP ${response.status} - ${errorText}`);
+        }
+        
         const data = await response.json();
         console.log('📂 Data received:', data);
         
-        // Handle empty state from backend
-        if (data.status === 'empty') {
-          setFolders([]);
-          console.log('⚠️ No content in raw folder:', data.message);
-        } else if (data.folders) {
+        // NO MOCK DATA - ONLY REAL DATA OR ERROR
+        if (data.folders) {
           setFolders(data.folders);
           console.log('✅ Folders set:', data.folders);
+        } else {
+          throw new Error('❌ CRITICAL: No folders data in response');
         }
       } catch (error) {
         console.error('❌ Failed to load folders:', error);
@@ -306,8 +313,14 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
           const data = await response.json();
           console.log('✅ Flow tracked data:', data);
           
-          // Ustaw flow ID dla diagnostyki
+          // Otwórz diagnostykę w nowym komponencie
           if (data.flow_id) {
+            setCurrentFlowId(data.flow_id);
+            setShowFlowDiagnostics(true);
+          }
+          
+          // Przygotuj wynik analizy na podstawie tracked flow
+          if (data.final_draft) {
             setAnalysisResult({
               folder: folderName,
               flowId: data.flow_id,

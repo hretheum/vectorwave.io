@@ -55,171 +55,43 @@ export function FlowDiagnostics({ topicTitle, platform, flowId, onRefresh }: Flo
       
       try {
         if (flowId) {
-          // Użyj prawdziwego API jeśli mamy flowId
+          // NO MOCKS - ONLY REAL API OR ERROR
           const response = await fetch(`/api/crewai/flow-diagnostics/${flowId}`);
-          if (response.ok) {
-            const data = await response.json();
-            
-            // Mapuj dane z backendu na format UI
-            const mappedSteps: FlowStep[] = data.steps.map((step: any) => ({
-              id: step.id,
-              name: step.name,
-              status: step.status,
-              startTime: step.start_time,
-              endTime: step.end_time,
-              duration: step.end_time && step.start_time ? 
-                new Date(step.end_time).getTime() - new Date(step.start_time).getTime() : undefined,
-              input: step.input,
-              output: step.output,
-              errors: step.errors || [],
-              agentDecisions: step.agent_decisions || [],
-              contentLoss: step.content_loss
-            }));
-            
-            setSteps(mappedSteps);
-            setLoading(false);
-            return;
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`❌ CRITICAL ERROR: Failed to fetch diagnostics - HTTP ${response.status} - ${errorText}`);
           }
+          
+          const data = await response.json();
+          
+          // Mapuj dane z backendu na format UI
+          const mappedSteps: FlowStep[] = data.steps.map((step: any) => ({
+            id: step.id,
+            name: step.name,
+            status: step.status,
+            startTime: step.start_time,
+            endTime: step.end_time,
+            duration: step.end_time && step.start_time ? 
+              new Date(step.end_time).getTime() - new Date(step.start_time).getTime() : undefined,
+            input: step.input,
+            output: step.output,
+            errors: step.errors || [],
+            agentDecisions: step.agent_decisions || [],
+            contentLoss: step.content_loss
+          }));
+          
+          setSteps(mappedSteps);
+          setLoading(false);
+          return;
+        } else {
+          throw new Error('❌ CRITICAL ERROR: No flowId provided for diagnostics');
         }
-        
-        // Fallback na mock data jeśli nie ma flowId lub API niedostępne
-        const mockSteps: FlowStep[] = [
-        {
-          id: 'input_validation',
-          name: 'Walidacja Wejścia',
-          status: 'completed',
-          startTime: '2025-01-04T20:46:52.000Z',
-          endTime: '2025-01-04T20:46:52.100Z',
-          duration: 100,
-          input: {
-            topic_title: topicTitle,
-            platform: platform,
-            file_path: '/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-adhd-ideas-overflow',
-            content_ownership: 'ORIGINAL'
-          },
-          output: {
-            validated: true,
-            source_files_found: 1,
-            file_type: 'twitter-thread.md'
-          },
-          agentDecisions: [
-            'Wykryto plik twitter-thread.md - zawiera 15 tweetów',
-            'Oznaczono jako ORIGINAL content - pominięto research',
-            'Walidacja przeszła pomyślnie'
-          ]
-        },
-        {
-          id: 'research',
-          name: 'Badanie Tematu',
-          status: 'skipped',
-          agentDecisions: [
-            'Pominięto research dla ORIGINAL content',
-            'Flaga skip_research = true'
-          ]
-        },
-        {
-          id: 'audience_alignment',
-          name: 'Analiza Odbiorców',
-          status: 'completed',
-          startTime: '2025-01-04T20:46:52.200Z',
-          endTime: '2025-01-04T20:46:53.500Z',
-          duration: 1300,
-          input: {
-            topic_title: topicTitle,
-            platform: platform
-          },
-          output: {
-            audience_insights: 'Tech professionals with ADHD, developers interested in productivity systems',
-            target_depth_level: 3,
-            engagement_score: 8.5
-          },
-          agentDecisions: [
-            'Zidentyfikowano odbiorców: tech professionals z ADHD',
-            'Wysoki potencjał engagement (8.5/10)',
-            'Rekomendacja: podkreślić aspekty techniczne i personal story'
-          ],
-          contentLoss: {
-            inputSize: 12500,
-            outputSize: 450,
-            lossPercentage: 96.4
-          }
-        },
-        {
-          id: 'draft_generation',
-          name: 'Generowanie Draftu',
-          status: 'completed',
-          startTime: '2025-01-04T20:46:53.600Z',
-          endTime: '2025-01-04T20:46:54.200Z',
-          duration: 600,
-          input: {
-            source_files: ['/Users/hretheum/dev/bezrobocie/vector-wave/content/raw/2025-07-31-adhd-ideas-overflow/twitter-thread.md'],
-            platform: platform,
-            audience_insights: 'Tech professionals with ADHD...'
-          },
-          output: {
-            draft_content: 'Full 15-tweet thread about ADHD + AI systems',
-            word_count: 1200,
-            source_content_used: true,
-            template_fallback: false
-          },
-          agentDecisions: [
-            '✅ NAPRAWIONE: Czytam oryginalną treść z pliku źródłowego',
-            'Wykryto twitter-thread.md - używam pełnej zawartości',
-            'Zachowano wszystkie 15 tweetów z oryginalnego contentu',
-            'Nie używam szablonu - pełna treść zachowana'
-          ],
-          contentLoss: {
-            inputSize: 12500,
-            outputSize: 12500,
-            lossPercentage: 0
-          }
-        },
-        {
-          id: 'style_validation',
-          name: 'Walidacja Stylu',
-          status: 'completed',
-          startTime: '2025-01-04T20:46:54.300Z',
-          endTime: '2025-01-04T20:46:54.800Z',
-          duration: 500,
-          output: {
-            compliance_score: 9.2,
-            violations: [],
-            recommendations: ['Excellent use of emojis', 'Good thread structure']
-          },
-          agentDecisions: [
-            'Styl zgodny z guidelines dla Twitter',
-            'Struktura thread\'a poprawna (15 części)',
-            'Emojis użyte odpowiednio',
-            'Brak naruszeń stylistycznych'
-          ]
-        },
-        {
-          id: 'quality_assessment',
-          name: 'Ocena Jakości',
-          status: 'completed',
-          startTime: '2025-01-04T20:46:54.900Z',
-          endTime: '2025-01-04T20:46:55.400Z',
-          duration: 500,
-          output: {
-            quality_score: 8.8,
-            final_approval: true,
-            viral_potential: 9.1
-          },
-          agentDecisions: [
-            'Wysoka jakość contentu (8.8/10)',
-            'Silny potencjał viral (9.1/10)',
-            'Personal story + tech insights = winning combination',
-            'Automatyczne zatwierdzenie'
-          ]
-        }
-      ];
-
-        setSteps(mockSteps);
-        setLoading(false);
       } catch (error) {
-        console.error('Failed to fetch diagnostics:', error);
-        // W przypadku błędu użyj mock data
+        console.error('❌ CRITICAL ERROR in FlowDiagnostics:', error);
         setLoading(false);
+        // NO MOCK DATA - PROPAGATE ERROR
+        throw error;
       }
     };
 

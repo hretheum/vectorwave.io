@@ -1,15 +1,5 @@
 # 🐳 Container-First Transformation Plan - AI Writing Flow
 
-## 🎯 MILESTONE: FAZA 1 UKOŃCZONA (2025-08-05)
-
-**Container-First Development działa!** Wszystkie endpointy CrewAI zweryfikowane z prawdziwym OpenAI GPT-4:
-- ✅ Research Agent: `/api/research` 
-- ✅ Writer Agent: `/api/generate-draft`
-- ✅ Complete Flow: `/api/execute-flow`
-- ✅ OpenAI Verification: `/api/verify-openai`
-
-**Commit**: `50ab6d356c21be8ee5e8e82f634cff423fd1e04e`
-
 ## 📊 Status Wykonania
 
 ### ✅ Faza 0: Minimal Container Foundation - **UKOŃCZONA**
@@ -23,19 +13,18 @@
   - **VERIFIED**: Używa prawdziwego OpenAI GPT-4 API
   - Dodano endpoint `/api/verify-openai` do weryfikacji
   - Comprehensive tests added
-- [x] Zadanie 1.3: Complete Flow Endpoint ✅ (verified 2025-08-05)
-  - Pełny flow: routing → research → writing
-  - Dodano 4 nowe testy dla różnych scenariuszy
-  - Obsługuje wszystkie content types i platforms
-  - Realistyczne czasy wykonania (20-50s z OpenAI)
+- [x] Zadanie 1.3: Complete Flow Endpoint ✅
 
 **🚨 CRITICAL: Working version saved in commit `2c960c1` (2025-08-05 16:44:00 CEST)**
 **✅ VERIFIED: Real OpenAI API in commit `6cec870` (2025-08-05 17:37:52 CEST)**
-**🎯 COMPLETED: Phase 1 fully verified in commit `50ab6d3` (2025-08-05 17:47:55 CEST)**
 **⚠️ DO NOT MODIFY without backing up this state first!**
 
-### 🚧 Faza 2: Frontend Integration & Flow Diagnostics - **W TRAKCIE**
-- [x] Zadanie 2.1: Flow Diagnostics Endpoint ✅ (2025-08-05, commit: 3e3e3a3)
+### 🚧 Faza 2: Frontend Integration & Flow Diagnostics - **W TRAKCIE** (1/3)
+- [x] Zadanie 2.1: Flow Diagnostics Endpoint ✅ (2025-08-05, verified commit: 9df36f5)
+  - **VERIFIED**: Wszystkie endpointy diagnostyczne działają poprawnie
+  - Pełne śledzenie wykonania z agent decisions
+  - Content loss metrics i timing tracking
+  - Comprehensive test suite (6 test cases)
 - [ ] Zadanie 2.2: Frontend Backend Switch
 - [ ] Zadanie 2.3: Human Review UI Integration
 
@@ -493,18 +482,9 @@ async def generate_draft(content: ContentRequest, research_data: dict = None):
 
 ---
 
-### Zadanie 1.3: Complete Flow Endpoint (2h) ✅ VERIFIED
+### Zadanie 1.3: Complete Flow Endpoint (2h)
 
 **Cel**: Połącz routing + research + writing w jeden flow
-
-**Status**: ✅ Zweryfikowane 2025-08-05
-- Endpoint `/api/execute-flow` w pełni funkcjonalny
-- Dodano 4 nowe comprehensive testy:
-  - `test_execute_flow_skip_research` - ORIGINAL content bez research
-  - `test_execute_flow_technical_deep_dive` - TECHNICAL z deep research
-  - `test_execute_flow_viral_twitter` - VIRAL content dla Twitter
-  - `test_execute_flow_timing` - weryfikacja realistycznych czasów
-- Wszystkie testy przechodzą z prawdziwym OpenAI API
 
 ```python
 @app.post("/api/execute-flow")
@@ -587,6 +567,16 @@ curl -X POST http://localhost:8000/api/execute-flow \
 ### Zadanie 2.1: Flow Diagnostics Endpoint (2h) 
 
 **Cel**: Dodaj endpoint zwracający rzeczywiste dane wykonania flow dla UI
+
+**Status**: ✅ Wykonane 2025-08-05
+
+- **Commit**: `3e3e3a3b404ae721ccb3a10a709b3c25a554bb92` (2025-08-05 17:09:54 +0200)
+- Dodano endpoint `/api/execute-flow-tracked` z pełnym śledzeniem
+- Dodano endpoint `/api/flow-diagnostics/{flow_id}` dla szczegółów wykonania
+- Dodano endpoint `/api/flow-diagnostics` dla listy wykonań
+- Przetestowano z EXTERNAL (z research) i ORIGINAL (bez research) content
+- Rozszerzono testy o 5 nowych test cases pokrywających wszystkie aspekty
+- Dodano komendy Makefile: `test-diagnostics` i `list-flows`
 
 ```python
 # Dodaj do app.py

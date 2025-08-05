@@ -413,6 +413,45 @@ async def list_flow_executions(limit: int = 10):
         "executions": executions
     }
 
+@app.get("/api/list-content-folders")
+async def list_content_folders():
+    """Lista folderów z contentem"""
+    import os
+    import glob
+    
+    content_path = "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw"
+    
+    try:
+        if not os.path.exists(content_path):
+            return {
+                "status": "error", 
+                "message": f"❌ CRITICAL: Content path does not exist: {content_path}",
+                "folders": []
+            }
+        
+        # Znajdź wszystkie foldery w content/raw
+        folders = []
+        for folder_path in glob.glob(os.path.join(content_path, "*")):
+            if os.path.isdir(folder_path):
+                folder_name = os.path.basename(folder_path)
+                folders.append({
+                    "name": folder_name,
+                    "path": folder_path,
+                    "type": "raw_content"
+                })
+        
+        return {
+            "status": "ok",
+            "folders": folders,
+            "total": len(folders)
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"❌ CRITICAL ERROR: {str(e)}",
+            "folders": []
+        }
+
 @app.get("/api/verify-openai")
 async def verify_openai():
     """Weryfikuje że używamy prawdziwego OpenAI API"""
