@@ -8,9 +8,12 @@
 - [x] Zadanie 0.3: Basic CI/CD (Makefile)
 
 ### ✅ Faza 1: CrewAI Integration Container - **UKOŃCZONA**
-- [x] Zadanie 1.1: Research Agent Endpoint
-- [x] Zadanie 1.2: Writer Agent Endpoint
-- [x] Zadanie 1.3: Complete Flow Endpoint
+- [x] Zadanie 1.1: Research Agent Endpoint ✅
+- [x] Zadanie 1.2: Writer Agent Endpoint ✅
+- [x] Zadanie 1.3: Complete Flow Endpoint ✅
+
+**🚨 CRITICAL: Working version saved in commit `2c960c1` (2025-08-05 16:44:00 CEST)**
+**⚠️ DO NOT MODIFY without backing up this state first!**
 
 ### 🚧 Faza 2: Frontend Integration & Flow Diagnostics - **W TRAKCIE**
 - [x] Zadanie 2.1: Flow Diagnostics Endpoint ✅ (2025-08-05)

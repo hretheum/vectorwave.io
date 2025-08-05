@@ -1,5 +1,10 @@
 # AI Kolegium Redakcyjne
 
+## 🚨 **CRITICAL: Working Backend Version**
+- **Commit**: `2c960c1` (2025-08-05 16:44:00 CEST)
+- **Status**: ✅ FULLY FUNCTIONAL CrewAI + OpenAI Backend on port 8003
+- **Documentation**: See [WORKING_BACKEND_STATE.md](./WORKING_BACKEND_STATE.md)
+
 ## 🚀 **Intelligent Editorial System with AI Agent Collaboration**
 
 Zautomatyzowany system redakcyjny gdzie **5 wyspecjalizowanych agentów AI** współpracuje w czasie rzeczywistym przy odkrywaniu trendów, analizie viralowości i podejmowaniu decyzji redakcyjnych z możliwością ludzkiej interwencji.
