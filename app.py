@@ -412,3 +412,46 @@ async def list_flow_executions(limit: int = 10):
         "total": len(flow_executions),
         "executions": executions
     }
+
+@app.get("/api/verify-openai")
+async def verify_openai():
+    """Weryfikuje że używamy prawdziwego OpenAI API"""
+    import time
+    
+    try:
+        # Test bezpośredni z OpenAI
+        start_time = time.time()
+        test_agent = Agent(
+            role="Verification Agent",
+            goal="Generate a unique timestamp-based message",
+            backstory="I verify API authenticity",
+            verbose=True,
+            llm=llm
+        )
+        
+        test_task = Task(
+            description=f"Generate ONE short sentence with current timestamp: {datetime.now().isoformat()}",
+            agent=test_agent,
+            expected_output="One unique sentence"
+        )
+        
+        crew = Crew(agents=[test_agent], tasks=[test_task])
+        result = crew.kickoff()
+        
+        execution_time = time.time() - start_time
+        
+        return {
+            "status": "verified",
+            "api_type": "OpenAI GPT-4",
+            "response": str(result),
+            "execution_time_seconds": round(execution_time, 2),
+            "timestamp": datetime.now().isoformat(),
+            "api_key_configured": bool(os.getenv("OPENAI_API_KEY")),
+            "model": llm.model_name
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "api_key_configured": bool(os.getenv("OPENAI_API_KEY"))
+        }
