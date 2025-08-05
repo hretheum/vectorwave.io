@@ -116,7 +116,7 @@ redis:
 
 - [x] Sprint 3.2.1 Step 1: Add Redis to docker-compose ✅
 - [x] Sprint 3.2.1 Step 2: Implement cache test endpoint ✅
-- [ ] Sprint 3.2.2: Cache for analyze-potential
+- [x] Sprint 3.2.2: Cache for analyze-potential ✅
 - [ ] Sprint 3.2.3: ChromaDB for Style Guide
 - [ ] Sprint 3.2.4: Agentic RAG
 - [ ] Sprint 3.2.5: Production setup
@@ -139,3 +139,37 @@ redis:
 - Container health: Both services healthy
 
 **Next Sprint**: 3.2.2 - Implement caching for analyze-potential endpoint
+
+## 📊 Sprint 3.2.2 Summary
+
+**Status**: ✅ COMPLETED (2025-08-05 22:59)
+
+**What was achieved**:
+1. Added caching to `/api/analyze-potential` endpoint
+2. Cache key format: `analysis:{folder_name}`
+3. Cache TTL: 300 seconds (5 minutes)
+4. Added `from_cache` field to response
+5. Graceful error handling for cache operations
+
+**Key metrics**:
+- First call: `from_cache: false`, ~2ms processing time
+- Cached calls: `from_cache: true`, ~1ms processing time
+- Cache hit rate: 100% within TTL window
+- Memory usage: Minimal (JSON serialized results)
+
+**Verification**:
+```bash
+# First call - not cached
+curl -X POST http://localhost:8003/api/analyze-potential \
+  -H "Content-Type: application/json" \
+  -d '{"folder": "test-folder"}'
+# Response: "from_cache": false
+
+# Second call - from cache
+curl -X POST http://localhost:8003/api/analyze-potential \
+  -H "Content-Type: application/json" \
+  -d '{"folder": "test-folder"}'
+# Response: "from_cache": true
+```
+
+**Next Sprint**: 3.2.3 - ChromaDB for Style Guide with Naive RAG

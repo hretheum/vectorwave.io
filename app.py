@@ -577,12 +577,26 @@ async def analyze_content_potential(request: AnalyzePotentialRequest):
     - Editorial recommendations
     
     **Performance**: ~1ms response time (no AI calls)
+    **Caching**: Results cached for 5 minutes
     """
     
     start_time = time.time()
     
     try:
         folder_name = request.folder
+        
+        # Check cache first
+        cache_key = f"analysis:{folder_name}"
+        if redis_client:
+            try:
+                cached_result = redis_client.get(cache_key)
+                if cached_result:
+                    result = json.loads(cached_result)
+                    result["from_cache"] = True
+                    result["processing_time_ms"] = int((time.time() - start_time) * 1000)
+                    return result
+            except Exception as e:
+                print(f"Cache read error: {e}")
         
         # Simple analysis without ContentAnalysisAgent
         # Analyze folder name for themes
@@ -682,8 +696,22 @@ async def analyze_content_potential(request: AnalyzePotentialRequest):
             "recommendation": recommendation,
             "audience_scores": audience_scores,
             "processing_time_ms": int((time.time() - start_time) * 1000),
-            "confidence": 0.75  # Fixed confidence for simple analysis
+            "confidence": 0.75,  # Fixed confidence for simple analysis
+            "from_cache": False
         }
+        
+        # Save to cache
+        if redis_client:
+            try:
+                # Cache for 5 minutes (300 seconds)
+                redis_client.setex(
+                    cache_key, 
+                    300, 
+                    json.dumps(analysis_result)
+                )
+                print(f"✅ Cached analysis for folder: {folder_name}")
+            except Exception as e:
+                print(f"Cache write error: {e}")
         
         return analysis_result
         

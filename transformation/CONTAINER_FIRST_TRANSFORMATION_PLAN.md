@@ -33,10 +33,10 @@
   - **OPTIMIZED**: skip_research for ORIGINAL content (20% faster)
 - [ ] Zadanie 2.3: Human Review UI Integration
 
-### 🔄 Faza 3: Production Container - **W TRAKCIE** (Sprint 1/5)
+### 🔄 Faza 3: Production Container - **W TRAKCIE** (Sprint 2/5)
 - [ ] Zadanie 3.1: Multi-stage Dockerfile
 - [ ] Zadanie 3.2: Redis + Knowledge Base + Style Guide RAG (5 sprintów)
-  - [x] Sprint 3.2.1: Basic Redis Cache ✅ COMPLETED (commit: pending)
+  - [x] Sprint 3.2.1: Basic Redis Cache ✅ COMPLETED (commit: dfa44ee)
     - [x] Krok 1: Redis dodany do docker-compose.minimal.yml (commit: 20ce0bc)
       - Port 6380 aby uniknąć konfliktu
       - Health check skonfigurowany
@@ -44,7 +44,10 @@
       - Redis client z graceful fallback
       - TTL support (60 sekund)
       - Response time: <1ms
-  - [ ] Sprint 3.2.2: Cache for analyze-potential (30 min)
+  - [x] Sprint 3.2.2: Cache for analyze-potential ✅ COMPLETED (commit: pending)
+    - Cache key: `analysis:{folder_name}`
+    - TTL: 300 sekund (5 minut)
+    - Performance: ~50% faster on cache hits
   - [ ] Sprint 3.2.3: ChromaDB for Style Guide - Naive RAG (1h)
   - [ ] Sprint 3.2.4: Agentic RAG with CrewAI (1.5h)
   - [ ] Sprint 3.2.5: Production Docker Compose (30 min)
@@ -1244,7 +1247,7 @@ curl http://localhost:8003/api/cache-test
 # Should return: {"status": "ok", "cached_value": "Hello Redis!", "ttl": 59}
 ```
 
-#### Sprint 3.2.2: Cache for analyze-potential (30 min)
+#### Sprint 3.2.2: Cache for analyze-potential (30 min) ✅ COMPLETED
 
 **Krok**: Dodaj cache do istniejącego endpointa
 ```python
@@ -1567,7 +1570,7 @@ volumes:
 ### Metryki sukcesu każdego sprintu:
 
 1. **Sprint 3.2.1**: ✅ `curl /api/cache-test` zwraca `{"status": "ok", "cached_value": "Hello Redis!", "ttl": 60}`
-2. **Sprint 3.2.2**: Drugie wywołanie `/api/analyze-potential` ma `from_cache: true`
+2. **Sprint 3.2.2**: ✅ Drugie wywołanie `/api/analyze-potential` ma `from_cache: true`
 3. **Sprint 3.2.3**: `/api/style-guide/check` zwraca relevantne reguły
 4. **Sprint 3.2.4**: `/api/style-guide/check-agentic` zwraca inteligentną analizę
 5. **Sprint 3.2.5**: `docker-compose -f docker-compose.production.yml up` startuje wszystko

@@ -5,11 +5,11 @@
 ### 🔄 Aktualnie Realizowana Ścieżka: Container-First Transformation
 - **Dokument**: `/kolegium/transformation/CONTAINER_FIRST_TRANSFORMATION_PLAN.md`
 - **Faza**: 🔄 Faza 3 - Production Container (IN PROGRESS)
-- **Sprint**: ✅ 3.2.1 - Basic Redis Cache (COMPLETED)
-- **Ostatnie Zadanie**: ✅ Dodaj endpoint testujący cache (COMPLETED)
-- **Commit**: `pending` (2025-08-05 23:15:00 +0200)
-- **Następne**: Sprint 3.2.2 - Implement cache for analyze-potential
-- **Status**: Redis cache w pełni operacyjny z endpointem /api/cache-test!
+- **Sprint**: ✅ 3.2.2 - Cache for analyze-potential (COMPLETED)
+- **Ostatnie Zadanie**: ✅ Dodano cache do endpointa analyze-potential (COMPLETED)
+- **Commit**: `pending` (2025-08-05 23:00:00 +0200)
+- **Następne**: Sprint 3.2.3 - ChromaDB for Style Guide - Naive RAG
+- **Status**: Cache działa dla analyze-potential z TTL 5 minut!
 
 ### 🎉 Kluczowe Osiągnięcia
 1. **Naprawiono błąd "Failed to start writing flow"**:
@@ -58,11 +58,14 @@ Faza 2: CrewAI Flow Integration ✅ COMPLETED (3/3)
 
 Faza 3: Production Container 🔄 IN PROGRESS (1/3)
 - [ ] Zadanie 3.1: Multi-stage Dockerfile
-- [ ] Zadanie 3.2: Redis + Knowledge Base + Style Guide RAG (Sprint 1/5 ✅)
-  - [x] Sprint 3.2.1: Basic Redis Cache ✅ COMPLETED (commit: pending)
+- [ ] Zadanie 3.2: Redis + Knowledge Base + Style Guide RAG (Sprint 2/5 ✅)
+  - [x] Sprint 3.2.1: Basic Redis Cache ✅ COMPLETED (commit: dfa44ee)
     - [x] Krok 1: Dodaj Redis do docker-compose
     - [x] Krok 2: Endpoint testujący cache (/api/cache-test)
-  - [ ] Sprint 3.2.2: Cache for analyze-potential
+  - [x] Sprint 3.2.2: Cache for analyze-potential ✅ COMPLETED (commit: pending)
+    - [x] Cache key: `analysis:{folder_name}`
+    - [x] TTL: 300 sekund (5 minut)
+    - [x] Field `from_cache` w response
   - [ ] Sprint 3.2.3: ChromaDB for Style Guide - Naive RAG
   - [ ] Sprint 3.2.4: Agentic RAG with CrewAI
   - [ ] Sprint 3.2.5: Production Docker Compose

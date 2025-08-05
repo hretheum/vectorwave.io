@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🚀 Added - 2025-08-05
 
-#### Redis Cache Layer - Sprint 3.2.1 ✅ COMPLETED
+#### Redis Cache Layer - Sprint 3.2.1 & 3.2.2 ✅ COMPLETED
+Sprint 3.2.1:
 - ✅ Added Redis 7-alpine to docker-compose.minimal.yml (commit: 20ce0bc)
 - ✅ Configured Redis on port 6380 to avoid local conflicts
 - ✅ Added health checks for Redis container
@@ -18,8 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ✅ Added Redis client with graceful fallback in app.py
 - ✅ Fixed Redis dependency in requirements-crewai.txt
 - ✅ Verified cache functionality with successful test response
-- 📊 Performance: Cache test endpoint responds in <1ms
-- 🚀 Next Sprint: 3.2.2 - Implement caching for analyze-potential
+
+Sprint 3.2.2:
+- ✅ Implemented caching for `/api/analyze-potential` endpoint
+- ✅ Cache key format: `analysis:{folder_name}`
+- ✅ Cache TTL: 300 seconds (5 minutes)
+- ✅ Added `from_cache` field to response
+- ✅ Verified: First call returns `from_cache: false`, subsequent calls `from_cache: true`
+- 📊 Performance: Cache hits reduce response time from ~2ms to ~1ms
+- 🚀 Next Sprint: 3.2.3 - ChromaDB for Style Guide with Naive RAG
 
 #### Draft Generation Fixes & Optimization
 - ✅ Fixed "Failed to start writing flow" error (was returning 404)

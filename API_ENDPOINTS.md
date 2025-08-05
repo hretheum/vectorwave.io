@@ -20,11 +20,11 @@ Returns basic health status.
 }
 ```
 
-### 2. Analyze Content Potential ⚡
+### 2. Analyze Content Potential ⚡ (with Redis Cache)
 ```bash
 POST /api/analyze-potential
 ```
-Ultra-fast content analysis (1ms response time).
+Ultra-fast content analysis (1ms response time) with 5-minute Redis cache.
 
 **Request:**
 ```json
@@ -51,9 +51,16 @@ Ultra-fast content analysis (1ms response time).
     }
   ],
   "recommendation": "🔥 High viral potential!",
-  "processing_time_ms": 1
+  "processing_time_ms": 1,
+  "from_cache": false  // true on subsequent calls within 5 minutes
 }
 ```
+
+**Cache behavior:**
+- First call: `from_cache: false`, data computed and cached
+- Subsequent calls (within 5 min): `from_cache: true`, instant response
+- Cache TTL: 300 seconds (5 minutes)
+- Cache key: `analysis:{folder_name}`
 
 ### 3. Generate Draft 🚀
 ```bash
