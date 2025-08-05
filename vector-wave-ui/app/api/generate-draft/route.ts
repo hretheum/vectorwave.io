@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
     console.log('Proxy received body:', body);
     
     // Forward request to new CrewAI backend
-    const response = await fetch('http://localhost:8003/api/generate-draft-v2', {
+    const response = await fetch('http://localhost:8003/api/generate-draft', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
