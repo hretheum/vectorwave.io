@@ -19,3 +19,4 @@ services:
       start_period: 40s
     volumes:
       - ./app.py:/app/app.py  # Hot reload dla development
+      - ../content:/Users/hretheum/dev/bezrobocie/vector-wave/content:ro  # Content folders

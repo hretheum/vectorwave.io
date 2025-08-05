@@ -412,3 +412,44 @@ async def list_flow_executions(limit: int = 10):
         "total": len(flow_executions),
         "executions": executions
     }
+
+@app.get("/api/list-content-folders")
+async def list_content_folders():
+    """Lista folderów z contentem do analizy - kompatybilność z frontendem"""
+    
+    base_path = "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw"
+    
+    try:
+        if not os.path.exists(base_path):
+            return {
+                "folders": [],
+                "count": 0,
+                "message": "Content folder not found"
+            }
+        
+        folders = []
+        for item in os.listdir(base_path):
+            item_path = os.path.join(base_path, item)
+            if os.path.isdir(item_path) and not item.startswith('.'):
+                # Sprawdź czy folder ma pliki .md
+                md_files = [f for f in os.listdir(item_path) if f.endswith('.md')]
+                if md_files:
+                    folder_info = {
+                        "path": item_path,
+                        "name": item,
+                        "files": len(md_files),
+                        "md_files": md_files,
+                        "created": datetime.fromtimestamp(os.path.getctime(item_path)).isoformat()
+                    }
+                    folders.append(folder_info)
+        
+        folders.sort(key=lambda x: x["created"], reverse=True)
+        
+        return {
+            "folders": folders,
+            "count": len(folders),
+            "message": f"Found {len(folders)} content folders"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading content folders: {str(e)}")

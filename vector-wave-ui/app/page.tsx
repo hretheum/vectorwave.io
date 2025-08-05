@@ -32,7 +32,7 @@ export default function Home() {
     const loadFolders = async () => {
       try {
         console.log('🔄 Loading folders...');
-        const response = await fetch('http://localhost:8001/api/list-content-folders');
+        const response = await fetch('/api/crewai/list-content-folders');
         console.log('📡 Response status:', response.status);
         const data = await response.json();
         console.log('📂 Data received:', data);
