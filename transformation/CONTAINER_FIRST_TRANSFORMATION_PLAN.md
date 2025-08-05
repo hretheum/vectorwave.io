@@ -513,224 +513,489 @@ curl -X POST http://localhost:8000/api/execute-flow \
 
 ---
 
-## 📋 Faza 2: Human Review Integration (1 dzień)
+## 📋 Faza 2: Frontend Integration & Flow Diagnostics (1 dzień)
 
-### Zadanie 2.1: Review Queue Endpoint (2h)
+**Kontekst**: Frontend (Next.js) już istnieje ale łączy się ze starym backendem (8001). Trzeba go połączyć z nowym backendem CrewAI (8003) i dodać rzeczywiste dane diagnostyczne.
 
-**Cel**: System kolejkowania dla human review
+### Zadanie 2.1: Flow Diagnostics Endpoint (2h)
+
+**Cel**: Dodaj endpoint zwracający rzeczywiste dane wykonania flow dla UI
 
 ```python
 # Dodaj do app.py
-from enum import Enum
-from uuid import uuid4
+from typing import List, Dict, Any
+import json
 
-class ReviewStatus(str, Enum):
-    PENDING = "pending"
-    IN_REVIEW = "in_review"
-    APPROVED = "approved"
-    REJECTED = "rejected"
-    NEEDS_REVISION = "needs_revision"
+# Storage dla wykonań flow (w produkcji użyj Redis/DB)
+flow_executions = {}
 
-# In-memory review queue (w produkcji użyj Redis)
-review_queue = {}
+class FlowStep:
+    def __init__(self, id: str, name: str):
+        self.id = id
+        self.name = name
+        self.status = "pending"
+        self.start_time = None
+        self.end_time = None
+        self.input = None
+        self.output = None
+        self.agent_decisions = []
+        self.content_loss = None
+        self.errors = []
 
-@app.post("/api/request-review")
-async def request_human_review(draft: dict, review_type: str = "editorial"):
-    """Dodaje draft do kolejki review"""
+@app.post("/api/execute-flow-tracked")
+async def execute_flow_with_tracking(content: ContentRequest):
+    """Wykonuje flow z pełnym śledzeniem dla diagnostyki"""
     
-    review_id = str(uuid4())
-    review_item = {
-        "review_id": review_id,
-        "draft": draft,
-        "review_type": review_type,
-        "status": ReviewStatus.PENDING,
-        "created_at": datetime.now().isoformat(),
-        "reviewer": None,
-        "feedback": None
-    }
+    flow_id = f"flow_{int(time.time())}"
+    steps: List[FlowStep] = []
     
-    review_queue[review_id] = review_item
+    # Step 1: Input Validation
+    validation_step = FlowStep("input_validation", "Walidacja Wejścia")
+    validation_step.start_time = datetime.now().isoformat()
+    validation_step.input = content.dict()
     
-    return {
-        "review_id": review_id,
-        "status": ReviewStatus.PENDING,
-        "position_in_queue": len(review_queue),
-        "review_url": f"/review/{review_id}",
-        "estimated_wait_time": "5-10 minutes"
-    }
-
-@app.get("/api/review-queue")
-async def get_review_queue(status: ReviewStatus = None):
-    """Pobiera kolejkę review z opcjonalnym filtrem"""
-    
-    items = list(review_queue.values())
-    
-    if status:
-        items = [item for item in items if item["status"] == status]
-    
-    return {
-        "total_items": len(items),
-        "items": items,
-        "stats": {
-            "pending": sum(1 for item in review_queue.values() if item["status"] == ReviewStatus.PENDING),
-            "in_review": sum(1 for item in review_queue.values() if item["status"] == ReviewStatus.IN_REVIEW),
-            "completed": sum(1 for item in review_queue.values() if item["status"] in [ReviewStatus.APPROVED, ReviewStatus.REJECTED])
+    try:
+        # Walidacja
+        validation_step.output = {
+            "validated": True,
+            "content_type": content.content_type,
+            "platform": content.platform,
+            "ownership": content.content_ownership
         }
-    }
-
-@app.post("/api/submit-review/{review_id}")
-async def submit_review(review_id: str, decision: str, feedback: str = "", reviewer: str = "anonymous"):
-    """Submit human review decision"""
+        validation_step.agent_decisions = [
+            f"Wykryto typ contentu: {content.content_type}",
+            f"Platforma docelowa: {content.platform}",
+            f"Ownership: {content.content_ownership} - {'pominięto research' if content.content_ownership == 'ORIGINAL' else 'wymagany research'}"
+        ]
+        validation_step.status = "completed"
+    except Exception as e:
+        validation_step.status = "failed"
+        validation_step.errors = [str(e)]
     
-    if review_id not in review_queue:
-        raise HTTPException(status_code=404, detail="Review not found")
+    validation_step.end_time = datetime.now().isoformat()
+    steps.append(validation_step)
     
-    review_item = review_queue[review_id]
-    review_item.update({
-        "status": decision,
-        "feedback": feedback,
-        "reviewer": reviewer,
-        "reviewed_at": datetime.now().isoformat()
-    })
-    
-    return {
-        "review_id": review_id,
-        "status": "review_submitted",
-        "decision": decision
-    }
-```
-
----
-
-### Zadanie 2.2: Review UI Endpoint (1h)
-
-**Cel**: Prosty HTML interface dla reviewerów
-
-```python
-from fastapi.responses import HTMLResponse
-
-@app.get("/review/{review_id}", response_class=HTMLResponse)
-async def review_interface(review_id: str):
-    """HTML interface dla human review"""
-    
-    if review_id not in review_queue:
-        return "<h1>Review not found</h1>"
-    
-    item = review_queue[review_id]
-    draft = item["draft"]
-    
-    html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Review: {draft.get('title', 'Untitled')}</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; margin: 40px; }}
-            .draft {{ background: #f0f0f0; padding: 20px; margin: 20px 0; }}
-            .buttons {{ margin: 20px 0; }}
-            button {{ padding: 10px 20px; margin: 0 10px; cursor: pointer; }}
-            .approve {{ background: #28a745; color: white; }}
-            .reject {{ background: #dc3545; color: white; }}
-            .revise {{ background: #ffc107; }}
-            textarea {{ width: 100%; min-height: 100px; }}
-        </style>
-    </head>
-    <body>
-        <h1>Content Review</h1>
-        <p>Review ID: {review_id}</p>
-        <p>Platform: {draft.get('platform', 'Unknown')}</p>
+    # Step 2: Research (jeśli potrzebny)
+    research_step = FlowStep("research", "Badanie Tematu")
+    if content.content_ownership == "ORIGINAL":
+        research_step.status = "skipped"
+        research_step.agent_decisions = [
+            "Pominięto research dla ORIGINAL content",
+            "Flaga skip_research = true"
+        ]
+    else:
+        research_step.start_time = datetime.now().isoformat()
+        try:
+            research_request = ResearchRequest(
+                topic=content.title,
+                depth="deep" if content.content_type == "TECHNICAL" else "standard"
+            )
+            research_result = await execute_research(research_request)
+            
+            research_step.output = research_result
+            research_step.agent_decisions = [
+                f"Wykonano {research_request.depth} research",
+                f"Znaleziono {len(research_result.get('findings', {}).get('key_points', []))} kluczowych punktów",
+                f"Czas wykonania: {research_result.get('execution_time_ms', 0)}ms"
+            ]
+            research_step.status = "completed"
+            
+            # Oblicz content loss
+            input_size = len(content.title) * 50  # Przybliżenie
+            output_size = research_result.get('findings', {}).get('word_count', 0) * 5
+            research_step.content_loss = {
+                "inputSize": input_size,
+                "outputSize": output_size,
+                "lossPercentage": round((1 - output_size/input_size) * 100, 1) if input_size > 0 else 0
+            }
+        except Exception as e:
+            research_step.status = "failed"
+            research_step.errors = [str(e)]
         
-        <div class="draft">
-            <h2>{draft.get('title', 'Untitled')}</h2>
-            <p>{draft.get('content', 'No content')}</p>
-            <p><small>Word count: {draft.get('word_count', 0)}</small></p>
-        </div>
-        
-        <h3>Your Review</h3>
-        <textarea id="feedback" placeholder="Add your feedback here..."></textarea>
-        
-        <div class="buttons">
-            <button class="approve" onclick="submitReview('approved')">✅ Approve</button>
-            <button class="revise" onclick="submitReview('needs_revision')">✏️ Request Revision</button>
-            <button class="reject" onclick="submitReview('rejected')">❌ Reject</button>
-        </div>
-        
-        <script>
-            async function submitReview(decision) {{
-                const feedback = document.getElementById('feedback').value;
-                
-                const response = await fetch('/api/submit-review/{review_id}', {{
-                    method: 'POST',
-                    headers: {{'Content-Type': 'application/json'}},
-                    body: JSON.stringify({{
-                        decision: decision,
-                        feedback: feedback,
-                        reviewer: 'web_reviewer'
-                    }})
-                }});
-                
-                if (response.ok) {{
-                    alert('Review submitted!');
-                    window.location.href = '/api/review-queue';
-                }} else {{
-                    alert('Error submitting review');
-                }}
-            }}
-        </script>
-    </body>
-    </html>
-    """
+        research_step.end_time = datetime.now().isoformat()
     
-    return html
-```
-
----
-
-### Zadanie 2.3: Flow z Human Review (2h)
-
-**Cel**: Rozszerz complete flow o human review checkpoint
-
-```python
-@app.post("/api/execute-flow-with-review")
-async def execute_flow_with_human_review(content: ContentRequest, require_review: bool = True):
-    """Complete flow z opcjonalnym human review"""
+    steps.append(research_step)
     
-    # Wykonaj podstawowy flow
-    flow_result = await execute_complete_flow(content)
+    # Step 3: Draft Generation
+    draft_step = FlowStep("draft_generation", "Generowanie Draftu")
+    draft_step.start_time = datetime.now().isoformat()
     
-    if not require_review:
-        return flow_result
-    
-    # Dodaj do review queue
-    if flow_result["status"] == "completed" and flow_result["final_draft"]:
-        review_request = await request_human_review(
-            draft=flow_result["final_draft"],
-            review_type="editorial"
+    try:
+        draft_request = GenerateDraftRequest(
+            content=content,
+            research_data=research_step.output if research_step.status == "completed" else None
         )
+        draft_result = await generate_draft(draft_request)
         
-        flow_result["human_review"] = {
-            "required": True,
-            "review_id": review_request["review_id"],
-            "status": "pending",
-            "review_url": review_request["review_url"]
+        draft_step.output = draft_result
+        draft_step.agent_decisions = [
+            "✅ Wygenerowano draft używając CrewAI Writer Agent",
+            f"Długość: {draft_result.get('draft', {}).get('word_count', 0)} słów",
+            f"Wykorzystano research: {'Tak' if draft_request.research_data else 'Nie'}",
+            f"Platforma: {content.platform}"
+        ]
+        draft_step.status = "completed"
+        
+        # Content preservation check
+        draft_step.content_loss = {
+            "inputSize": len(str(draft_request.dict())) * 10,
+            "outputSize": len(draft_result.get('draft', {}).get('content', '')),
+            "lossPercentage": 0  # CrewAI zachowuje content
         }
+    except Exception as e:
+        draft_step.status = "failed"
+        draft_step.errors = [str(e)]
     
-    return flow_result
-
-@app.get("/api/flow-status/{flow_id}")
-async def get_flow_status(flow_id: str):
-    """Sprawdź status flow włącznie z review"""
-    # W prawdziwej implementacji pobierz z bazy
-    # Na razie zwróć mock
+    draft_step.end_time = datetime.now().isoformat()
+    steps.append(draft_step)
+    
+    # Zapisz wykonanie
+    flow_executions[flow_id] = {
+        "flow_id": flow_id,
+        "steps": [vars(step) for step in steps],
+        "created_at": datetime.now().isoformat(),
+        "total_duration_ms": sum(
+            (datetime.fromisoformat(s.end_time) - datetime.fromisoformat(s.start_time)).total_seconds() * 1000
+            for s in steps if s.start_time and s.end_time
+        )
+    }
+    
     return {
         "flow_id": flow_id,
-        "status": "waiting_for_review",
-        "stages_completed": ["routing", "research", "draft_generation"],
-        "current_stage": "human_review",
-        "review_status": "pending"
+        "status": "completed" if all(s.status in ["completed", "skipped"] for s in steps) else "failed",
+        "diagnostic_url": f"/api/flow-diagnostics/{flow_id}",
+        "final_draft": draft_step.output.get("draft") if draft_step.status == "completed" else None
+    }
+
+@app.get("/api/flow-diagnostics/{flow_id}")
+async def get_flow_diagnostics(flow_id: str):
+    """Zwraca dane diagnostyczne dla konkretnego wykonania flow"""
+    
+    if flow_id not in flow_executions:
+        raise HTTPException(status_code=404, detail="Flow execution not found")
+    
+    return flow_executions[flow_id]
+
+@app.get("/api/flow-diagnostics")
+async def list_flow_executions(limit: int = 10):
+    """Lista ostatnich wykonań flow"""
+    
+    executions = sorted(
+        flow_executions.values(),
+        key=lambda x: x["created_at"],
+        reverse=True
+    )[:limit]
+    
+    return {
+        "total": len(flow_executions),
+        "executions": executions
     }
 ```
 
+**Test diagnostics endpoint**:
+```bash
+# Wykonaj flow z trackingiem
+curl -X POST http://localhost:8003/api/execute-flow-tracked \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Test AI Flow Diagnostics",
+    "content_type": "TECHNICAL",
+    "platform": "LinkedIn",
+    "content_ownership": "EXTERNAL"
+  }'
+
+# Pobierz diagnostykę
+curl http://localhost:8003/api/flow-diagnostics/flow_1234567890
+
+# Lista ostatnich wykonań
+curl http://localhost:8003/api/flow-diagnostics
+```
+
+---
+
+### Zadanie 2.2: Frontend Backend Switch (2h)
+
+**Cel**: Zaktualizuj frontend aby łączył się z nowym backendem CrewAI
+
+**Krok 1: Dodaj zmienną środowiskową**:
+```bash
+# vector-wave-ui/.env.local
+NEXT_PUBLIC_API_URL=http://localhost:8003
+NEXT_PUBLIC_OLD_API_URL=http://localhost:8001
+```
+
+**Krok 2: Update konfiguracji Next.js**:
+```typescript
+// vector-wave-ui/next.config.ts
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      // Nowe endpointy CrewAI
+      {
+        source: '/api/crewai/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8003'}/api/:path*`,
+      },
+      // Stare endpointy (tymczasowo)
+      {
+        source: '/api/:path*',
+        destination: `${process.env.NEXT_PUBLIC_OLD_API_URL || 'http://localhost:8001'}/api/:path*`,
+      },
+    ];
+  },
+};
+```
+
+**Krok 3: Update FlowDiagnostics component**:
+```typescript
+// vector-wave-ui/components/FlowDiagnostics.tsx
+// Zamień mock data na prawdziwe API call
+
+useEffect(() => {
+  const fetchDiagnostics = async () => {
+    setLoading(true);
+    
+    try {
+      // Użyj nowego endpointu
+      const response = await fetch(`/api/crewai/flow-diagnostics/${flowId}`);
+      const data = await response.json();
+      
+      // Mapuj dane z backendu na format UI
+      const mappedSteps: FlowStep[] = data.steps.map((step: any) => ({
+        id: step.id,
+        name: step.name,
+        status: step.status,
+        startTime: step.start_time,
+        endTime: step.end_time,
+        duration: step.end_time && step.start_time ? 
+          new Date(step.end_time).getTime() - new Date(step.start_time).getTime() : undefined,
+        input: step.input,
+        output: step.output,
+        errors: step.errors || [],
+        agentDecisions: step.agent_decisions || [],
+        contentLoss: step.content_loss
+      }));
+      
+      setSteps(mappedSteps);
+    } catch (error) {
+      console.error('Failed to fetch diagnostics:', error);
+      // Fallback na mock data jeśli API niedostępne
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (flowId) {
+    fetchDiagnostics();
+  }
+}, [flowId]);
+```
+
+**Krok 4: Update main page do używania tracked flow**:
+```typescript
+// vector-wave-ui/app/page.tsx
+// W funkcji analyzeFolder zamień endpoint
+
+const response = await fetch('/api/crewai/execute-flow-tracked', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    title: folderName,
+    content_type: 'STANDARD',
+    platform: 'LinkedIn',
+    content_ownership: 'EXTERNAL'
+  })
+});
+
+const data = await response.json();
+
+// Otwórz diagnostykę w nowym komponencie
+if (data.flow_id) {
+  setCurrentFlowId(data.flow_id);
+  setShowDiagnostics(true);
+}
+```
+
+---
+
+### Zadanie 2.3: Human Review UI Integration (3h)
+
+**Cel**: Dodaj UI dla Human Review Queue w istniejącym frontendzie
+
+**Krok 1: Dodaj Review Queue component**:
+```typescript
+// vector-wave-ui/components/ReviewQueue.tsx
+'use client';
+
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, XCircle, Edit3, Clock } from "lucide-react";
+
+interface ReviewItem {
+  review_id: string;
+  draft: {
+    title: string;
+    content: string;
+    platform: string;
+    word_count: number;
+  };
+  status: string;
+  created_at: string;
+  reviewer?: string;
+  feedback?: string;
+}
+
+export function ReviewQueue() {
+  const [items, setItems] = useState<ReviewItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedItem, setSelectedItem] = useState<ReviewItem | null>(null);
+  const [feedback, setFeedback] = useState("");
+
+  useEffect(() => {
+    fetchReviewQueue();
+  }, []);
+
+  const fetchReviewQueue = async () => {
+    try {
+      const response = await fetch('/api/crewai/review-queue?status=pending');
+      const data = await response.json();
+      setItems(data.items);
+    } catch (error) {
+      console.error('Failed to fetch review queue:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitReview = async (reviewId: string, decision: string) => {
+    try {
+      const response = await fetch(`/api/crewai/submit-review/${reviewId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          decision,
+          feedback,
+          reviewer: 'frontend_user'
+        })
+      });
+
+      if (response.ok) {
+        // Odśwież kolejkę
+        fetchReviewQueue();
+        setSelectedItem(null);
+        setFeedback("");
+      }
+    } catch (error) {
+      console.error('Failed to submit review:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Review Queue</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <p>Loading...</p>
+          ) : items.length === 0 ? (
+            <p>No items pending review</p>
+          ) : (
+            <div className="space-y-4">
+              {items.map((item) => (
+                <Card key={item.review_id} className="cursor-pointer hover:shadow-lg">
+                  <CardHeader onClick={() => setSelectedItem(item)}>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold">{item.draft.title}</h3>
+                        <p className="text-sm text-gray-600">
+                          {item.draft.platform} • {item.draft.word_count} words
+                        </p>
+                      </div>
+                      <Badge>{item.status}</Badge>
+                    </div>
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Review Modal */}
+      {selectedItem && (
+        <Card className="fixed inset-4 z-50 overflow-auto">
+          <CardHeader>
+            <CardTitle>Review: {selectedItem.draft.title}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-gray-50 p-4 rounded">
+              <p className="whitespace-pre-wrap">{selectedItem.draft.content}</p>
+            </div>
+            
+            <textarea
+              className="w-full min-h-[100px] p-2 border rounded"
+              placeholder="Add your feedback..."
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+            />
+            
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => submitReview(selectedItem.review_id, 'approved')}
+                className="bg-green-600"
+              >
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+                Approve
+              </Button>
+              <Button 
+                onClick={() => submitReview(selectedItem.review_id, 'needs_revision')}
+                variant="secondary"
+              >
+                <Edit3 className="w-4 h-4 mr-2" />
+                Request Revision
+              </Button>
+              <Button 
+                onClick={() => submitReview(selectedItem.review_id, 'rejected')}
+                variant="destructive"
+              >
+                <XCircle className="w-4 h-4 mr-2" />
+                Reject
+              </Button>
+              <Button 
+                onClick={() => setSelectedItem(null)}
+                variant="outline"
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+```
+
+**Test integracji**:
+```bash
+# 1. Uruchom nowy backend CrewAI
+cd kolegium
+docker-compose -f docker-compose.minimal.yml up
+
+# 2. Uruchom frontend
+cd vector-wave-ui
+npm run dev
+
+# 3. Testuj flow z diagnostyką
+# - Otwórz http://localhost:3000
+# - Kliknij "Analizuj potencjał" na dowolnym folderze
+# - Sprawdź czy Flow Diagnostics pokazuje prawdziwe dane
+# - Sprawdź Review Queue dla pending items
 ---
 
 ## 📋 Faza 3: Production Container (1 dzień)
