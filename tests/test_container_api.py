@@ -298,3 +298,94 @@ def test_execute_complete_flow():
     # Sprawdź finalny draft
     assert "final_draft" in data
     assert data["final_draft"]["title"] == payload["title"]
+
+def test_execute_flow_skip_research():
+    """Test flow pomijający research dla ORIGINAL content"""
+    payload = {
+        "title": "My Personal Experience with AI",
+        "content_type": "STANDARD",
+        "platform": "LinkedIn",
+        "content_ownership": "ORIGINAL"
+    }
+    
+    response = requests.post(f"{BASE_URL}/api/execute-flow", json=payload)
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert data["status"] == "completed"
+    assert data["routing_decision"] == "skip_research_flow"
+    
+    # Sprawdź że research został pominięty
+    research_steps = [s for s in data["execution_log"] if s["step"] == "research"]
+    assert len(research_steps) == 0
+    
+    # Powinny być tylko routing i draft
+    assert len(data["execution_log"]) == 2
+
+def test_execute_flow_technical_deep_dive():
+    """Test flow z deep research dla TECHNICAL content"""
+    payload = {
+        "title": "Implementing Distributed Tracing in Microservices",
+        "content_type": "TECHNICAL",
+        "platform": "Blog",
+        "content_ownership": "EXTERNAL"
+    }
+    
+    response = requests.post(f"{BASE_URL}/api/execute-flow", json=payload)
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert data["status"] == "completed"
+    assert data["routing_decision"] == "technical_deep_dive_flow"
+    
+    # Znajdź research step
+    research_step = next((s for s in data["execution_log"] if s["step"] == "research"), None)
+    assert research_step is not None
+    assert research_step["result"]["depth"] == "deep"
+    
+    # Technical content powinien być długi
+    assert data["final_draft"]["word_count"] >= 400
+
+def test_execute_flow_viral_twitter():
+    """Test flow dla VIRAL content na Twitter"""
+    payload = {
+        "title": "Why AI Won't Replace Developers",
+        "content_type": "VIRAL",
+        "platform": "Twitter",
+        "content_ownership": "EXTERNAL"
+    }
+    
+    response = requests.post(f"{BASE_URL}/api/execute-flow", json=payload)
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert data["status"] == "completed"
+    assert data["routing_decision"] == "viral_engagement_flow"
+    assert data["final_draft"]["platform"] == "Twitter"
+
+def test_execute_flow_timing():
+    """Test że flow zwraca realistyczne czasy wykonania"""
+    payload = {
+        "title": "Test Timing Analysis",
+        "content_type": "STANDARD",
+        "platform": "LinkedIn",
+        "content_ownership": "EXTERNAL"
+    }
+    
+    response = requests.post(f"{BASE_URL}/api/execute-flow", json=payload)
+    data = response.json()
+    
+    # Sprawdź całkowity czas
+    assert "total_duration_ms" in data
+    assert data["total_duration_ms"] > 1000  # Minimum 1 sekunda
+    assert data["total_duration_ms"] < 120000  # Maximum 2 minuty
+    
+    # Sprawdź czasy poszczególnych kroków
+    for step in data["execution_log"]:
+        assert step["duration_ms"] > 0
+        if step["step"] == "research":
+            # Research powinien trwać co najmniej kilka sekund
+            assert step["duration_ms"] > 5000
+        elif step["step"] == "draft_generation":
+            # Draft generation też powinien trwać trochę
+            assert step["duration_ms"] > 1000
