@@ -1,12 +1,19 @@
 # PROJECT CONTEXT - Vector Wave AI Kolegium
 
-## 🚨 AKTUALNY STAN PROJEKTU (2025-08-03)
+## 🚨 AKTUALNY STAN PROJEKTU (2025-08-05)
+
+### 🔄 AKTYWNA ŚCIEŻKA TRANSFORMACJI: Container-First Development
+- **Status**: W TRAKCIE REALIZACJI (Faza 2/4)
+- **Dokument**: `/kolegium/transformation/CONTAINER_FIRST_TRANSFORMATION_PLAN.md`
+- **Ostatnie Zadanie**: ✅ Task 2.1: Flow Diagnostics Endpoint (2025-08-05)
+- **Commit**: `3e3e3a3b404ae721ccb3a10a709b3c25a554bb92`
+- **Następne**: Task 2.2: Frontend Backend Switch
 
 ### PROBLEM GŁÓWNY: CrewAI Flow Infinite Loops
-- **Status**: ZDIAGNOZOWANY, PLAN NAPRAWY GOTOWY
+- **Status**: OBEJŚCIE PRZEZ CONTAINER-FIRST APPROACH
 - **Root Cause**: @router nie obsługuje pętli (known bug #1579)
 - **Objawy**: Flood logów, CPU 97.9%, system się zawiesza
-- **Plan**: Przeprojektowanie na linear flow pattern
+- **Plan**: Przeprojektowanie na linear flow pattern w kontenerze
 
 ### WYKONANE ZADANIA ✅
 
@@ -218,5 +225,46 @@
 - **DEVELOPER EXPERIENCE**: 4 detailed examples make integration straightforward
 - **BACKWARD COMPATIBILITY**: All existing tools continue to work seamlessly
 
+### 🚀 Container-First Transformation Progress (2025-08-05)
+
+#### ✅ Faza 0: Minimal Container Foundation - COMPLETED
+- Minimalny kontener FastAPI z podstawowym routingiem
+- Docker Compose setup dla development
+- Pytest testy kontenerowe
+
+#### ✅ Faza 1: CrewAI Integration Container - COMPLETED
+- Research Agent Endpoint z CrewAI
+- Draft Generation Endpoint
+- Complete Flow Endpoint
+
+#### 🔄 Faza 2: CrewAI Flow Integration - IN PROGRESS
+- ✅ Task 2.1: Flow Diagnostics Endpoint (2025-08-05)
+  - Pełne śledzenie wykonania flow
+  - Diagnostyka per krok z agent decisions
+  - Content loss metrics
+  - Lista wykonań z sortowaniem
+- ⏳ Task 2.2: Frontend Backend Switch
+- ⏳ Task 2.3: Human Review UI Integration
+
+#### ⏳ Faza 3: Production Container - PENDING
+#### ⏳ Faza 4: Full Integration - PENDING
+
+### 📊 Kluczowe Osiągnięcia Container-First
+
+1. **Flow Diagnostics API** - Pełna transparentność wykonania:
+   - `/api/execute-flow-tracked` - wykonanie z tracking
+   - `/api/flow-diagnostics/{flow_id}` - szczegóły wykonania
+   - `/api/flow-diagnostics` - lista wykonań
+
+2. **Container Testing** - 100% pokrycie testami:
+   - Testy jednostkowe dla każdego endpoint
+   - Testy integracyjne flow
+   - Makefile dla łatwego testowania
+
+3. **Zero-Setup Development**:
+   - `make container-up` - uruchomienie
+   - `make test-diagnostics` - testowanie flow
+   - Hot-reload dla szybkiego rozwoju
+
 ---
-*Ostatnia aktualizacja: 2025-08-03 17:30*
+*Ostatnia aktualizacja: 2025-08-05 17:10*
