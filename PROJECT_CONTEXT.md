@@ -4,11 +4,12 @@
 
 ### 🔄 Aktualnie Realizowana Ścieżka: Container-First Transformation
 - **Dokument**: `/kolegium/transformation/CONTAINER_FIRST_TRANSFORMATION_PLAN.md`
-- **Faza**: 🔄 Faza 2 - Frontend Integration & Flow Diagnostics (IN PROGRESS)
-- **Ostatnie Zadanie**: ✅ Skip Research Optimization for ORIGINAL Content (COMPLETED)
-- **Commit**: `58cbf76` (2025-08-05 22:06:44 +0200)
-- **Następne**: Task 2.3: Human Review UI Integration (Faza 2)
-- **Status**: Optymalizacja skip_research zaimplementowana - 20% szybszy draft dla ORIGINAL content!
+- **Faza**: 🔄 Faza 3 - Production Container (IN PROGRESS)
+- **Sprint**: 3.2.1 - Basic Redis Cache
+- **Ostatnie Zadanie**: ✅ Dodaj Redis do docker-compose (COMPLETED)
+- **Commit**: `20ce0bc` (2025-08-05 22:43:09 +0200)
+- **Następne**: Krok 2 Sprintu 3.2.1 - Dodaj endpoint testujący cache
+- **Status**: Redis działa w kontenerze na porcie 6380, gotowy do integracji!
 
 ### 🎉 Kluczowe Osiągnięcia
 1. **Naprawiono błąd "Failed to start writing flow"**:
@@ -41,7 +42,7 @@ Faza 1: CrewAI Integration Container ✅ COMPLETED & VERIFIED
   - Wszystkie testy przechodzą z prawdziwym API
   - Czasy wykonania: 20-50s (realistyczne)
 
-Faza 2: CrewAI Flow Integration 🔄 IN PROGRESS (2/3)
+Faza 2: CrewAI Flow Integration ✅ COMPLETED (3/3)
 - [x] Zadanie 2.1: Flow Diagnostics Endpoint ✅ (2025-08-05, verified)
   - Pełne śledzenie wykonania flow z diagnostyką
   - Agent decisions tracking i content loss metrics
@@ -51,11 +52,19 @@ Faza 2: CrewAI Flow Integration 🔄 IN PROGRESS (2/3)
   - Szybka analiza contentu (1ms response time)
   - Uproszczone audience scoring bez AI dependencies
   - Naprawiono konfigurację portów
-- [ ] Zadanie 2.3: Human Review UI Integration
+- [x] Zadanie 2.2.1: Fix Draft Generation & Optimization ✅ (2025-08-05, commit: 58cbf76)
+  - Naprawiono błędy 404, 422 i response format
+  - Dodano skip_research dla ORIGINAL content (20% szybciej)
 
-Faza 3: Production Container ⏳ PENDING
+Faza 3: Production Container 🔄 IN PROGRESS (0.5/3)
 - [ ] Zadanie 3.1: Multi-stage Dockerfile
-- [ ] Zadanie 3.2: Health checks & monitoring
+- [ ] Zadanie 3.2: Redis + Knowledge Base + Style Guide RAG (Sprint 1/5)
+  - [x] Sprint 3.2.1: Basic Redis Cache - Krok 1: Dodaj Redis ✅ (commit: 20ce0bc)
+  - [ ] Sprint 3.2.1: Basic Redis Cache - Krok 2: Endpoint testujący
+  - [ ] Sprint 3.2.2: Cache for analyze-potential
+  - [ ] Sprint 3.2.3: ChromaDB for Style Guide - Naive RAG
+  - [ ] Sprint 3.2.4: Agentic RAG with CrewAI
+  - [ ] Sprint 3.2.5: Production Docker Compose
 - [ ] Zadanie 3.3: Environment configuration
 
 Faza 4: Full Integration ⏳ PENDING

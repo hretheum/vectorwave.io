@@ -33,10 +33,14 @@
   - **OPTIMIZED**: skip_research for ORIGINAL content (20% faster)
 - [ ] Zadanie 2.3: Human Review UI Integration
 
-### ⏳ Faza 3: Production Container - **OCZEKUJE**
+### 🔄 Faza 3: Production Container - **W TRAKCIE** (Sprint 1/5)
 - [ ] Zadanie 3.1: Multi-stage Dockerfile
 - [ ] Zadanie 3.2: Redis + Knowledge Base + Style Guide RAG (5 sprintów)
-  - [ ] Sprint 3.2.1: Basic Redis Cache (30 min)
+  - [x] Sprint 3.2.1: Basic Redis Cache - Krok 1 ✅ (commit: 20ce0bc)
+    - Redis dodany do docker-compose.minimal.yml
+    - Port 6380 aby uniknąć konfliktu
+    - Health check skonfigurowany
+  - [ ] Sprint 3.2.1: Basic Redis Cache - Krok 2 (endpoint testujący)
   - [ ] Sprint 3.2.2: Cache for analyze-potential (30 min)
   - [ ] Sprint 3.2.3: ChromaDB for Style Guide - Naive RAG (1h)
   - [ ] Sprint 3.2.4: Agentic RAG with CrewAI (1.5h)

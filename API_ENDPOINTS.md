@@ -191,6 +191,21 @@ GET /api/verify-openai
 ```
 Verifies that the system is using real OpenAI API.
 
+### 10. Cache Test (Coming in Sprint 3.2.1 Step 2)
+```bash
+GET /api/cache-test
+```
+Tests Redis cache functionality.
+
+**Expected Response:**
+```json
+{
+  "status": "ok",
+  "cached_value": "Hello Redis!",
+  "ttl": 59
+}
+```
+
 **Response:**
 ```json
 {

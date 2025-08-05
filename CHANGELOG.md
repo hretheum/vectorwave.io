@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🚀 Added - 2025-08-05
 
+#### Redis Cache Layer - Sprint 3.2.1 (IN PROGRESS)
+- ✅ Added Redis 7-alpine to docker-compose.minimal.yml (commit: 20ce0bc)
+- ✅ Configured Redis on port 6380 to avoid local conflicts
+- ✅ Added health checks for Redis container
+- ✅ Set up REDIS_URL environment variable for app integration
+- 🔄 Next: Implement cache test endpoint
+
 #### Draft Generation Fixes & Optimization
 - ✅ Fixed "Failed to start writing flow" error (was returning 404)
 - ✅ Changed endpoint from `/api/generate-draft-v2` to `/api/generate-draft`
