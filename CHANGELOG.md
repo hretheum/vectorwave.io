@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🚀 Added - 2025-08-05
+
+#### Draft Generation Fixes & Optimization
+- ✅ Fixed "Failed to start writing flow" error (was returning 404)
+- ✅ Changed endpoint from `/api/generate-draft-v2` to `/api/generate-draft`
+- ✅ Added data transformation in frontend proxy to match backend format
+- ✅ Fixed response format mismatch (backend `status: "completed"` → frontend `success: true`)
+- ✅ Implemented skip_research optimization for ORIGINAL content
+- ✅ Added execution time tracking and optimization logging
+- ✅ Reduced draft generation time by ~20% for ORIGINAL content (25s → 20s)
+
+#### Container-First Development
+- ✅ Updated pragmatic approach documentation after "linear flow" lessons learned
+- ✅ Implemented Minimal Viable Change (MVC) methodology
+- ✅ Total fix: ~30 lines of code vs potential 2-day complex solution
+
 ### 🚀 Added - 2025-08-03
 
 #### Knowledge Base Integration

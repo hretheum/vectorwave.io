@@ -1,9 +1,11 @@
 # AI Kolegium Redakcyjne
 
-## 🚨 **CRITICAL: Working Backend Version**
-- **Commit**: `2c960c1` (2025-08-05 16:44:00 CEST)
-- **Status**: ✅ FULLY FUNCTIONAL CrewAI + OpenAI Backend on port 8003
-- **Documentation**: See [WORKING_BACKEND_STATE.md](./WORKING_BACKEND_STATE.md)
+## 🚨 **CRITICAL: Latest Working Version**
+- **Commit**: `58cbf76` (2025-08-05 22:06:44 CEST)
+- **Status**: ✅ FULLY FUNCTIONAL with skip_research optimization
+- **Key Fix**: Draft generation working end-to-end (was 404 error)
+- **Optimization**: 20% faster drafts for ORIGINAL content
+- **Documentation**: See [CONTAINER_FIRST_TRANSFORMATION_PLAN.md](./transformation/CONTAINER_FIRST_TRANSFORMATION_PLAN.md)
 
 ## 🚀 **Intelligent Editorial System with AI Agent Collaboration**
 

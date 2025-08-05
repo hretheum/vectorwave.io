@@ -19,13 +19,18 @@
 **✅ VERIFIED: Real OpenAI API in commit `6cec870` (2025-08-05 17:37:52 CEST)**
 **⚠️ DO NOT MODIFY without backing up this state first!**
 
-### 🚧 Faza 2: Frontend Integration & Flow Diagnostics - **W TRAKCIE** (1/3)
+### 🚧 Faza 2: Frontend Integration & Flow Diagnostics - **W TRAKCIE** (2/3)
 - [x] Zadanie 2.1: Flow Diagnostics Endpoint ✅ (2025-08-05, verified commit: 9df36f5)
   - **VERIFIED**: Wszystkie endpointy diagnostyczne działają poprawnie
   - Pełne śledzenie wykonania z agent decisions
   - Content loss metrics i timing tracking
   - Comprehensive test suite (6 test cases)
 - [x] Zadanie 2.2: Frontend Backend Switch ✅ (endpoint /api/analyze-potential - 1ms!)
+- [x] Zadanie 2.2.1: Fix Draft Generation Errors ✅ (2025-08-05, commit: 58cbf76)
+  - **FIXED**: 404 error - changed endpoint URL
+  - **FIXED**: 422 error - added data transformation
+  - **FIXED**: "Failed to start writing flow" - response format
+  - **OPTIMIZED**: skip_research for ORIGINAL content (20% faster)
 - [ ] Zadanie 2.3: Human Review UI Integration
 
 ### ⏳ Faza 3: Production Container - **OCZEKUJE**
