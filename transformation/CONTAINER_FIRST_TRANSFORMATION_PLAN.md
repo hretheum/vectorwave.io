@@ -35,7 +35,12 @@
 
 ### ⏳ Faza 3: Production Container - **OCZEKUJE**
 - [ ] Zadanie 3.1: Multi-stage Dockerfile
-- [ ] Zadanie 3.2: Health checks & monitoring
+- [ ] Zadanie 3.2: Redis + Knowledge Base + Style Guide RAG (5 sprintów)
+  - [ ] Sprint 3.2.1: Basic Redis Cache (30 min)
+  - [ ] Sprint 3.2.2: Cache for analyze-potential (30 min)
+  - [ ] Sprint 3.2.3: ChromaDB for Style Guide - Naive RAG (1h)
+  - [ ] Sprint 3.2.4: Agentic RAG with CrewAI (1.5h)
+  - [ ] Sprint 3.2.5: Production Docker Compose (30 min)
 - [ ] Zadanie 3.3: Environment configuration
 
 ### ⏳ Faza 4: Full Integration - **OCZEKUJE**
@@ -1143,60 +1148,422 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
 ```
 
-### Zadanie 3.2: Redis + Knowledge Base Integration (2h)
+### Zadanie 3.2: Redis + Knowledge Base + Style Guide RAG (4h - przyrostowo)
 
-**Cel**: Pełny stack z Redis i Knowledge Base
+**Cel**: Pełny stack z Redis, Knowledge Base i Agentic RAG dla Style Guide
 
-# `docker-compose.production.yml`
-`services:`
-  `ai-writing-flow:`
-    `build:`
-      `context: .`
-      `dockerfile: Dockerfile.production`
-    `ports:`
-      `- "8000:8000"`
-    `environment:`
-      `- REDIS_URL=redis://redis:6379`
-      `- KNOWLEDGE_BASE_URL=http://knowledge-base:8082`
-      `- OPENAI_API_KEY=${OPENAI_API_KEY}`
-    `depends_on:`
-      `redis:`
-        `condition: service_healthy`
-      `knowledge-base:`
-        `condition: service_healthy`
-    `healthcheck:`
-      `test: ["CMD", "curl", "-f", "http://localhost:8000/health"]`
-      `interval: 30s`
-      `timeout: 10s`
-      `retries: 3`
-    `restart: unless-stopped`
+#### 🎯 Filozofia przyrostowego rozwoju RAG:
 
-  `redis:`
-    `image: redis:7-alpine`
-    `ports:`
-      `- "6379:6379"`
-    `healthcheck:`
-      `test: ["CMD", "redis-cli", "ping"]`
-      `interval: 30s`
-      `timeout: 10s`
-      `retries: 3`
-    `restart: unless-stopped`
+```yaml
+Sprint 1-2: Cache Layer
+- Po co: Instant response dla powtórzeń
+- Test: Czy drugie wywołanie jest instant?
+- Rollback: Wyłącz Redis, app nadal działa
 
-  `knowledge-base:`
-    `image: chromadb/chroma:latest`
-    `ports:`
-      `- "8082:8000"`
-    `environment:`
-      `- ANONYMIZED_TELEMETRY=false`
-    `healthcheck:`
-      `test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]`
-      `interval: 30s`
-      `timeout: 10s`
-      `retries: 3`
-    `restart: unless-stopped`
+Sprint 3: Naive RAG
+- Po co: Podstawowe wyszukiwanie reguł
+- Test: Czy zwraca sensowne reguły?
+- Rollback: ChromaDB down = brak style check, ale reszta działa
 
-  `nginx:`
-    `image: nginx:alpine`
+Sprint 4: Agentic RAG  
+- Po co: Inteligentna analiza z kontekstem
+- Test: Czy agent rozumie niuanse?
+- Rollback: Fallback do naive RAG
+
+Sprint 5: Production
+- Po co: Persistent storage, auto-restart
+- Test: Czy przeżywa restart?
+- Rollback: Wróć do dev compose
+```
+
+**WAŻNE**: Każdy sprint to osobny commit, test, i "czy działa?" przed następnym!
+
+#### Sprint 3.2.1: Basic Redis Cache (30 min)
+
+**Krok 1**: Dodaj Redis do docker-compose
+```yaml
+# docker-compose.yml - dodaj serwis
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+```
+
+**Krok 2**: Dodaj endpoint testujący cache
+```python
+# app.py - dodaj na górze
+import redis
+import json
+import hashlib
+
+# Redis connection
+try:
+    redis_client = redis.Redis(host='redis', port=6379, decode_responses=True)
+    redis_client.ping()
+    print("✅ Redis connected")
+except:
+    redis_client = None
+    print("⚠️ Redis not available - running without cache")
+
+@app.get("/api/cache-test", tags=["diagnostics"])
+async def test_cache():
+    """Test Redis cache functionality"""
+    if not redis_client:
+        return {"status": "no_cache", "message": "Redis not connected"}
+    
+    # Test set/get
+    test_key = f"test:{datetime.now().isoformat()}"
+    redis_client.setex(test_key, 60, "Hello Redis!")
+    value = redis_client.get(test_key)
+    
+    return {
+        "status": "ok",
+        "cached_value": value,
+        "ttl": redis_client.ttl(test_key)
+    }
+```
+
+**Test**:
+```bash
+docker-compose up -d redis
+docker-compose restart ai-writing-flow
+curl http://localhost:8003/api/cache-test
+# Should return: {"status": "ok", "cached_value": "Hello Redis!", "ttl": 59}
+```
+
+#### Sprint 3.2.2: Cache for analyze-potential (30 min)
+
+**Krok**: Dodaj cache do istniejącego endpointa
+```python
+# app.py - zmodyfikuj analyze_content_potential
+@app.post("/api/analyze-potential", tags=["content"])
+async def analyze_content_potential(request: AnalyzePotentialRequest):
+    """Ultra-fast content analysis with Redis cache"""
+    
+    # Check cache first
+    if redis_client:
+        cache_key = f"analysis:{request.folder}"
+        cached = redis_client.get(cache_key)
+        if cached:
+            result = json.loads(cached)
+            result["from_cache"] = True
+            result["processing_time_ms"] = 0
+            return result
+    
+    start_time = time.time()
+    
+    # ... existing analysis code ...
+    
+    # Cache result before returning
+    if redis_client and "error" not in analysis_result:
+        redis_client.setex(
+            cache_key,
+            900,  # 15 minutes TTL
+            json.dumps(analysis_result)
+        )
+    
+    return analysis_result
+```
+
+**Test**:
+```bash
+# First call - should take 1ms
+curl -X POST http://localhost:8003/api/analyze-potential \
+  -H "Content-Type: application/json" \
+  -d '{"folder": "test-folder"}'
+
+# Second call - should take 0ms and have from_cache: true
+curl -X POST http://localhost:8003/api/analyze-potential \
+  -H "Content-Type: application/json" \
+  -d '{"folder": "test-folder"}'
+```
+
+#### Sprint 3.2.3: ChromaDB for Style Guide - Naive RAG (1h)
+
+**Krok 1**: Dodaj ChromaDB do docker-compose
+```yaml
+# docker-compose.yml - dodaj serwis
+services:
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8082:8000"
+    environment:
+      - ANONYMIZED_TELEMETRY=false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+```
+
+**Krok 2**: Dodaj endpoint do ładowania style guide
+```python
+# app.py - dodaj import
+import httpx
+
+# ChromaDB client
+chroma_client = None
+try:
+    import chromadb
+    chroma_client = chromadb.HttpClient(host="chromadb", port=8000)
+    print("✅ ChromaDB connected")
+except:
+    print("⚠️ ChromaDB not available")
+
+@app.post("/api/style-guide/load", tags=["content"])
+async def load_style_guide():
+    """Load Vector Wave style guide into ChromaDB"""
+    if not chroma_client:
+        return {"status": "error", "message": "ChromaDB not connected"}
+    
+    # Create collection
+    collection = chroma_client.get_or_create_collection("style_guide")
+    
+    # Sample style rules
+    rules = [
+        {
+            "id": "hook_001",
+            "text": "Start with compelling hook in first 2 lines",
+            "platform": "LinkedIn",
+            "examples": "I was wrong about AI.\nCompletely wrong."
+        },
+        {
+            "id": "emoji_001", 
+            "text": "Use emojis sparingly - max 2-3 per post",
+            "platform": "LinkedIn",
+            "examples": "🎯 Key insight: Focus beats features"
+        }
+    ]
+    
+    # Load into ChromaDB
+    collection.add(
+        ids=[r["id"] for r in rules],
+        documents=[r["text"] for r in rules],
+        metadatas=[{"platform": r["platform"]} for r in rules]
+    )
+    
+    return {"status": "loaded", "rules_count": len(rules)}
+
+@app.post("/api/style-guide/check", tags=["content"])
+async def check_style_naive(content: str, platform: str = "LinkedIn"):
+    """Naive RAG style check - just similarity search"""
+    if not chroma_client:
+        return {"status": "error", "message": "ChromaDB not connected"}
+    
+    collection = chroma_client.get_collection("style_guide")
+    
+    # Simple similarity search
+    results = collection.query(
+        query_texts=[content],
+        n_results=3,
+        where={"platform": platform}
+    )
+    
+    return {
+        "relevant_rules": results["documents"][0] if results["documents"] else [],
+        "distances": results["distances"][0] if results["distances"] else [],
+        "method": "naive_rag"
+    }
+```
+
+**Test**:
+```bash
+docker-compose up -d chromadb
+docker-compose restart ai-writing-flow
+
+# Load style guide
+curl -X POST http://localhost:8003/api/style-guide/load
+
+# Test naive RAG
+curl -X POST http://localhost:8003/api/style-guide/check \
+  -H "Content-Type: application/json" \
+  -d '"Check my post about AI automation"'
+```
+
+#### Sprint 3.2.4: Agentic RAG with CrewAI (1.5h)
+
+**Krok 1**: Dodaj Style Guide Agent
+```python
+# app.py - dodaj agenta
+style_guide_agent = Agent(
+    role="Style Guide Expert",
+    goal="Validate content against Vector Wave style guide using intelligent reasoning",
+    backstory="Expert in editorial standards who understands context and nuance",
+    verbose=True,
+    llm=llm
+)
+
+@app.post("/api/style-guide/check-agentic", tags=["content"])
+async def check_style_agentic(
+    content: str, 
+    platform: str = "LinkedIn",
+    context: Optional[str] = None
+):
+    """Agentic RAG style check - intelligent analysis"""
+    if not chroma_client:
+        return {"status": "error", "message": "ChromaDB not connected"}
+    
+    # First get relevant rules from ChromaDB
+    collection = chroma_client.get_collection("style_guide")
+    results = collection.query(
+        query_texts=[content],
+        n_results=5,
+        where={"platform": platform}
+    )
+    
+    # Create task for agent
+    style_task = Task(
+        description=f"""
+        Analyze this content for style guide compliance:
+        
+        Content: {content}
+        Platform: {platform}
+        Context: {context or 'General post'}
+        
+        Relevant style rules from database:
+        {json.dumps(results['documents'][0] if results['documents'] else [])}
+        
+        Provide:
+        1. Overall compliance score (0-100)
+        2. Specific violations with severity
+        3. Improvement suggestions
+        4. Why these rules matter for this context
+        """,
+        agent=style_guide_agent,
+        expected_output="Detailed style analysis with reasoning"
+    )
+    
+    # Execute with CrewAI
+    crew = Crew(agents=[style_guide_agent], tasks=[style_task])
+    result = crew.kickoff()
+    
+    return {
+        "analysis": str(result),
+        "method": "agentic_rag",
+        "rules_considered": len(results['documents'][0]) if results['documents'] else 0
+    }
+```
+
+**Krok 2**: Dodaj multi-hop reasoning
+```python
+@app.post("/api/style-guide/validate-draft", tags=["content"])
+async def validate_draft_style(request: GenerateDraftRequest):
+    """Full draft validation with multi-hop style checking"""
+    
+    # Step 1: Quick naive check
+    naive_check = await check_style_naive(
+        request.content.title, 
+        request.content.platform
+    )
+    
+    # Step 2: If issues found, do deep agentic check
+    if naive_check["distances"][0][0] < 0.5:  # High similarity to rules
+        agentic_check = await check_style_agentic(
+            request.content.title,
+            request.content.platform,
+            f"Content type: {request.content.content_type}"
+        )
+        
+        return {
+            "needs_revision": True,
+            "naive_rules": naive_check["relevant_rules"],
+            "agentic_analysis": agentic_check["analysis"],
+            "recommendation": "Consider revising based on style guide"
+        }
+    
+    return {
+        "needs_revision": False,
+        "message": "Style check passed"
+    }
+```
+
+**Test**:
+```bash
+# Test agentic RAG
+curl -X POST http://localhost:8003/api/style-guide/check-agentic \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Hey guys! Check out this AMAZING AI tool!!!!! 🚀🔥💯🎉",
+    "platform": "LinkedIn",
+    "context": "Professional announcement"
+  }'
+
+# Should return intelligent analysis explaining why this violates style
+```
+
+#### Sprint 3.2.5: Production Docker Compose (30 min)
+
+**Final docker-compose.production.yml**:
+```yaml
+version: '3.8'
+
+services:
+  ai-writing-flow:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    ports:
+      - "8003:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - CHROMADB_URL=http://chromadb:8000
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  chromadb:
+    image: chromadb/chroma:latest
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - ANONYMIZED_TELEMETRY=false
+      - PERSIST_DIRECTORY=/chroma/chroma
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  chroma_data:
+```
+
+### Metryki sukcesu każdego sprintu:
+
+1. **Sprint 3.2.1**: `curl /api/cache-test` zwraca `{"status": "ok"}`
+2. **Sprint 3.2.2**: Drugie wywołanie `/api/analyze-potential` ma `from_cache: true`
+3. **Sprint 3.2.3**: `/api/style-guide/check` zwraca relevantne reguły
+4. **Sprint 3.2.4**: `/api/style-guide/check-agentic` zwraca inteligentną analizę
+5. **Sprint 3.2.5**: `docker-compose -f docker-compose.production.yml up` startuje wszystko
     `ports:`
       `- "80:80"`
     `volumes:`
