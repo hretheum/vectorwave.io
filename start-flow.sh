@@ -40,8 +40,11 @@ trap cleanup EXIT INT TERM
 
 # Start backend with Flow
 echo "📡 Starting backend server with CrewAI Flow..."
-# Check for Python virtual environment
-if [ -d "ai_publishing_cycle/.venv" ]; then
+# Use ai_writing_flow venv which has CrewAI installed
+if [ -d "ai_writing_flow/venv" ]; then
+    echo "🐍 Activating ai_writing_flow virtual environment (has CrewAI)..."
+    source ai_writing_flow/venv/bin/activate
+elif [ -d "ai_publishing_cycle/.venv" ]; then
     echo "🐍 Activating backend virtual environment..."
     source ai_publishing_cycle/.venv/bin/activate
 elif [ -d ".venv" ]; then
@@ -49,7 +52,7 @@ elif [ -d ".venv" ]; then
     source .venv/bin/activate
 fi
 
-cd ai_publishing_cycle && USE_CREWAI_FLOW=true python src/ai_publishing_cycle/copilot_backend.py &
+cd ai_publishing_cycle && PYTHONPATH=../ai_writing_flow/src:$PYTHONPATH USE_CREWAI_FLOW=true python src/ai_publishing_cycle/copilot_backend.py &
 BACKEND_PID=$!
 cd "$SCRIPT_DIR"
 

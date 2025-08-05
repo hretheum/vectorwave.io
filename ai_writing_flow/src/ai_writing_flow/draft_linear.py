@@ -14,7 +14,7 @@ from ai_writing_flow.models.flow_stage import FlowStage
 from ai_writing_flow.managers.stage_manager import StageManager
 from ai_writing_flow.utils.circuit_breaker import StageCircuitBreaker, CircuitBreakerError
 from ai_writing_flow.flow_inputs import FlowPathConfig
-from ai_writing_flow.crewai_flow.flows.standard_content_flow import StandardContentFlow
+# Moved StandardContentFlow import to function level to avoid circular import
 
 logger = logging.getLogger(__name__)
 
@@ -383,10 +383,21 @@ class LinearDraftExecutor:
             return None
     
     def _process_with_crewai_flow(self, source_content: str, writing_state) -> str:
-        """Process source content using official CrewAI StandardContentFlow"""
+        """Process source content using CrewAI agents"""
         
         try:
-            logger.info("🤖 Initializing CrewAI StandardContentFlow for content processing")
+            logger.info("🤖 Processing source content with CrewAI agents")
+            
+            # For ORIGINAL content with skip_research, use direct agent approach
+            if writing_state.skip_research and writing_state.content_ownership == "ORIGINAL":
+                logger.info("📝 Using direct agent processing for ORIGINAL content (skip_research=True)")
+                return self._process_with_writing_agent(source_content, writing_state)
+            
+            # For other content, use full StandardContentFlow
+            logger.info("🔄 Using StandardContentFlow for full pipeline processing")
+            
+            # Import here to avoid circular dependency
+            from ai_writing_flow.crewai_flow.flows.standard_content_flow import StandardContentFlow
             
             # Initialize StandardContentFlow - prawdziwy multi-agent CrewAI Flow
             content_flow = StandardContentFlow(config={
@@ -449,6 +460,62 @@ class LinearDraftExecutor:
             themes.extend(['social_media', 'content_strategy'])
         
         return themes if themes else ['general_content']
+    
+    def _process_with_writing_agent(self, source_content: str, writing_state) -> str:
+        """Process content directly with writing agent (skip research)"""
+        
+        try:
+            logger.info("✍️ Processing with direct writing agent")
+            
+            # For now, use simple processing without full CrewAI
+            # TODO: Implement proper agent after fixing imports
+            logger.info("📝 Using simplified processing for ORIGINAL content")
+            
+            # Use existing agents from crewai_flow
+            from ai_writing_flow.crewai_flow.agents.writer_agent import WriterAgent
+            from ai_writing_flow.crewai_flow.tasks.writing_task import WritingTask
+            
+            # Create writer agent with configuration
+            writer_agent = WriterAgent(config={
+                'platform': writing_state.platform,
+                'verbose': True,
+                'style': 'engaging',
+                'tone': 'conversational' if writing_state.platform == 'Twitter' else 'professional'
+            })
+            
+            # Create writing task
+            writing_task = WritingTask(
+                agent=writer_agent.agent,
+                config={
+                    'platform': writing_state.platform,
+                    'word_count': 1500 if writing_state.platform == 'Blog' else 500,
+                    'include_cta': True
+                }
+            )
+            
+            # Execute task with source content
+            task_result = writing_task.execute(
+                topic_title=writing_state.topic_title,
+                source_content=source_content,
+                platform=writing_state.platform,
+                editorial_recommendations=getattr(writing_state, 'editorial_recommendations', 'Transform source content maintaining all key points')
+            )
+            
+            # Extract result
+            if hasattr(task_result, 'draft'):
+                final_content = task_result.draft
+            elif hasattr(task_result, 'content'):
+                final_content = task_result.content
+            else:
+                final_content = str(task_result)
+            
+            logger.info(f"✅ Writing agent completed - generated {len(final_content)} characters")
+            return final_content
+            
+        except Exception as e:
+            logger.error(f"❌ Writing agent failed: {str(e)}")
+            # Fallback to formatted source content
+            return f"# {writing_state.topic_title}\n\n{source_content}\n\n---\n\n*Writing agent error: {str(e)}*"
     
     def _determine_review_requirement(self, writing_state, result: DraftGenerationResult) -> bool:
         """Determine if human review is required"""
