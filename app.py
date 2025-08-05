@@ -479,13 +479,15 @@ async def analyze_content(request: AnalyzeContentRequest):
         # Przeczytaj zawartość plików (uproszczona analiza)
         content_analysis = {
             "folder": folder_name,
-            "totalFiles": len(md_files),
+            "filesCount": len(md_files),  # Frontend oczekuje filesCount
+            "totalFiles": len(md_files),  # Zachowaj dla kompatybilności
             "mdFiles": md_files,
             "analysisDate": datetime.now().isoformat(),
             "contentType": "ORIGINAL",  # Zakładamy że to content własny
             "suggestedPlatform": "LinkedIn",
-            "topTopics": [],
-            "viralPotential": 7.5,
+            "topTopics": [],  # Zostanie wypełnione poniżej
+            "valueScore": 7.5,  # Frontend oczekuje valueScore
+            "viralPotential": 7.5,  # Zachowaj dla kompatybilności
             "audienceAlignment": 8.0,
             "contentOwnership": "ORIGINAL"
         }
@@ -496,19 +498,44 @@ async def analyze_content(request: AnalyzeContentRequest):
             with open(first_file, 'r', encoding='utf-8') as f:
                 content = f.read()[:1000]  # Pierwsze 1000 znaków
                 
-                # Prosta analiza tematów (mock)
+                # Prosta analiza tematów (frontend oczekuje obiektów z title, platform, viralScore)
                 if "adhd" in content.lower():
-                    content_analysis["topTopics"] = ["ADHD", "Mental Health", "Productivity"]
+                    content_analysis["topTopics"] = [
+                        {"title": "ADHD w pracy", "platform": "LinkedIn", "viralScore": 8.5},
+                        {"title": "Mental Health Tips", "platform": "Twitter", "viralScore": 7.8},
+                        {"title": "Productivity Hacks", "platform": "LinkedIn", "viralScore": 8.2}
+                    ]
+                    content_analysis["valueScore"] = 8.5
                 elif "knowledge" in content.lower():
-                    content_analysis["topTopics"] = ["Knowledge Management", "AI", "Technology"]
+                    content_analysis["topTopics"] = [
+                        {"title": "AI Knowledge Management", "platform": "LinkedIn", "viralScore": 9.1},
+                        {"title": "Tech Architecture", "platform": "Twitter", "viralScore": 7.5},
+                        {"title": "Development Patterns", "platform": "LinkedIn", "viralScore": 8.0}
+                    ]
+                    content_analysis["valueScore"] = 8.8
                 elif "brain" in content.lower():
-                    content_analysis["topTopics"] = ["Brainstorming", "Strategy", "Planning"]
+                    content_analysis["topTopics"] = [
+                        {"title": "Strategic Planning", "platform": "LinkedIn", "viralScore": 7.2},
+                        {"title": "Creative Process", "platform": "Twitter", "viralScore": 6.8},
+                        {"title": "Team Brainstorming", "platform": "LinkedIn", "viralScore": 7.5}
+                    ]
+                    content_analysis["valueScore"] = 7.2
                 else:
-                    content_analysis["topTopics"] = ["General", "Content", "Writing"]
+                    content_analysis["topTopics"] = [
+                        {"title": "Content Creation", "platform": "LinkedIn", "viralScore": 6.5},
+                        {"title": "Writing Tips", "platform": "Twitter", "viralScore": 6.0},
+                        {"title": "Marketing Strategy", "platform": "LinkedIn", "viralScore": 7.0}
+                    ]
+                    content_analysis["valueScore"] = 6.5
                     
         except Exception as e:
             print(f"Error reading file {first_file}: {e}")
-            content_analysis["topTopics"] = ["General", "Content", "Writing"]
+            content_analysis["topTopics"] = [
+                {"title": "General Content", "platform": "LinkedIn", "viralScore": 5.0},
+                {"title": "Content Writing", "platform": "Twitter", "viralScore": 4.5},
+                {"title": "Marketing", "platform": "LinkedIn", "viralScore": 5.5}
+            ]
+            content_analysis["valueScore"] = 5.0
         
         return content_analysis
         
