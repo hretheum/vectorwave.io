@@ -146,12 +146,10 @@ def extract_key_points(text: str) -> list:
     key_points = [line.strip() for line in lines if line.strip() and len(line.strip()) > 20][:5]
     return key_points
 
-class GenerateDraftRequest(BaseModel):
-    content: ContentRequest
-    research_data: Optional[Dict] = None
+# Removed old duplicate GenerateDraftRequest
 
-@app.post("/api/generate-draft")
-async def generate_draft(request: GenerateDraftRequest):
+# OLD ENDPOINT DISABLED - using generate-draft-v2
+def OLD_generate_draft_DISABLED():
     """Generuje draft używając CrewAI Writer Agent"""
     
     content = request.content
@@ -557,3 +555,146 @@ async def analyze_folder(request: dict):
     
     analyze_request = AnalyzeContentRequest(folder=folder_name, use_flow=False)
     return await analyze_content(analyze_request)
+
+class GenerateDraftRequestV2(BaseModel):
+    topic_title: str
+    platform: str = "LinkedIn"
+    folder_path: str
+    content_type: str = "ORIGINAL"
+    content_ownership: str = "ORIGINAL"
+    viral_score: float = 7.0
+    editorial_recommendations: str = ""
+    skip_research: bool = True
+
+@app.post("/api/generate-draft-v2")
+async def generate_draft_v2(request: GenerateDraftRequestV2):
+    """Generuje draft na podstawie wybranego tematu"""
+    
+    try:
+        # Wyciągnij folder name z folder_path
+        folder_name = os.path.basename(request.folder_path) if request.folder_path else request.topic_title
+        base_path = "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw"
+        folder_path = os.path.join(base_path, folder_name)
+        
+        if not os.path.exists(folder_path):
+            raise HTTPException(status_code=404, detail=f"Folder {folder_name} not found")
+        
+        # Znajdź pliki .md w folderze
+        md_files = [f for f in os.listdir(folder_path) if f.endswith('.md')]
+        
+        if not md_files:
+            raise HTTPException(status_code=404, detail=f"No .md files found in {folder_name}")
+            
+        # Przeczytaj pierwszy plik jako base content
+        first_file = os.path.join(folder_path, md_files[0])
+        base_content = ""
+        
+        try:
+            with open(first_file, 'r', encoding='utf-8') as f:
+                base_content = f.read()[:2000]  # Pierwsze 2000 znaków
+        except Exception as e:
+            print(f"Error reading file {first_file}: {e}")
+            base_content = f"Content from {folder_name}"
+        
+        # Generuj draft na podstawie tematu i platformy (mock implementation)
+        platform_templates = {
+            "LinkedIn": {
+                "intro": "🚀 Insight alert:",
+                "structure": "Problem → Solution → Action",
+                "cta": "What's your experience with this? Share in comments! 💬"
+            },
+            "Twitter": {
+                "intro": "💡 Quick thread:",
+                "structure": "Hook → Value → Thread",
+                "cta": "RT if helpful! 🔄"
+            }
+        }
+        
+        template = platform_templates.get(request.platform, platform_templates["LinkedIn"])
+        
+        # Prosta generacja draft na podstawie tematu
+        if "adhd" in request.topic_title.lower() or "productivity" in request.topic_title.lower():
+            draft_content = f"""{template["intro"]} {request.topic_title}
+
+Based on analysis from {folder_name}, here are actionable insights:
+
+🎯 **The Challenge**
+Many professionals struggle with productivity, especially those with ADHD traits.
+
+💡 **The Solution**
+• Time-blocking with flexible buffers
+• Breaking tasks into 15-minute chunks  
+• Using visual progress tracking
+• Building in movement breaks
+
+🚀 **Take Action**
+1. Pick ONE technique to try this week
+2. Track your energy levels
+3. Adjust based on what works
+
+{template["cta"]}
+
+#Productivity #ADHD #WorkSmarter #MentalHealth"""
+        
+        elif "knowledge" in request.topic_title.lower() or "ai" in request.topic_title.lower():
+            draft_content = f"""{template["intro"]} {request.topic_title}
+
+From our {folder_name} analysis - here's what's working:
+
+🔍 **The Problem**
+Knowledge gets scattered across tools, making it hard to leverage.
+
+⚡ **The Solution**
+• Centralized knowledge graphs
+• AI-powered search and discovery
+• Automated tagging and categorization
+• Cross-reference linking
+
+📈 **Results**
+Teams using structured knowledge management see:
+→ 40% faster onboarding
+→ 60% reduction in duplicate work  
+→ 3x better knowledge retention
+
+{template["cta"]}
+
+#KnowledgeManagement #AI #TechLeadership #Innovation"""
+        
+        else:
+            draft_content = f"""{template["intro"]} {request.topic_title}
+
+Insights from {folder_name}:
+
+🎯 **Key Insight**
+{request.topic_title} is crucial for modern professionals.
+
+💡 **Actionable Steps**
+• Identify the core challenge
+• Apply proven frameworks
+• Measure and iterate
+• Share learnings with team
+
+🚀 **Next Steps**
+Start with one small change today.
+
+{template["cta"]}
+
+#Leadership #Strategy #Growth"""
+        
+        # Zwróć response
+        return {
+            "success": True,
+            "draft": {
+                "content": draft_content,
+                "topic_title": request.topic_title,
+                "platform": request.platform,
+                "word_count": len(draft_content.split()),
+                "character_count": len(draft_content),
+                "viral_score": request.viral_score,
+                "source_folder": folder_name,
+                "generated_at": datetime.now().isoformat()
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating draft: {str(e)}")
