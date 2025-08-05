@@ -48,6 +48,28 @@
   - Fact checking integration
   - Source verification
   - Quality scoring system
+
+### Sprint 3.3: Custom Ideas Analysis (NEW)
+
+#### Sprint 3.3.1: Backend Implementation (2h)
+- [ ] Dodaj endpoint /api/analyze-custom-ideas
+- [ ] Implementuj analyze_folder_content helper
+- [ ] Dodaj caching z Redis (5 min TTL)
+- [ ] Integracja z AI dla oceny pomysłów w kontekście folderu
+
+#### Sprint 3.3.2: Frontend Implementation (3h)
+- [ ] Dodaj przycisk "Mam swoje propozycje" pod wynikami analizy
+- [ ] Implementuj CustomIdeasEditor component z inline display
+- [ ] Obsługa Option+Enter (Alt+Enter) dla multiline input
+- [ ] Integracja z nowym API endpoint
+- [ ] Display wyników analizy w czacie
+
+#### Sprint 3.3.3: Testing & Polish (1h)
+- [ ] Test różnych kombinacji pomysłów
+- [ ] Test cache behavior
+- [ ] Test keyboard shortcuts (Option+Enter)
+- [ ] Edge cases (puste pomysły, długie listy)
+- [ ] Polish UI/UX transitions
   - Assessment events
 #### Tydzień 4: Frontend Foundation
 - [ ] **Day 22-24**: React Setup z CopilotKit
