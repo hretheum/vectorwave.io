@@ -13,3 +13,6 @@
 [submodule "linkedin"]
 	path = linkedin
 	url = git@github.com:hretheum/vector-wave-linkedin.git
+[submodule "presenton"]
+	path = presenton
+	url = git@github.com:hretheum/vector-wave-presenton.git

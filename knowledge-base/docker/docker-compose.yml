@@ -1,12 +1,10 @@
-version: '3.8'
-
 services:
   knowledge-base:
     build: 
       context: ..
       dockerfile: docker/Dockerfile
     ports:
-      - "8080:8080"
+      - "8082:8080"
       - "9090:9090"                   # Prometheus metrics
     environment:
       - KB_CONFIG_PATH=/app/config/knowledge_base.yaml
@@ -54,7 +52,7 @@ services:
       - CHROMA_SERVER_HTTP_PORT=8000
       - CHROMA_DB_IMPL=clickhouse
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/heartbeat"]
       interval: 30s
       timeout: 10s
       retries: 3
