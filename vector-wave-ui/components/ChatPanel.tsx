@@ -122,78 +122,19 @@ async function analyzeIdeasWithProgress(
 
               case 'complete':
                 console.log('🎉 SSE Complete event:', data);
-                // Show final results
-                const bestScore = data.best_idea?.overall_score ? (data.best_idea.overall_score * 10).toFixed(1) : '0';
-                const scoreEmoji = parseFloat(bestScore) >= 7 ? '✅' : parseFloat(bestScore) >= 5 ? '⚠️' : '❌';
                 
+                // Update loading message to show completion
                 setMessages(prev => prev.map(msg => 
                   msg.id === loadingMsgId 
                     ? {
                         ...msg,
-                        content: `✅ **Analiza zakończona!**\n\n🥇 **${data.best_idea?.idea || 'Brak'}\n**Ocena:** ${bestScore}/10 ${scoreEmoji}\n\n${data.best_idea?.recommendation || 'Brak rekomendacji'}${data.best_idea?.suggested_angle ? `\n\n💡 **Sugerowany angle:** ${data.best_idea.suggested_angle}` : ''}`,
-                        contextActions: data.best_idea ? [{
-                          label: '✍️ Wygeneruj draft',
-                          action: async () => {
-                            const generatingMsgId = `draft-${Date.now()}`;
-                            setMessages(prev => [...prev, {
-                              id: generatingMsgId,
-                              role: 'assistant',
-                              content: `🚧 Generowanie draftu...\n\n**Temat:** ${data.best_idea.idea}\n**Platforma:** ${platform}\n**Folder:** ${folder}\n\n⏳ Uruchamiam AI Writing Flow...`,
-                              timestamp: new Date()
-                            }]);
-                            
-                            try {
-                              const response = await fetch('/api/generate-draft', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  topic_title: data.best_idea.idea,
-                                  platform: platform,
-                                  folder_path: folder,
-                                  content_type: 'STANDALONE',
-                                  content_ownership: 'ORIGINAL',
-                                  viral_score: data.best_idea.viral_score * 10,
-                                  editorial_recommendations: data.best_idea.recommendation || '',
-                                  skip_research: true
-                                })
-                              });
-                              
-                              const genData = await response.json();
-                              
-                              if (genData.success && genData.draft) {
-                                setMessages(prev => prev.map(msg => 
-                                  msg.id === generatingMsgId 
-                                    ? { 
-                                        ...msg, 
-                                        content: `✅ Draft gotowy!\n\n**${data.best_idea.idea}** (${platform})\n\n${genData.draft.content}\n\n📊 Metryki:\n• Słowa: ${genData.draft.word_count}\n• Znaki: ${genData.draft.character_count}`,
-                                        contextActions: [{
-                                          label: '📝 Edytuj draft',
-                                          action: () => {
-                                            if (onEditDraft) {
-                                              onEditDraft(genData.draft.content, data.best_idea.idea, platform);
-                                            }
-                                          }
-                                        }]
-                                      }
-                                    : msg
-                                ));
-                              }
-                            } catch (error) {
-                              console.error('Draft generation error:', error);
-                              setMessages(prev => prev.map(msg => 
-                                msg.id === generatingMsgId 
-                                  ? { ...msg, content: `❌ Błąd generowania draftu: ${error instanceof Error ? error.message : 'Nieznany błąd'}` }
-                                  : msg
-                              ));
-                            }
-                          }
-                        }] : []
+                        content: `✅ **Analiza zakończona!**\n\nPrzeanalizowano ${data.total_analyzed} pomysłów.`
                       }
                     : msg
                 ));
 
                 // Add detailed results as separate messages
-                if (analyzedResults.length > 1) {
+                if (analyzedResults.length > 0) {
                   // First add a summary message
                   setTimeout(() => {
                     setMessages(prev => [...prev, {
@@ -283,19 +224,50 @@ async function analyzeIdeasWithProgress(
               case 'cached_result':
                 // Handle cached results
                 const cachedData = data.data;
+                
+                // Update loading message
                 setMessages(prev => prev.map(msg => 
                   msg.id === loadingMsgId 
                     ? {
                         ...msg,
-                        content: `✅ Analiza zakończona (z cache)!\n\n**Najlepszy pomysł:** ${cachedData.best_idea?.idea || 'Brak'}\n**Ocena:** ${cachedData.best_idea?.overall_score ? (cachedData.best_idea.overall_score * 10).toFixed(1) : '0'}/10\n\n${cachedData.best_idea?.recommendation || ''}`,
-                        contextActions: cachedData.best_idea ? [{
+                        content: `✅ **Analiza zakończona (z cache)!**\n\nPrzeanalizowano ${cachedData.ideas?.length || 0} pomysłów.`
+                      }
+                    : msg
+                ));
+                
+                // Add results as separate messages
+                if (cachedData.ideas && cachedData.ideas.length > 0) {
+                  // Summary message
+                  setTimeout(() => {
+                    setMessages(prev => [...prev, {
+                      id: `custom-ideas-summary-${Date.now()}`,
+                      role: 'assistant',
+                      content: `📊 **Podsumowanie analizy ${cachedData.ideas.length} pomysłów:**`,
+                      timestamp: new Date()
+                    }]);
+                  }, 100);
+                  
+                  // Each idea as separate message
+                  cachedData.ideas.forEach((idea: any, idx: number) => {
+                    setTimeout(() => {
+                      const isFirst = idx === 0;
+                      const emoji = isFirst ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
+                      const overallScore = (idea.overall_score * 10).toFixed(1);
+                      const scoreEmoji = parseFloat(overallScore) >= 7 ? '✅' : parseFloat(overallScore) >= 5 ? '⚠️' : '❌';
+                      
+                      setMessages(prev => [...prev, {
+                        id: `custom-idea-cached-${idx}-${Date.now()}`,
+                        role: 'assistant',
+                        content: `${emoji} **${idea.idea}**\n\n${idea.recommendation || 'Brak rekomendacji'}\n\n**Ocena:** ${overallScore}/10 ${scoreEmoji}\n• Viral Score: ${(idea.viral_score * 10).toFixed(1)}/10\n• Dopasowanie: ${(idea.content_alignment * 10).toFixed(1)}/10\n• Materiał: ${(idea.available_material * 10).toFixed(1)}/10${idea.suggested_angle ? `\n\n💡 **Sugerowany angle:** ${idea.suggested_angle}` : ''}`,
+                        timestamp: new Date(),
+                        contextActions: [{
                           label: '✍️ Wygeneruj draft',
                           action: async () => {
                             const generatingMsgId = `draft-${Date.now()}`;
                             setMessages(prev => [...prev, {
                               id: generatingMsgId,
                               role: 'assistant',
-                              content: `🚧 Generowanie draftu...\n\n**Temat:** ${cachedData.best_idea.idea}\n**Platforma:** ${platform}\n**Folder:** ${folder}\n\n⏳ Uruchamiam AI Writing Flow...`,
+                              content: `🚧 Generowanie draftu...\n\n**Temat:** ${idea.idea}\n**Platforma:** ${platform}\n**Folder:** ${folder}\n\n⏳ Uruchamiam AI Writing Flow...`,
                               timestamp: new Date()
                             }]);
                             
@@ -304,13 +276,13 @@ async function analyzeIdeasWithProgress(
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
-                                  topic_title: cachedData.best_idea.idea,
+                                  topic_title: idea.idea,
                                   platform: platform,
                                   folder_path: folder,
                                   content_type: 'STANDALONE',
                                   content_ownership: 'ORIGINAL',
-                                  viral_score: cachedData.best_idea.viral_score * 10,
-                                  editorial_recommendations: cachedData.best_idea.recommendation || '',
+                                  viral_score: idea.viral_score * 10,
+                                  editorial_recommendations: idea.recommendation || '',
                                   skip_research: true
                                 })
                               });
@@ -322,12 +294,12 @@ async function analyzeIdeasWithProgress(
                                   msg.id === generatingMsgId 
                                     ? { 
                                         ...msg, 
-                                        content: `✅ Draft gotowy!\n\n**${cachedData.best_idea.idea}** (${platform})\n\n${genData.draft.content}\n\n📊 Metryki:\n• Słowa: ${genData.draft.word_count}\n• Znaki: ${genData.draft.character_count}`,
+                                        content: `✅ Draft gotowy!\n\n**${idea.idea}** (${platform})\n\n${genData.draft.content}\n\n📊 Metryki:\n• Słowa: ${genData.draft.word_count}\n• Znaki: ${genData.draft.character_count}`,
                                         contextActions: [{
                                           label: '📝 Edytuj draft',
                                           action: () => {
                                             if (onEditDraft) {
-                                              onEditDraft(genData.draft.content, cachedData.best_idea.idea, platform);
+                                              onEditDraft(genData.draft.content, idea.idea, platform);
                                             }
                                           }
                                         }]
@@ -344,10 +316,11 @@ async function analyzeIdeasWithProgress(
                               ));
                             }
                           }
-                        }] : []
-                      }
-                    : msg
-                ));
+                        }]
+                      }]);
+                    }, 200 + (idx * 150));
+                  });
+                }
                 break;
             }
           } catch (e) {
