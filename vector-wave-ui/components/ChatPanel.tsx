@@ -687,7 +687,7 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [], onEdi
   return (
     <div className={cn(
       "flex flex-col shadow-2xl border-0 overflow-hidden",
-      isDocked ? "h-full w-full" : "fixed bottom-4 right-4 w-96 h-[600px] z-50 rounded-lg"
+      isDocked ? "h-full w-full" : "fixed bottom-4 right-4 w-[500px] h-[600px] z-50 rounded-lg"
     )}>
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 text-white">

@@ -461,7 +461,7 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
         {editingDraft ? (
           <div className={cn(
             "transition-all duration-300",
-            chatDocked && "pr-96"
+            chatDocked && "pr-[33.33%]"
           )}>
             <DraftEditor
               initialDraft={editingDraft.draft}
@@ -474,7 +474,7 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
         ) : (
         <main className={cn(
           "container mx-auto px-4 py-8 transition-all duration-300",
-          chatDocked && "pr-96"
+          chatDocked && "pr-[33.33%]"
         )}>
         {/* Dashboard Header */}
         <div className="mb-8">
@@ -1054,7 +1054,7 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
       {/* Chat Panel - Docked (Fixed to viewport) */}
       {chatDocked && (
         <div 
-          className="fixed right-0 w-96 bg-white border-l border-gray-200 z-40"
+          className="fixed right-0 w-1/3 bg-white border-l border-gray-200 z-40"
           style={{ 
             top: '73px', 
             bottom: '57px',
