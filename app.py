@@ -274,17 +274,8 @@ async def seed_style_guide():
         
     except Exception as e:
         print(f"Error reading style guide files: {e}")
-        # Fall back to some basic rules
-        style_rules = [
-            {
-                "id": "fallback-1",
-                "rule": "Write in clear, conversational tone",
-                "category": "general",
-                "section": "Fallback",
-                "source_file": "fallback",
-                "priority": "high"
-            }
-        ]
+        # If we can't load style guides, we should fail fast
+        raise Exception(f"Failed to load style guides: {e}")
     
     # Clear existing rules
     try:
@@ -1170,13 +1161,41 @@ async def generate_draft(request: GenerateDraftRequest):
         llm=llm
     )
     
+    # Iterative style guide research - ALWAYS USE AGENTIC
+    print(f"🔍 Researching style guide for {content.platform} {content.content_type} content...")
+    style_research_start = time.time()
+    
+    # Use our iterative analysis
+    style_analysis_request = IterativeAnalysisRequest(
+        content=content.title,
+        platform=content.platform,
+        context=f"{content.content_type} content",
+        max_iterations=5
+    )
+    
+    style_analysis = await analyze_with_iterations(style_analysis_request)
+    
+    if style_analysis.get("status") == "success":
+        style_guide_context = f"""
+STYLE GUIDE ANALYSIS (discovered through {style_analysis['total_searches']} searches):
+{style_analysis['analysis']}
+
+Key rules discovered: {style_analysis['unique_rules_discovered']} unique patterns
+Style score baseline: {style_analysis['style_score']}/100
+"""
+        print(f"✅ Style guide research completed in {time.time() - style_research_start:.1f}s")
+    else:
+        # Minimal fallback if style analysis fails
+        style_guide_context = "Apply Vector Wave style guide best practices."
+        print(f"⚠️ Style guide research failed, using minimal fallback")
+    
     # Context z research (jeśli jest)
-    context = ""
+    context = style_guide_context
     if research_data and research_data.get("findings"):
-        context = f"Research findings: {research_data['findings']['summary']}"
+        context += f"\n\nResearch findings: {research_data['findings']['summary']}"
     elif request.skip_research or content.content_ownership == "ORIGINAL":
         # For ORIGINAL content, add context about using internal knowledge
-        context = """This is ORIGINAL content - use your internal knowledge and creativity.
+        context += """\n\nThis is ORIGINAL content - use your internal knowledge and creativity.
         No external research needed. Focus on creating engaging, authentic content.
         The author has their own materials and perspective on this topic."""
     
@@ -1189,10 +1208,12 @@ async def generate_draft(request: GenerateDraftRequest):
         {context}
         
         Requirements:
+        - Follow ALL discovered style guide rules above
         - Optimize for {content.platform} best practices
         - Target length: {"280 chars" if content.platform == "Twitter" else "500-1000 words"}
-        - Include engaging hook
-        - Add call to action
+        - Include engaging hook based on style guide patterns
+        - Add call to action as recommended by style guide
+        - Aim for style score of 90+ based on the analysis above
         """,
         agent=writer,
         expected_output=f"Complete {content.platform} post"
@@ -1225,7 +1246,13 @@ async def generate_draft(request: GenerateDraftRequest):
                 "content_type": content.content_type,
                 "used_research": research_data is not None,
                 "execution_time_seconds": round(execution_time, 2),
-                "optimization_applied": request.skip_research or content.content_ownership == "ORIGINAL"
+                "optimization_applied": request.skip_research or content.content_ownership == "ORIGINAL",
+                "style_guide_analysis": {
+                    "performed": style_analysis.get("status") == "success",
+                    "total_searches": style_analysis.get("total_searches", 0),
+                    "rules_discovered": style_analysis.get("unique_rules_discovered", 0),
+                    "baseline_score": style_analysis.get("style_score", 0)
+                }
             }
         }
     except Exception as e:
@@ -2686,6 +2713,27 @@ Napisz nową, ulepszoną wersję draftu."""
             # Use the existing AI Writing Flow
             print(f"🔄 Regenerating draft with suggestions: {suggestions[:100]}...")
             
+            # Iterative style guide analysis for the suggestions
+            print(f"🔍 Researching style guide for suggestions context...")
+            style_analysis_request = IterativeAnalysisRequest(
+                content=f"{topic_title} - {suggestions[:100]}",
+                platform=platform,
+                context=f"User wants to: {suggestions}",
+                max_iterations=3  # Fewer iterations for regeneration
+            )
+            
+            style_analysis = await analyze_with_iterations(style_analysis_request)
+            
+            style_context = ""
+            if style_analysis.get("status") == "success":
+                style_context = f"""
+STYLE GUIDE RECOMMENDATIONS (from {style_analysis['total_searches']} searches):
+{style_analysis['analysis']}
+
+Target style score: {max(style_analysis['style_score'] + 10, 90)}/100
+"""
+                print(f"✅ Style guide research completed with {style_analysis['unique_rules_discovered']} rules")
+            
             # For now, we'll use the style guide expert to rewrite the content
             from crewai import Agent, Task, Crew
             
@@ -2701,9 +2749,9 @@ Napisz nową, ulepszoną wersję draftu."""
             )
             
             rewrite_task = Task(
-                description=enhanced_prompt,
+                description=f"{enhanced_prompt}\n\n{style_context}",
                 agent=rewrite_agent,
-                expected_output="A rewritten draft that incorporates all user suggestions while maintaining or improving quality and engagement potential"
+                expected_output="A rewritten draft that incorporates all user suggestions while following the discovered style guide rules and maintaining or improving quality and engagement potential"
             )
             
             crew = Crew(
