@@ -384,6 +384,82 @@ const [text, setText] = useState('');
 - [ ] Cache behavior verification
 - [ ] Edge cases (long lists, special chars)
 
+### Phase 4: Step 6 - AI-Powered Dashboard Analysis with Preload
+
+#### Step 6a: Update analyze-potential endpoint (20 min)
+```python
+# Zastąp mock topics prawdziwą analizą AI
+async def generate_topics_with_ai(folder: str, folder_content: List[str]) -> List[Dict]:
+    """Generate topics using AI instead of mocks"""
+    # Use CrewAI Content Strategy Expert
+    # Return list of topics with scores
+```
+- [ ] Replace mock topic generation with AI
+- [ ] Use same CrewAI agent as custom ideas
+- [ ] Test with curl
+
+#### Step 6b: Create preload mechanism (25 min)
+```python
+# W app startup event
+@app.on_event("startup")
+async def preload_popular_folders():
+    """Preload analysis for common folders on startup"""
+    common_folders = ["distributed-tracing", "ai-agents", "crewai-flow"]
+    for folder in common_folders:
+        asyncio.create_task(preload_folder_analysis(folder))
+```
+- [ ] Add startup event handler
+- [ ] Define list of folders to preload
+- [ ] Create async preload function
+- [ ] Store results in Redis with longer TTL (30 min)
+
+#### Step 6c: Modify analyze-potential to check preload (15 min)
+```python
+@app.post("/api/analyze-potential")
+async def analyze_content_potential(request):
+    # First check if we have preloaded results
+    preload_key = f"preload:analyze:{request.folder}"
+    if redis_client:
+        preloaded = redis_client.get(preload_key)
+        if preloaded:
+            return json.loads(preloaded)
+    
+    # If not, generate on demand
+    return await generate_analysis_with_ai(request)
+```
+- [ ] Check for preloaded results first
+- [ ] Fall back to on-demand generation
+- [ ] Test preload hit vs generation
+
+#### Step 6d: Add monitoring for preload status (15 min)
+```python
+@app.get("/api/preload-status")
+async def get_preload_status():
+    """Check which folders are preloaded"""
+    return {
+        "preloaded_folders": [...],
+        "cache_ttl": {...},
+        "next_refresh": "..."
+    }
+```
+- [ ] Add endpoint to check preload status
+- [ ] Show which folders are ready
+- [ ] Display remaining TTL
+
+#### Step 6e: Auto-refresh mechanism (20 min)
+```python
+# Background task to refresh preloaded data
+async def refresh_preloaded_data():
+    """Refresh preloaded data before it expires"""
+    while True:
+        await asyncio.sleep(1200)  # 20 minutes
+        await preload_popular_folders()
+```
+- [ ] Create background refresh task
+- [ ] Run every 20 minutes (before 30min TTL)
+- [ ] Log refresh operations
+- [ ] Handle errors gracefully
+
 ## Future Enhancements
 
 1. **Batch Analysis Progress**

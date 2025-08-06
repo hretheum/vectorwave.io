@@ -931,6 +931,31 @@ class AnalyzePotentialRequest(BaseModel):
     folder: str
     use_flow: bool = False
 
+class CustomIdeasRequest(BaseModel):
+    """Request for analyzing custom topic ideas"""
+    folder: str
+    ideas: List[str]
+    platform: str = "LinkedIn"
+
+class IdeaAnalysis(BaseModel):
+    """Analysis result for a single idea"""
+    idea: str
+    viral_score: float
+    content_alignment: float
+    available_material: float
+    overall_score: float
+    recommendation: str
+    suggested_angle: Optional[str] = None
+
+class CustomIdeasResponse(BaseModel):
+    """Response with analyzed ideas"""
+    folder: str
+    platform: str
+    ideas: List[IdeaAnalysis]
+    best_idea: Optional[IdeaAnalysis] = None
+    folder_context: Dict[str, Any]
+    from_cache: bool = False
+
 @app.post("/api/analyze-potential", tags=["content"], 
          summary="Ultra-fast content analysis",
          response_description="Content analysis with viral score and topic suggestions")
@@ -1189,3 +1214,212 @@ async def verify_openai():
             "error": str(e),
             "api_key_configured": bool(os.getenv("OPENAI_API_KEY"))
         }
+
+async def analyze_folder_content(folder: str) -> Dict[str, Any]:
+    """
+    Analyze folder content - Step 2
+    For now returns enhanced mock data based on folder name
+    """
+    # Mock implementation - will be replaced with real folder analysis
+    folder_mocks = {
+        "distributed-tracing": {
+            "files": ["opentelemetry-intro.md", "jaeger-setup.md", "tracing-patterns.md"],
+            "main_topics": ["opentelemetry", "jaeger", "distributed systems", "observability"],
+            "technical_depth": "high",
+            "content_type": "technical guide"
+        },
+        "ai-agents": {
+            "files": ["crewai-basics.md", "agent-patterns.md", "multi-agent-systems.md"],
+            "main_topics": ["crewai", "agents", "AI coordination", "automation"],
+            "technical_depth": "medium",
+            "content_type": "implementation guide"
+        }
+    }
+    
+    # Return specific mock or default
+    if folder in folder_mocks:
+        return folder_mocks[folder]
+    else:
+        return {
+            "files": ["file1.md", "file2.md"],
+            "main_topics": ["general", "content"],
+            "technical_depth": "medium",
+            "content_type": "article"
+        }
+
+async def analyze_single_idea(idea: str, folder_context: Dict, platform: str) -> IdeaAnalysis:
+    """
+    Analyze single idea using Agentic RAG with Style Guide - Step 5
+    Uses our style guide expert to evaluate ideas for our specific audience
+    """
+    # First do quick static analysis for available material
+    file_count = len(folder_context.get("files", []))
+    available_material = min(0.9, 0.4 + (file_count * 0.1))
+    
+    # Prepare content for style guide analysis
+    content_with_context = f"""
+    Platform: {platform}
+    Folder: {folder_context.get("content_type", "unknown")}
+    Topics: {', '.join(folder_context.get("main_topics", []))}
+    
+    Proposed idea: {idea}
+    """
+    
+    try:
+        # Use our Agentic RAG for deep analysis
+        style_guide_expert = Agent(
+            role="Content Strategy Expert",
+            goal="Evaluate content ideas for viral potential and audience fit",
+            backstory="""You are an expert at evaluating content ideas for technical audiences.
+            You understand what makes content viral on different platforms and can assess
+            if an idea aligns with available material and audience interests.""",
+            verbose=False,
+            llm=llm
+        )
+        
+        evaluation_task = Task(
+            description=f"""
+            Evaluate this content idea for our technical audience:
+            {content_with_context}
+            
+            Consider:
+            1. Viral potential on {platform} (0-1 score)
+            2. Alignment with folder topics (0-1 score)
+            3. Specific recommendation
+            4. Suggested angle if needed
+            
+            Our audience: Technical leaders, developers, AI enthusiasts
+            Style: Pattern interrupts, specific numbers, controversial takes
+            
+            Return evaluation in this format:
+            VIRAL_SCORE: [number]
+            ALIGNMENT_SCORE: [number]
+            RECOMMENDATION: [text]
+            SUGGESTED_ANGLE: [text or none]
+            """,
+            agent=style_guide_expert,
+            expected_output="Structured evaluation with scores and recommendations"
+        )
+        
+        crew = Crew(
+            agents=[style_guide_expert],
+            tasks=[evaluation_task]
+        )
+        
+        result = crew.kickoff()
+        
+        # Parse AI response
+        result_text = str(result)
+        
+        # Extract scores with defaults
+        viral_score = 0.5
+        content_alignment = 0.5
+        
+        if "VIRAL_SCORE:" in result_text:
+            try:
+                viral_score = float(result_text.split("VIRAL_SCORE:")[1].split("\n")[0].strip())
+            except:
+                pass
+                
+        if "ALIGNMENT_SCORE:" in result_text:
+            try:
+                content_alignment = float(result_text.split("ALIGNMENT_SCORE:")[1].split("\n")[0].strip())
+            except:
+                pass
+        
+        # Extract recommendation
+        recommendation = "AI analysis completed"
+        if "RECOMMENDATION:" in result_text:
+            recommendation = result_text.split("RECOMMENDATION:")[1].split("\n")[0].strip()
+        
+        # Extract suggested angle
+        suggested_angle = None
+        if "SUGGESTED_ANGLE:" in result_text:
+            angle = result_text.split("SUGGESTED_ANGLE:")[1].split("\n")[0].strip()
+            if angle.lower() not in ["none", "n/a", ""]:
+                suggested_angle = angle
+        
+        # Calculate overall score
+        overall_score = (viral_score * 0.5 + content_alignment * 0.35 + available_material * 0.15)
+        
+    except Exception as e:
+        print(f"⚠️ AI analysis failed, falling back to static: {e}")
+        # Fallback to simple static scoring
+        viral_score = 0.6
+        content_alignment = 0.7
+        overall_score = 0.65
+        recommendation = "Analysis based on static patterns"
+        suggested_angle = None
+    
+    return IdeaAnalysis(
+        idea=idea,
+        viral_score=round(viral_score, 2),
+        content_alignment=round(content_alignment, 2),
+        available_material=round(available_material, 2),
+        overall_score=round(overall_score, 2),
+        recommendation=recommendation,
+        suggested_angle=suggested_angle
+    )
+
+@app.post("/api/analyze-custom-ideas", tags=["content"],
+         summary="Analyze user's custom topic ideas",
+         response_description="Analysis of custom ideas in folder context")
+async def analyze_custom_ideas(request: CustomIdeasRequest):
+    """
+    Analyze user's custom topic ideas in context of folder content
+    Step 4: Added Redis caching
+    """
+    # Step 4: Generate cache key
+    cache_key = f"custom_ideas:{request.folder}:{request.platform}:{hashlib.md5(':'.join(sorted(request.ideas)).encode()).hexdigest()}"
+    
+    # Check cache
+    if redis_client:
+        try:
+            cached = redis_client.get(cache_key)
+            if cached:
+                print(f"✅ Cache hit for custom ideas: {cache_key}")
+                result = json.loads(cached)
+                result["from_cache"] = True
+                return result
+        except Exception as e:
+            print(f"⚠️ Redis cache error: {e}")
+    
+    # Get folder context
+    folder_context = await analyze_folder_content(request.folder)
+    
+    # Analyze each idea with context
+    analyzed_ideas = []
+    for idea in request.ideas:
+        analysis = await analyze_single_idea(idea, folder_context, request.platform)
+        analyzed_ideas.append(analysis)
+    
+    # Sort by overall score
+    analyzed_ideas.sort(key=lambda x: x.overall_score, reverse=True)
+    
+    response = CustomIdeasResponse(
+        folder=request.folder,
+        platform=request.platform,
+        ideas=analyzed_ideas,
+        best_idea=analyzed_ideas[0] if analyzed_ideas else None,
+        folder_context={
+            "total_files": len(folder_context.get("files", [])),
+            "main_topics": folder_context.get("main_topics", []),
+            "content_type": folder_context.get("content_type", "unknown"),
+            "technical_depth": folder_context.get("technical_depth", "medium")
+        },
+        from_cache=False
+    )
+    
+    # Step 4: Cache the result
+    if redis_client:
+        try:
+            redis_client.setex(
+                cache_key,
+                300,  # 5 minutes TTL
+                json.dumps(response.dict())
+            )
+            print(f"📝 Cached custom ideas analysis: {cache_key}")
+        except Exception as e:
+            print(f"⚠️ Failed to cache result: {e}")
+    
+    return response

@@ -70,7 +70,14 @@
 - [ ] **Step 2** (15min): UI transitions + responsive design
 - [ ] **Step 3** (20min): Integration tests + edge cases
 
-**Total: ~4h w małych, testowalnych krokach**
+#### Phase 4: AI-Powered Dashboard with Preload (1.5h)
+- [ ] **Step 6a** (20min): Update analyze-potential z AI zamiast mocks
+- [ ] **Step 6b** (25min): Create preload mechanism na startup
+- [ ] **Step 6c** (15min): Modify endpoint dla preload check
+- [ ] **Step 6d** (15min): Add preload status monitoring
+- [ ] **Step 6e** (20min): Auto-refresh background task
+
+**Total: ~5.5h w małych, testowalnych krokach**
   - Assessment events
 #### Tydzień 4: Frontend Foundation
 - [ ] **Day 22-24**: React Setup z CopilotKit
