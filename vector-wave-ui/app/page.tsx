@@ -23,7 +23,6 @@ export default function Home() {
   const [reportContent, setReportContent] = useState<string>('');
   const [reportCopied, setReportCopied] = useState(false);
   const [generatingDrafts, setGeneratingDrafts] = useState<Set<string>>(new Set());
-  const [useFullAnalysis, setUseFullAnalysis] = useState(false);
   const [chatDocked, setChatDocked] = useState(true);
   const [editingDraft, setEditingDraft] = useState<{draft: string, topic: string, platform: string} | null>(null);
   const [showFlowDiagnostics, setShowFlowDiagnostics] = useState(false);
@@ -296,53 +295,14 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
     console.log('🔄 State updated - isAnalyzing should be true now');
     
     try {
-      // Jeśli useFullAnalysis, użyj nowego endpointu CrewAI
-      if (useFullAnalysis) {
-        console.log('📤 Using new CrewAI tracked flow endpoint');
-        const response = await fetch('/api/crewai/execute-flow-tracked', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: folderName,
-            content_type: 'STANDARD',
-            platform: 'LinkedIn',
-            content_ownership: 'EXTERNAL'
-          })
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('✅ Flow tracked data:', data);
-          
-          // Otwórz diagnostykę w nowym komponencie
-          if (data.flow_id) {
-            setCurrentFlowId(data.flow_id);
-            setShowFlowDiagnostics(true);
-          }
-          
-          // Przygotuj wynik analizy na podstawie tracked flow
-          if (data.final_draft) {
-            setAnalysisResult({
-              folder: folderName,
-              flowId: data.flow_id,
-              flowExecuted: true,
-              finalDraft: data.final_draft,
-              diagnosticUrl: data.diagnostic_url
-            });
-            console.log('📊 Flow diagnostics available at:', data.diagnostic_url);
-            return;
-          }
-        }
-      }
       
-      // Fallback na nowy endpoint CrewAI
-      console.log('📤 Sending request to /api/crewai/analyze-content');
-      const response = await fetch('/api/crewai/analyze-content', {
+      // Use the main analyze endpoint
+      console.log('📤 Sending request to /api/analyze-potential');
+      const response = await fetch('/api/analyze-potential', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          folder: folderName,
-          use_flow: false 
+          folder: folderName
         })
       });
       
@@ -530,20 +490,9 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
                   Dostępne tematy ({folders.length})
                 </h2>
               </div>
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={useFullAnalysis}
-                    onChange={(e) => setUseFullAnalysis(e.target.checked)}
-                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-                  />
-                  <span className="text-sm text-gray-600">Uruchamiaj pełną analizę CrewAI</span>
-                </label>
-                <Badge variant="secondary">
-                  Ostatnia aktualizacja: {new Date().toLocaleTimeString('pl')}
-                </Badge>
-              </div>
+              <Badge variant="secondary">
+                Ostatnia aktualizacja: {new Date().toLocaleTimeString('pl')}
+              </Badge>
             </div>
             
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
