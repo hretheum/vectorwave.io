@@ -1062,6 +1062,19 @@ class CustomIdeasResponse(BaseModel):
     ideas: List[IdeaAnalysis]
     best_idea: Optional[IdeaAnalysis] = None
     folder_context: Dict[str, Any]
+
+class ChatRequest(BaseModel):
+    """Request for AI Assistant chat"""
+    message: str
+    context: Optional[Dict[str, Any]] = {}
+    session_id: Optional[str] = None
+
+class ChatResponse(BaseModel):
+    """Response from AI Assistant"""
+    response: str
+    intent: Optional[str] = None
+    context_actions: Optional[List[Dict[str, Any]]] = []
+    error: Optional[str] = None
     from_cache: bool = False
 
 @app.post("/api/analyze-potential", tags=["content"], 
@@ -2140,3 +2153,119 @@ async def analyze_custom_ideas_stream(request: CustomIdeasRequest):
             "X-Accel-Buffering": "no"  # Disable nginx buffering
         }
     )
+
+@app.post("/api/chat", tags=["assistant"],
+         summary="Chat with AI Assistant",
+         response_model=ChatResponse,
+         description="Chat endpoint for AI Assistant that can help with draft editing and content strategy")
+async def chat_with_assistant(request: ChatRequest):
+    """
+    Chat endpoint for AI Assistant with real OpenAI integration
+    
+    Step 2 implementation - uses GPT-4 for intelligent responses
+    """
+    try:
+        # Log for debugging
+        print(f"💬 Chat request: {request.message}")
+        print(f"📎 Context keys: {list(request.context.keys()) if request.context else []}")
+        
+        # Build context information if provided
+        context_info = ""
+        if request.context:
+            if request.context.get("currentDraft"):
+                context_info += f"\n\n**AKTUALNY DRAFT:**\n{request.context['currentDraft']}\n"
+            
+            if request.context.get("topicTitle"):
+                context_info += f"\n**TEMAT:** {request.context['topicTitle']}\n"
+            
+            if request.context.get("platform"):
+                context_info += f"**PLATFORMA:** {request.context['platform']}\n"
+            
+            if request.context.get("metrics"):
+                metrics = request.context['metrics']
+                context_info += f"\n**METRYKI:**"
+                if 'quality_score' in metrics:
+                    context_info += f"\n- Jakość: {metrics['quality_score']}/10"
+                if 'viral_score' in metrics:
+                    context_info += f"\n- Potencjał viralowy: {metrics['viral_score']}/10"
+                if 'compliance_score' in metrics:
+                    context_info += f"\n- Zgodność ze stylem: {metrics['compliance_score']}/10"
+                context_info += "\n"
+        
+        # System prompt for Vector Wave AI Assistant
+        system_prompt = f"""Jesteś AI Assistantem Vector Wave - inteligentnym partnerem do rozmowy o content marketingu, strategii publikacji i tworzeniu angażujących treści.
+
+Twoje cechy:
+- Jesteś przyjacielski, pomocny i konkretny
+- Znasz się na marketingu, social media, SEO i content strategy
+- Rozumiesz polski i odpowiadasz po polsku
+- Możesz rozmawiać na różne tematy, nie tylko biznesowe
+- Jesteś kreatywny i potrafisz doradzać
+
+Odpowiadaj naturalnie, bez sztuczności. Jeśli user pyta o coś niezwiązanego z pracą, po prostu podejmij temat.
+{context_info if context_info else ""}"""
+
+        # Create messages for OpenAI
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": request.message}
+        ]
+        
+        # Call OpenAI API
+        try:
+            response = await llm.ainvoke(messages)
+            ai_response = response.content
+            
+            print(f"✅ OpenAI response received, length: {len(ai_response)}")
+            
+        except Exception as openai_error:
+            print(f"❌ OpenAI API error: {openai_error}")
+            
+            # Check for specific errors
+            if "api_key" in str(openai_error).lower():
+                return ChatResponse(
+                    response="Brak klucza API OpenAI. Skonfiguruj OPENAI_API_KEY w pliku .env",
+                    intent=None,
+                    context_actions=[],
+                    error="missing_api_key"
+                )
+            elif "rate" in str(openai_error).lower() or "limit" in str(openai_error).lower():
+                return ChatResponse(
+                    response="Przekroczono limit API. Spróbuj za chwilę.",
+                    intent=None,
+                    context_actions=[],
+                    error="rate_limit"
+                )
+            else:
+                return ChatResponse(
+                    response=f"Błąd API: {str(openai_error)}",
+                    intent=None,
+                    context_actions=[],
+                    error="api_error"
+                )
+        
+        # Simple intent detection for now
+        intent = "general_question"
+        if any(word in request.message.lower() for word in ["analizuj", "sprawdź", "oceń"]):
+            intent = "analyze_request"
+        elif any(word in request.message.lower() for word in ["wygeneruj", "stwórz", "napisz"]):
+            intent = "generate_request"
+        
+        return ChatResponse(
+            response=ai_response,
+            intent=intent,
+            context_actions=[],
+            error=None
+        )
+        
+    except Exception as e:
+        print(f"❌ Chat error: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        return ChatResponse(
+            response=f"Wystąpił błąd: {str(e)}",
+            intent=None,
+            context_actions=[],
+            error=str(e)
+        )

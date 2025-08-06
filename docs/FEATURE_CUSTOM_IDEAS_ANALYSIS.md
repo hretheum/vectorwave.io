@@ -467,7 +467,7 @@ async def refresh_preloaded_data():
 ### ✅ 1. **Batch Analysis Progress** (COMPLETED - 2025-08-06)
    - Pokazuj progress bar podczas analizy wielu pomysłów
    - Streamuj wyniki jak są gotowe
-   
+
    **Implementation Details:**
    - Added `/api/analyze-custom-ideas-stream` endpoint with SSE (Server-Sent Events)
    - Real-time progress tracking with percentage (0-100%)
@@ -475,7 +475,7 @@ async def refresh_preloaded_data():
    - Frontend integration examples in `/docs/STREAMING_API_GUIDE.md`
    - Caching support for entire batch results (5 min TTL)
    - Individual error handling without stopping batch
-   
+
    **Testing:**
    ```bash
    curl -N -X POST http://localhost:8003/api/analyze-custom-ideas-stream \
@@ -504,3 +504,450 @@ async def refresh_preloaded_data():
      - Generate complementary suggestions
      - Use embeddings to find similar successful content
      - Provide "idea expansion" feature
+
+## Phase 5: AI Assistant Integration for Draft Editing
+
+### Overview
+Integrate intelligent AI Assistant that can understand user's editing intentions, analyze impact of changes using agentic RAG, and provide contextual suggestions with actionable buttons.
+
+### User Flow
+1. User generates draft and opens it in editor
+2. User types in chat: "Co sądzisz o dodatkowej sekcji o tym, że wykorzystujemy agentic RAG..."
+3. AI Assistant:
+   - Recognizes intent (draft modification suggestion)
+   - Analyzes impact on metrics using agentic RAG
+   - Provides analysis with scores
+   - Offers "Regenerate draft" button if appropriate
+
+### Technical Architecture
+```
+Frontend (ChatPanel) → /api/chat → OpenAI with Function Calling
+                                    ↓
+                        Tool Selection (dynamic)
+                                    ↓
+                    ┌───────────────┴───────────────┐
+                    ↓               ↓               ↓
+            analyze_impact   regenerate_draft   compare_versions
+                    ↓               ↓               ↓
+            Agentic RAG     AI Writing Flow    Style Guide Check
+```
+
+### Implementation Steps - Minimal Increments
+
+#### Step 1: Basic Chat Endpoint (20 min)
+Create `/api/chat` endpoint that echoes messages with mock AI response.
+
+```python
+@app.post("/api/chat")
+async def chat_with_assistant(request: ChatRequest):
+    return {
+        "response": f"Otrzymałem: {request.message}",
+        "intent": "unknown"
+    }
+```
+
+**Test:**
+```bash
+curl -X POST http://localhost:8003/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Test message", "context": {}}'
+```
+- [ ] Endpoint returns response
+- [ ] Frontend displays AI message
+- [ ] No errors in console
+
+#### Step 2: Add OpenAI Integration (30 min)
+Connect to OpenAI API with basic conversation.
+
+```python
+async def chat_with_assistant(request: ChatRequest):
+    response = await openai_client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": ASSISTANT_PROMPT},
+            {"role": "user", "content": request.message}
+        ]
+    )
+    return {"response": response.choices[0].message.content}
+```
+
+**Test:**
+- [ ] Chat with "Cześć, kim jesteś?"
+- [ ] Get intelligent response about being Vector Wave assistant
+- [ ] Response time < 3 seconds
+
+#### Step 3: Add Context Passing (25 min)
+Frontend sends draft context, backend includes it in prompt.
+
+```typescript
+// Frontend
+const response = await fetch('/api/chat', {
+  method: 'POST',
+  body: JSON.stringify({
+    message: userMessage,
+    context: {
+      currentDraft: editorContent,
+      topicTitle: currentTopic,
+      platform: currentPlatform,
+      metrics: currentMetrics
+    }
+  })
+})
+```
+
+**Test:**
+- [ ] Open draft in editor
+- [ ] Ask "Co sądzisz o tym drafcie?"
+- [ ] AI mentions specific content from draft
+- [ ] AI knows platform (LinkedIn/Twitter/Blog)
+
+#### Step 4: Intent Recognition (30 min)
+Add intent classification to understand user requests.
+
+```python
+INTENTS = {
+    "modify_draft": ["zmień", "dodaj", "usuń", "popraw", "edytuj", "zaktualizuj"],
+    "analyze_impact": ["jak wpłynie", "co sądzisz", "czy to poprawi", "przeanalizuj"],
+    "regenerate": ["wygeneruj ponownie", "stwórz nowy", "przepisz"]
+}
+
+def classify_intent(message: str) -> str:
+    # Simple keyword matching, later can use embeddings
+    for intent, keywords in INTENTS.items():
+        if any(keyword in message.lower() for keyword in keywords):
+            return intent
+    return "general_question"
+```
+
+**Test:**
+- [ ] "Dodaj sekcję o..." → intent: modify_draft
+- [ ] "Jak wpłynie to na score?" → intent: analyze_impact
+- [ ] "Wygeneruj ponownie z..." → intent: regenerate
+- [ ] "Cześć" → intent: general_question
+
+#### Step 5: Function Calling Setup (40 min)
+Define tools/functions for OpenAI to call when needed.
+
+**IMPORTANT**: AI should primarily be a conversational assistant. Tools are optional - only used when the user's request specifically requires them. Most conversations should be natural dialogue without tool calls.
+
+```python
+# System prompt emphasizing conversational nature
+ASSISTANT_PROMPT = """
+Jesteś AI Assistantem Vector Wave - inteligentnym partnerem do rozmowy o content marketingu.
+
+NAJWAŻNIEJSZE: Jesteś przede wszystkim konwersacyjnym assistentem. Możesz:
+- Rozmawiać na dowolne tematy związane z marketingiem, pisaniem, AI bądź czymkolwiek innym
+- Żartować, filozofować, doradzać
+- Odpowiadać na pytania niezwiązane z draftem
+- Po prostu gawędzić z użytkownikiem
+
+Masz OPCJONALNY dostęp do narzędzi, ale używaj ich TYLKO gdy użytkownik wyraźnie:
+- Prosi o analizę wpływu zmian na metryki
+- Chce regenerować draft z konkretnymi sugestiami
+- Pyta o konkretne score'y lub compliance
+
+NIE używaj narzędzi gdy użytkownik:
+- Pyta ogólne pytania ("Co sądzisz o AI?")
+- Chce pogadać ("Nudzi mi się")
+- Prosi o opinię niezwiązaną z konkretnymi metrykami
+- Żartuje lub bawi się konwersacją
+
+Bądź naturalny, pomocny i przyjacielski. To rozmowa, nie tylko wykonywanie poleceń.
+"""
+
+tools = [
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_draft_impact",
+            "description": "Use ONLY when user explicitly asks about impact on scores/metrics",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "original_draft": {"type": "string"},
+                    "suggested_changes": {"type": "string"},
+                    "platform": {"type": "string"}
+                }
+            }
+        }
+    },
+    {
+        "type": "function", 
+        "function": {
+            "name": "regenerate_draft_with_suggestions",
+            "description": "Use ONLY when user explicitly asks to regenerate with specific changes",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "topic_title": {"type": "string"},
+                    "suggestions": {"type": "string"},
+                    "platform": {"type": "string"}
+                }
+            }
+        }
+    }
+]
+
+# Configure OpenAI to prefer conversation over tools
+response = await openai_client.chat.completions.create(
+    model="gpt-4",
+    messages=messages,
+    tools=tools,
+    tool_choice="auto",  # Let AI decide, don't force tools
+    temperature=0.8      # Higher for more natural conversation
+)
+```
+
+**Test:**
+- [ ] "Cześć, nudzi mi się" → Natural conversation, NO tool call
+- [ ] "Co sądzisz o przyszłości AI?" → Opinion response, NO tool call  
+- [ ] "Opowiedz żart o marketingu" → Tells joke, NO tool call
+- [ ] "Jak wpłynie dodanie X na score?" → Uses analyze_draft_impact tool
+- [ ] "Czy warto pisać o blockchain?" → General advice, NO tool call
+- [ ] "Wygeneruj draft z moimi sugestiami" → Uses regenerate tool
+
+#### Step 6: Implement analyze_draft_impact (35 min)
+Connect to agentic RAG for impact analysis.
+
+```python
+async def analyze_draft_impact(
+    original_draft: str,
+    suggested_changes: str,
+    platform: str
+) -> Dict:
+    # Use existing agentic RAG endpoint
+    analysis = await check_style_agentic({
+        "content": f"{original_draft}\n\nSugerowane zmiany: {suggested_changes}",
+        "platform": platform,
+        "check_mode": "impact_analysis"
+    })
+    
+    return {
+        "current_score": analysis.get("quality_score", 0),
+        "predicted_score": analysis.get("predicted_score", 0),
+        "impact": analysis.get("impact_analysis", ""),
+        "recommendation": analysis.get("recommendation", "")
+    }
+```
+
+**Test:**
+- [ ] Ask "Jak wpłynie dodanie sekcji o X na ocenę?"
+- [ ] Get specific scores (before/after)
+- [ ] Get recommendation (positive/negative impact)
+- [ ] Response includes style guide compliance
+
+#### Step 7: Response Formatting with Actions (30 min)
+Format AI responses with context actions (buttons).
+
+```python
+if function_name == "analyze_draft_impact":
+    result = await analyze_draft_impact(**function_args)
+    
+    response = {
+        "message": f"""
+Analiza wpływu sugerowanych zmian:
+
+**Obecny score:** {result['current_score']}/10
+**Przewidywany score:** {result['predicted_score']}/10
+
+{result['impact']}
+
+**Rekomendacja:** {result['recommendation']}
+        """,
+        "context_actions": []
+    }
+    
+    if result['predicted_score'] > result['current_score']:
+        response["context_actions"].append({
+            "label": "✍️ Wygeneruj draft z sugestiami",
+            "action": "regenerate_with_suggestions",
+            "params": {
+                "suggestions": suggested_changes
+            }
+        })
+```
+
+**Test:**
+- [ ] Suggest improvement → see scores comparison
+- [ ] If improvement → see "Wygeneruj draft" button
+- [ ] If degradation → no regenerate button
+- [ ] Button params contain suggestions
+
+#### Step 8: Handle Button Actions in Frontend (25 min)
+Process context actions from AI responses.
+
+```typescript
+// In ChatPanel
+if (data.context_actions) {
+  setMessages(prev => [...prev, {
+    id: Date.now(),
+    role: 'assistant',
+    content: data.message,
+    contextActions: data.context_actions.map(action => ({
+      label: action.label,
+      action: async () => {
+        if (action.action === 'regenerate_with_suggestions') {
+          await regenerateDraftWithSuggestions(action.params)
+        }
+      }
+    }))
+  }])
+}
+```
+
+**Test:**
+- [ ] Click "Wygeneruj draft z sugestiami"
+- [ ] See loading state
+- [ ] New draft generated with suggestions
+- [ ] Editor updates with new content
+
+#### Step 9: Implement Regenerate with Suggestions (35 min)
+Connect to existing draft generation with modifications.
+
+```python
+async def regenerate_draft_with_suggestions(
+    topic_title: str,
+    suggestions: str,
+    platform: str,
+    context: Dict
+) -> Dict:
+    # Enhance prompt with user suggestions
+    enhanced_prompt = f"""
+    Original topic: {topic_title}
+    Platform: {platform}
+    
+    User suggestions to incorporate:
+    {suggestions}
+    
+    Current metrics: {context.get('metrics', {})}
+    """
+    
+    # Call existing generate-draft with enhanced context
+    result = await generate_draft({
+        "topic_title": topic_title,
+        "platform": platform,
+        "editorial_recommendations": enhanced_prompt,
+        "skip_research": False  # Do research to incorporate suggestions
+    })
+    
+    return result
+```
+
+**Test:**
+- [ ] Suggest specific addition
+- [ ] Click regenerate button
+- [ ] New draft includes suggestion
+- [ ] Original style maintained
+- [ ] Metrics improved
+
+#### Step 10: Add Streaming Support (30 min)
+Stream long AI responses for better UX.
+
+```python
+async def chat_with_assistant_stream(request: ChatRequest):
+    # SSE streaming for long analyses
+    async def generate():
+        yield f"data: {json.dumps({'type': 'start'})}\n\n"
+        
+        # Stream OpenAI response
+        stream = await openai_client.chat.completions.create(
+            model="gpt-4",
+            messages=messages,
+            tools=tools,
+            stream=True
+        )
+        
+        async for chunk in stream:
+            if chunk.choices[0].delta.content:
+                yield f"data: {json.dumps({
+                    'type': 'content',
+                    'content': chunk.choices[0].delta.content
+                })}\n\n"
+    
+    return StreamingResponse(generate(), media_type="text/event-stream")
+```
+
+**Test:**
+- [ ] Ask complex question
+- [ ] See text appearing progressively
+- [ ] No UI freezing
+- [ ] Complete message displayed correctly
+
+#### Step 11: Add Conversation Memory (25 min)
+Maintain context across messages.
+
+```python
+# Store conversation in Redis with session ID
+async def get_conversation_history(session_id: str) -> List[Dict]:
+    if redis_client:
+        history = redis_client.get(f"chat:history:{session_id}")
+        return json.loads(history) if history else []
+    return []
+
+async def save_message(session_id: str, role: str, content: str):
+    history = await get_conversation_history(session_id)
+    history.append({"role": role, "content": content})
+    
+    # Keep last 20 messages
+    if len(history) > 20:
+        history = history[-20:]
+    
+    if redis_client:
+        redis_client.setex(
+            f"chat:history:{session_id}",
+            3600,  # 1 hour TTL
+            json.dumps(history)
+        )
+```
+
+**Test:**
+- [ ] Ask about draft
+- [ ] Make suggestion
+- [ ] Reference "jak mówiłem wcześniej"
+- [ ] AI remembers previous context
+- [ ] Clear chat → context reset
+
+#### Step 12: Error Handling & Fallbacks (20 min)
+Handle API failures gracefully.
+
+```python
+try:
+    response = await openai_client.chat.completions.create(...)
+except Exception as e:
+    logger.error(f"OpenAI API error: {e}")
+    
+    # Fallback to simple responses
+    if "limit" in str(e):
+        return {
+            "response": "Przepraszam, przekroczono limit API. Spróbuj za chwilę.",
+            "error": "rate_limit"
+        }
+    else:
+        return {
+            "response": "Wystąpił błąd. Sprawdź czy backend jest dostępny.",
+            "error": "api_error"
+        }
+```
+
+**Test:**
+- [ ] Disable OpenAI API key → get fallback message (KRYTYCZNE: ŻADNYCH MOCKÓW, to ma być dla użytkownika jasne, że jest konkretny problem do rozwiązania)
+- [ ] Overload with requests → get rate limit message
+- [ ] Backend down → get connection error
+- [ ] User sees friendly error messages
+
+### Configuration & Environment (klucz już jest w .env!!!)
+
+```env
+# Add to .env
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4
+ASSISTANT_MAX_TOKENS=1000
+ASSISTANT_TEMPERATURE=0.7
+```
+
+### Success Metrics
+- Response time < 3s for simple queries
+- Function calling accuracy > 90%
+- Correct intent recognition > 85%
+- User can modify draft through natural language
+- Context maintained across conversation
