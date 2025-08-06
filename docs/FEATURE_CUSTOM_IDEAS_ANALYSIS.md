@@ -1016,133 +1016,216 @@ curl -X POST http://localhost:8003/api/style-guide/check-agentic-v2 \
 - [ ] Agent searches for different aspects (e.g., "LinkedIn rules", then "AI content", then "opening hooks")
 - [ ] Final result uses rules agent found, not pre-selected ones
 
-#### Step 3: Add Tool to Draft Generation Agent (25 min)
-Give the Writer Agent access to style guide tool.
+### REVISED APPROACH: OpenAI Function Calling + Agent Loop
+
+Based on CrewAI limitations discovered in Step 2, we need a different approach for TRUE Agentic RAG.
+
+**Decision: Build in existing container** - Dodajemy nowe endpointy do istniejącego kolegium-ai-writing-flow-1. Powody:
+- ChromaDB już tam jest
+- Style guide collection już załadowana
+- Łatwiejsze testowanie A/B (stary vs nowy)
+- Stopniowa migracja
+
+#### Step 3: Create Agent Loop with OpenAI Function Calling (30 min)
+Replace CrewAI-based approach with direct OpenAI + custom loop.
 
 ```python
-writer = Agent(
-    role=f"{content.platform} Content Writer",
-    tools=[query_style_guide],  # NOW IT CAN SEARCH!
-    goal=f"Write while researching Vector Wave style"
-)
+@app.post("/api/style-guide/analyze-iterative")
+async def analyze_with_iterations(request):
+    messages = [system_prompt]
+    iterations = 0
+    max_iterations = 5
+    
+    while iterations < max_iterations:
+        response = await openai_client.chat.completions.create(
+            model="gpt-4",
+            messages=messages,
+            functions=[{
+                "name": "search_style_guide",
+                "parameters": {...}
+            }],
+            function_call="auto"
+        )
+        
+        if response.function_call:
+            # Execute search
+            results = query_style_guide(args)
+            messages.append(function_result)
+            iterations += 1
+        else:
+            # Agent is done
+            break
+            
+    return final_analysis
 ```
 
 **Test:**
 ```bash
-# Generate draft and watch logs
-curl -X POST http://localhost:8003/api/generate-draft \
-  -d '{"content": {"title": "Test Agentic RAG", "platform": "LinkedIn"}}'
+# Watch multiple searches in logs
+curl -X POST http://localhost:8003/api/style-guide/analyze-iterative \
+  -d '{"content": "AI revolutionizes marketing", "platform": "LinkedIn"}'
 ```
-- [ ] Logs show: Writer queries "LinkedIn best practices"
-- [ ] Logs show: Writer queries "pattern interrupt examples"
-- [ ] Logs show: Writer queries specific to the topic
-- [ ] Generated draft uses discovered rules
+- [ ] See 3-5 different searches in logs
+- [ ] Each search builds on previous results
+- [ ] Agent stops when satisfied
+- [ ] Final analysis uses all discovered rules
 
-#### Step 4: Add Tool to Regeneration Agent (20 min)
-Same for regenerate_draft_with_suggestions.
-
-**Test:**
-```bash
-# Test regeneration with tool access
-curl -X POST http://localhost:8003/api/chat \
-  -d '{"message": "Add more specific metrics", "context": {"currentDraft": "AI is great"}}'
-```
-- [ ] Rewrite agent searches "metrics examples"
-- [ ] Rewrite agent searches "specific numbers rules"
-- [ ] Result includes actual metrics from style guide
-
-#### Step 5: Create Style Guide Explorer Agent (30 min)
-Agent that can deeply explore style guide for complex queries.
+#### Step 4: Integrate Iterative Search into Draft Generation (35 min)
+Update generate_draft to use agent loop instead of hardcoded style rules.
 
 ```python
-explorer = Agent(
-    role="Style Guide Deep Researcher",
-    tools=[query_style_guide, summarize_rules, find_examples],
-    goal="Deep dive into style guide for specific needs"
-)
+async def generate_draft_with_agentic_rag(request):
+    # First, agent researches style guide
+    style_context = await research_style_guide_iterative(
+        topic=request.content.title,
+        platform=request.content.platform,
+        content_type=request.content.content_type
+    )
+    
+    # Then generate with discovered rules
+    writer_prompt = f"""
+    Write content using these discovered style rules:
+    {style_context.discovered_rules}
+    
+    Examples found:
+    {style_context.examples}
+    """
 ```
 
 **Test:**
 ```bash
-# Complex style query
-curl -X POST http://localhost:8003/api/style-guide/deep-research \
-  -d '{"topic": "How to write about technical topics for non-technical audience"}'
+curl -X POST http://localhost:8003/api/generate-draft-v2 \
+  -d '{"content": {"title": "Hybrid RAG", "platform": "LinkedIn"}}'
 ```
-- [ ] Multiple iterative searches visible in logs
-- [ ] Agent builds comprehensive rule set
-- [ ] Returns structured findings with examples
+- [ ] Logs show iterative style guide research BEFORE writing
+- [ ] Draft uses discovered patterns (not generic)
+- [ ] Different topics trigger different searches
+- [ ] Quality noticeably better than old version
 
-#### Step 6: Add Memory to Style Queries (25 min)
-Cache successful rule discoveries per context.
+#### Step 5: A/B Testing Endpoint (20 min)
+Compare old naive RAG vs new agentic RAG side by side.
 
 ```python
-# Redis cache for style discoveries
-style_cache.set(f"rules:{platform}:{topic_type}", discovered_rules)
+@app.post("/api/compare-rag-methods")
+async def compare_methods(request):
+    # Run both in parallel
+    naive_result = await generate_draft(request)  # old
+    agentic_result = await generate_draft_v2(request)  # new
+    
+    return {
+        "naive_rag": {
+            "content": naive_result.content,
+            "rules_used": 2,  # hardcoded
+            "method": "pre-selected rules"
+        },
+        "agentic_rag": {
+            "content": agentic_result.content,
+            "rules_discovered": len(agentic_result.searches),
+            "search_queries": agentic_result.search_log
+        }
+    }
 ```
 
 **Test:**
-- [ ] First query takes 10+ seconds (searching)
-- [ ] Second identical query takes <2 seconds (cached)
-- [ ] Cache invalidates after style guide updates
+```bash
+curl -X POST http://localhost:8003/api/compare-rag-methods \
+  -d '{"content": {"title": "AI Automation", "platform": "LinkedIn"}}'
+```
+- [ ] Naive version generic, uses same rules always
+- [ ] Agentic version specific, discovers relevant rules
+- [ ] Clear quality difference in outputs
+- [ ] Search log shows agent's reasoning
 
-#### Step 7: Create Meta-Agent for Rule Selection (30 min)
-Agent that helps other agents find the RIGHT rules.
+#### Step 6: Migrate Existing Endpoints (30 min)
+Gradually replace naive implementations with agentic ones.
 
 ```python
-meta_agent = Agent(
-    role="Style Rule Advisor",
-    tools=[analyze_content_needs, suggest_queries, rank_rules],
-    goal="Help other agents find most relevant style rules"
-)
+# In existing endpoints, add feature flag
+ENABLE_AGENTIC_RAG = os.getenv("ENABLE_AGENTIC_RAG", "false") == "true"
+
+async def generate_draft(request):
+    if ENABLE_AGENTIC_RAG:
+        return await generate_draft_with_agentic_rag(request)
+    else:
+        return await generate_draft_naive(request)  # old way
 ```
 
 **Test:**
-- [ ] Writer asks Meta-Agent: "What rules for viral LinkedIn post?"
-- [ ] Meta-Agent responds with specific query suggestions
-- [ ] Writer uses suggestions to query more effectively
+```bash
+# Test with flag off (old behavior)
+ENABLE_AGENTIC_RAG=false docker restart kolegium-ai-writing-flow-1
+curl -X POST http://localhost:8003/api/generate-draft ...
 
-#### Step 8: Implement Feedback Loop (25 min)
-Track which rules lead to better content.
+# Test with flag on (new behavior)  
+ENABLE_AGENTIC_RAG=true docker restart kolegium-ai-writing-flow-1
+curl -X POST http://localhost:8003/api/generate-draft ...
+```
+- [ ] Same endpoint, different behavior based on flag
+- [ ] Easy rollback if issues
+- [ ] Can enable per-endpoint gradually
+
+#### Step 7: Performance Optimization (25 min)
+Add caching and parallel search to speed up iterative queries.
 
 ```python
-# After content generation
-track_rule_effectiveness(used_rules, content_metrics)
+# Cache frequent searches
+@cache(ttl=3600)
+async def cached_style_search(query: str):
+    return query_style_guide(query)
+
+# Parallel search when agent needs multiple things
+async def parallel_style_research(queries: List[str]):
+    tasks = [cached_style_search(q) for q in queries]
+    results = await asyncio.gather(*tasks)
+    return dict(zip(queries, results))
 ```
 
 **Test:**
-- [ ] Generate content with specific rules
-- [ ] System tracks which rules were used
-- [ ] Over time, frequently effective rules rank higher
+```bash
+# First run: slow (multiple searches)
+time curl -X POST http://localhost:8003/api/style-guide/analyze-iterative ...
 
-#### Step 9: Add A/B Testing for Rules (30 min)
-Test different rule combinations.
+# Second run: fast (cached)
+time curl -X POST http://localhost:8003/api/style-guide/analyze-iterative ...
+```
+- [ ] First run: 5-10 seconds
+- [ ] Second run: <1 second
+- [ ] Cache hits visible in logs
+- [ ] Quality unchanged
+
+#### Step 8: Production Monitoring (20 min)
+Track agentic vs naive performance.
 
 ```python
-# Generate two versions with different rule sets
-version_a = generate_with_rules(rules_set_a)
-version_b = generate_with_rules(rules_set_b)
+# Log metrics for comparison
+async def log_rag_metrics(method: str, searches: int, time: float):
+    redis_client.hincrby(f"rag_stats:{method}", "total_calls", 1)
+    redis_client.hincrby(f"rag_stats:{method}", "total_searches", searches)
+    redis_client.hincrbyfloat(f"rag_stats:{method}", "total_time", time)
 ```
 
 **Test:**
-- [ ] Same topic generates 2 different versions
-- [ ] Each uses different style rules
-- [ ] System tracks which performs better
-
-#### Step 10: Create Style Guide Updater Agent (35 min)
-Agent that can suggest new rules based on performance.
-
-```python
-updater = Agent(
-    role="Style Guide Evolver",
-    tools=[analyze_performance, suggest_new_rules, test_rule_impact],
-    goal="Evolve style guide based on real results"
-)
+```bash
+# Check metrics after running both methods
+curl http://localhost:8003/api/rag-stats
 ```
+- [ ] Shows calls, avg searches, avg time for each method
+- [ ] Agentic has more searches but better results
+- [ ] Clear data for decision making
 
-**Test:**
-- [ ] Updater analyzes successful content
-- [ ] Suggests new rules based on patterns
-- [ ] New rules available for querying
+#### Step 9: Final Migration Plan (15 min)
+Document rollout strategy.
+
+1. Week 1: Enable agentic for 10% traffic
+2. Week 2: If metrics good, increase to 50%
+3. Week 3: Full rollout, keep naive as fallback
+4. Week 4: Remove naive code if stable
+
+**Success Criteria:**
+- [ ] No increase in error rate
+- [ ] User satisfaction unchanged or improved
+- [ ] Performance within acceptable bounds
+- [ ] Clear improvement in content quality metrics
 
 ### Validation Checklist
 
