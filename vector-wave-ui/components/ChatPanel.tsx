@@ -91,14 +91,23 @@ async function analyzeIdeasWithProgress(
                 const filledBars = Math.floor((currentProgress / 100) * progressBarLength);
                 const emptyBars = progressBarLength - filledBars;
                 
-                setMessages(prev => prev.map(msg => 
-                  msg.id === loadingMsgId 
-                    ? {
-                        ...msg,
-                        content: `📝 Analizuję pomysły dla folderu "${folder}"...\n\n**Pomysł ${data.current} z ${data.total}:** ${data.analyzing}\n\n**Postęp:** ${currentProgress}%\n[${'█'.repeat(filledBars)}${'░'.repeat(emptyBars)}]\n\n💡 _Używam AI do oceny potencjału wiralowego i dopasowania do materiałów_`
-                      }
-                    : msg
-                ));
+                // Try both updating existing message and logging
+                const progressContent = `📝 Analizuję pomysły dla folderu "${folder}"...\n\n**Pomysł ${data.current} z ${data.total}:** ${data.analyzing}\n\n**Postęp:** ${currentProgress}%\n[${'█'.repeat(filledBars)}${'░'.repeat(emptyBars)}]\n\n💡 _Używam AI do oceny potencjału wiralowego i dopasowania do materiałów_`;
+                
+                console.log('Progress update:', progressContent);
+                console.log('Looking for message with ID:', loadingMsgId);
+                
+                setMessages(prev => {
+                  console.log('Current messages:', prev.map(m => ({ id: m.id, content: m.content.substring(0, 50) })));
+                  return prev.map(msg => 
+                    msg.id === loadingMsgId 
+                      ? {
+                          ...msg,
+                          content: progressContent
+                        }
+                      : msg
+                  );
+                });
                 break;
 
               case 'result':
@@ -113,11 +122,14 @@ async function analyzeIdeasWithProgress(
               case 'complete':
                 console.log('🎉 SSE Complete event:', data);
                 // Show final results
+                const bestScore = data.best_idea?.overall_score ? (data.best_idea.overall_score * 10).toFixed(1) : '0';
+                const scoreEmoji = parseFloat(bestScore) >= 7 ? '✅' : parseFloat(bestScore) >= 5 ? '⚠️' : '❌';
+                
                 setMessages(prev => prev.map(msg => 
                   msg.id === loadingMsgId 
                     ? {
                         ...msg,
-                        content: `✅ Analiza zakończona!\n\n**Najlepszy pomysł:** ${data.best_idea?.idea || 'Brak'}\n**Ocena:** ${data.best_idea?.overall_score ? (data.best_idea.overall_score * 10).toFixed(1) : '0'}/10\n\n${data.best_idea?.recommendation || ''}`,
+                        content: `✅ **Analiza zakończona!**\n\n🥇 **${data.best_idea?.idea || 'Brak'}\n**Ocena:** ${bestScore}/10 ${scoreEmoji}\n\n${data.best_idea?.recommendation || 'Brak rekomendacji'}${data.best_idea?.suggested_angle ? `\n\n💡 **Sugerowany angle:** ${data.best_idea.suggested_angle}` : ''}`,
                         contextActions: data.best_idea ? [{
                           label: '✍️ Wygeneruj draft',
                           action: () => {
@@ -134,9 +146,14 @@ async function analyzeIdeasWithProgress(
                     setMessages(prev => [...prev, {
                       id: `custom-ideas-details-${Date.now()}`,
                       role: 'assistant',
-                      content: `📊 **Wszystkie pomysły:**\n\n${analyzedResults.map((idea: any, idx: number) => 
-                        `${idx + 1}. **${idea.idea}**\n   • Viral Score: ${(idea.viral_score * 10).toFixed(1)}/10\n   • Dopasowanie: ${(idea.content_alignment * 10).toFixed(1)}/10\n   • Materiał: ${(idea.available_material * 10).toFixed(1)}/10`
-                      ).join('\n\n')}`,
+                      content: `📊 **Wszystkie pomysły:**\n\n${analyzedResults.map((idea: any, idx: number) => {
+                        const isFirst = idx === 0;
+                        const emoji = isFirst ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
+                        const overallScore = (idea.overall_score * 10).toFixed(1);
+                        const scoreEmoji = overallScore >= 7 ? '✅' : overallScore >= 5 ? '⚠️' : '❌';
+                        
+                        return `${emoji} **${idea.idea}**\n${idea.recommendation || 'Brak rekomendacji'}\n**Ocena:** ${overallScore}/10 ${scoreEmoji}\n• Viral Score: ${(idea.viral_score * 10).toFixed(1)}/10 • Dopasowanie: ${(idea.content_alignment * 10).toFixed(1)}/10 • Materiał: ${(idea.available_material * 10).toFixed(1)}/10${idea.suggested_angle ? `\n💡 **Sugerowany angle:** ${idea.suggested_angle}` : ''}`;
+                      }).join('\n\n---\n\n')}`,
                       timestamp: new Date()
                     }]);
                   }, 100);
