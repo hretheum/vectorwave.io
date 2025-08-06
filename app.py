@@ -2154,6 +2154,33 @@ async def analyze_custom_ideas_stream(request: CustomIdeasRequest):
         }
     )
 
+def classify_intent(message: str) -> str:
+    """
+    Classify user intent based on keywords in the message
+    
+    Returns one of:
+    - modify_draft: User wants to change/edit the draft
+    - analyze_impact: User wants to know impact of changes
+    - regenerate: User wants to regenerate the draft
+    - general_question: General conversation
+    """
+    # Define intent keywords - more specific patterns
+    INTENTS = {
+        "modify_draft": ["zmień", "dodaj", "usuń", "popraw", "edytuj", "zaktualizuj", "wstaw", "wywal", "wytnij", "zmodyfikuj", "dopisz", "skróć"],
+        "analyze_impact": ["jak wpłynie", "co sądzisz o dodaniu", "co sądzisz o zmianie", "czy to poprawi", "przeanalizuj wpływ", "jak to wpłynie", "czy warto dodać", "oceń wpływ", "wpłynie na score", "wpłynie na metryki"],
+        "regenerate": ["wygeneruj ponownie", "stwórz nowy", "przepisz", "napisz od nowa", "przebuduj", "wygeneruj na nowo", "regeneruj"]
+    }
+    
+    message_lower = message.lower()
+    
+    # Check each intent
+    for intent, keywords in INTENTS.items():
+        if any(keyword in message_lower for keyword in keywords):
+            return intent
+    
+    # Default to general question
+    return "general_question"
+
 @app.post("/api/chat", tags=["assistant"],
          summary="Chat with AI Assistant",
          response_model=ChatResponse,
@@ -2244,12 +2271,8 @@ Odpowiadaj naturalnie, bez sztuczności. Jeśli user pyta o coś niezwiązanego 
                     error="api_error"
                 )
         
-        # Simple intent detection for now
-        intent = "general_question"
-        if any(word in request.message.lower() for word in ["analizuj", "sprawdź", "oceń"]):
-            intent = "analyze_request"
-        elif any(word in request.message.lower() for word in ["wygeneruj", "stwórz", "napisz"]):
-            intent = "generate_request"
+        # Intent recognition based on keywords
+        intent = classify_intent(request.message)
         
         return ChatResponse(
             response=ai_response,
