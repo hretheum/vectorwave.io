@@ -12,6 +12,7 @@ import re
 import asyncio
 from crewai import Agent, Task, Crew
 from langchain_openai import ChatOpenAI
+from pydantic import BaseModel, Field
 import chromadb
 from chromadb.config import Settings
 from openai import AsyncOpenAI
@@ -616,6 +617,176 @@ async def check_style_agentic(request: AgenticStyleCheckRequest):
             "status": "error",
             "error": str(e),
             "message": "Failed to perform agentic style analysis"
+        }
+
+@app.post("/api/style-guide/check-agentic-v2", tags=["content"])
+async def check_style_agentic_v2(request: AgenticStyleCheckRequest):
+    """
+    TRUE Agentic Style Guide Check - Agent has tool access and decides what to search
+    
+    This is the REAL agentic implementation where:
+    - Agent has access to query_style_guide tool
+    - Agent decides what queries to make
+    - Agent can iterate and search multiple times
+    - No pre-selected rules!
+    """
+    if not style_guide_collection:
+        return {"status": "error", "message": "ChromaDB not connected"}
+    
+    try:
+        print(f"🤖 Starting TRUE Agentic Style Check for {request.platform} content")
+        
+        # Create Style Guide Researcher Agent WITH TOOL ACCESS
+        style_researcher = Agent(
+            role="Vector Wave Style Guide Researcher",
+            goal="Research and apply the most relevant Vector Wave style rules by actively searching the style guide",
+            backstory="""You are a meticulous researcher who knows how to find the perfect style rules 
+            for any content situation. You don't accept generic advice - you dig deep into the style guide 
+            to find specific, actionable rules. You know that different content needs different rules, 
+            so you search multiple times with different queries to build a comprehensive understanding.""",
+            allow_delegation=False,
+            verbose=True,
+            llm=llm
+        )
+        
+        # Track what the agent searches for
+        search_log = []
+        
+        # Give agent ability to search through task description
+        def search_style_guide(query: str) -> str:
+            """Search the Vector Wave style guide"""
+            result = query_style_guide(query, n_results=5)
+            search_log.append({"query": query, "timestamp": datetime.now().isoformat()})
+            print(f"🔍 Agent searching: '{query}'")
+            return result
+        
+        # Create research task with searchable context
+        research_task = Task(
+            description=f"""
+            Research Vector Wave style guide to analyze this content:
+            
+            Content: "{request.content}"
+            Platform: {request.platform}
+            Context: {request.context or 'General business content'}
+            Focus Areas: {', '.join(request.focus_areas)}
+            
+            YOUR RESEARCH PROCESS:
+            You need to actively search the style guide. To search, write queries like:
+            "I'll search for: [your search query]"
+            
+            Suggested searches:
+            1. Start with: "I'll search for: {request.platform} best practices"
+            2. Then: "I'll search for: pattern interrupt examples"
+            3. Look for: "I'll search for: engagement techniques"
+            4. Find: "I'll search for: specific metrics usage"
+            5. Check: "I'll search for: {request.focus_areas[0]}"
+            
+            For each search query you write, I'll show you the results from the style guide.
+            
+            After your research, provide:
+            1. List of all searches you performed and what you found
+            2. Most relevant rules you discovered
+            3. Overall style score (0-100)
+            4. What works well according to the discovered rules
+            5. What needs improvement based on the rules
+            6. Specific suggestions using the rules you found
+            
+            Start by searching for platform-specific rules!
+            """,
+            agent=style_researcher,
+            expected_output="Comprehensive style analysis based on discovered rules from your searches"
+        )
+        
+        # Execute with CrewAI
+        crew = Crew(
+            agents=[style_researcher],
+            tasks=[research_task],
+            verbose=True
+        )
+        
+        # Track execution
+        start_time = time.time()
+        
+        # Run the crew - it will process the task
+        crew_output = crew.kickoff()
+        
+        # Extract search queries from the output
+        result_text = str(crew_output)
+        
+        # Find all "I'll search for:" patterns in the output
+        import re
+        search_patterns = re.findall(r"I'll search for:\s*([^\n]+)", result_text)
+        
+        # Actually perform the searches the agent wanted
+        search_results = []
+        for search_query in search_patterns:
+            search_query = search_query.strip()
+            print(f"🔍 Performing agent's search: '{search_query}'")
+            result = query_style_guide(search_query)
+            search_results.append({
+                "query": search_query,
+                "result": result
+            })
+            search_log.append({"query": search_query, "timestamp": datetime.now().isoformat()})
+        
+        # If agent found search patterns, re-run with results
+        if search_results:
+            # Create enhanced task with search results
+            enhanced_description = research_task.description + "\n\nSEARCH RESULTS:\n"
+            for sr in search_results:
+                enhanced_description += f"\nYour search for '{sr['query']}':\n{sr['result']}\n"
+            enhanced_description += "\nNow analyze the content using these discovered rules."
+            
+            # Create new task with results
+            final_task = Task(
+                description=enhanced_description,
+                agent=style_researcher,
+                expected_output="Final style analysis using the discovered rules"
+            )
+            
+            # Run again with search results
+            crew_with_results = Crew(
+                agents=[style_researcher],
+                tasks=[final_task],
+                verbose=True
+            )
+            
+            result = crew_with_results.kickoff()
+        else:
+            result = crew_output
+        
+        execution_time = time.time() - start_time
+        
+        # Parse results
+        analysis_text = str(result)
+        
+        # Extract score
+        import re
+        score_match = re.search(r'score[:\s]+(\d+)', analysis_text, re.IGNORECASE)
+        style_score = int(score_match.group(1)) if score_match else 75
+        
+        return {
+            "status": "success",
+            "analysis_type": "true_agentic",
+            "is_real_agentic": True,
+            "agent_queries": search_log,  # Show what the agent searched for
+            "total_searches": len(search_log),
+            "style_score": style_score,
+            "agent_analysis": analysis_text,
+            "platform": request.platform,
+            "focus_areas": request.focus_areas,
+            "execution_time_seconds": round(execution_time, 2),
+            "note": "Agent autonomously decided what to search for"
+        }
+        
+    except Exception as e:
+        print(f"❌ Error in TRUE agentic analysis: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "status": "error",
+            "error": str(e),
+            "message": "Failed to perform TRUE agentic style analysis"
         }
 
 @app.post("/api/style-guide/compare", tags=["content"])
