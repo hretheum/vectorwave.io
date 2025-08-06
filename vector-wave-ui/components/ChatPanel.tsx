@@ -26,6 +26,138 @@ interface ChatPanelProps {
   onEditDraft?: (draft: string, topicTitle: string, platform: string) => void;
 }
 
+// Helper function for SSE streaming
+async function analyzeIdeasWithProgress(
+  folder: string,
+  ideas: string[],
+  platform: string,
+  loadingMsgId: string,
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>
+) {
+  const analyzedResults: any[] = [];
+  let currentProgress = 0;
+
+  try {
+    const response = await fetch('/api/analyze-custom-ideas-stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folder, ideas, platform })
+    });
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+
+    if (!reader) throw new Error('No response body');
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.substring(6));
+            console.log('SSE Event:', data);
+
+            switch (data.type) {
+              case 'start':
+                // Initial message already shown
+                break;
+
+              case 'progress':
+                currentProgress = data.percentage;
+                const progressBarLength = 20;
+                const filledBars = Math.floor((currentProgress / 100) * progressBarLength);
+                const emptyBars = progressBarLength - filledBars;
+                
+                setMessages(prev => prev.map(msg => 
+                  msg.id === loadingMsgId 
+                    ? {
+                        ...msg,
+                        content: `📝 Analizuję pomysły dla folderu "${folder}"...\n\n**Pomysł ${data.current} z ${data.total}:** ${data.analyzing}\n\n**Postęp:** ${currentProgress}%\n[${'█'.repeat(filledBars)}${'░'.repeat(emptyBars)}]\n\n💡 _Używam AI do oceny potencjału wiralowego i dopasowania do materiałów_`
+                      }
+                    : msg
+                ));
+                break;
+
+              case 'result':
+                analyzedResults.push(data.analysis);
+                break;
+
+              case 'error':
+                console.error('Idea analysis error:', data);
+                break;
+
+              case 'complete':
+                // Show final results
+                setMessages(prev => prev.map(msg => 
+                  msg.id === loadingMsgId 
+                    ? {
+                        ...msg,
+                        content: `✅ Analiza zakończona!\n\n**Najlepszy pomysł:** ${data.best_idea?.idea || 'Brak'}\n**Ocena:** ${data.best_idea?.overall_score ? (data.best_idea.overall_score * 10).toFixed(1) : '0'}/10\n\n${data.best_idea?.recommendation || ''}`,
+                        contextActions: data.best_idea ? [{
+                          label: '✍️ Wygeneruj draft',
+                          action: () => {
+                            console.log('Generate draft for custom idea:', data.best_idea.idea);
+                          }
+                        }] : []
+                      }
+                    : msg
+                ));
+
+                // Add detailed results
+                if (analyzedResults.length > 1) {
+                  setTimeout(() => {
+                    setMessages(prev => [...prev, {
+                      id: `custom-ideas-details-${Date.now()}`,
+                      role: 'assistant',
+                      content: `📊 **Wszystkie pomysły:**\n\n${analyzedResults.map((idea: any, idx: number) => 
+                        `${idx + 1}. **${idea.idea}**\n   • Viral Score: ${(idea.viral_score * 10).toFixed(1)}/10\n   • Dopasowanie: ${(idea.content_alignment * 10).toFixed(1)}/10\n   • Materiał: ${(idea.available_material * 10).toFixed(1)}/10`
+                      ).join('\n\n')}`,
+                      timestamp: new Date()
+                    }]);
+                  }, 100);
+                }
+                break;
+
+              case 'cached_result':
+                // Handle cached results
+                const cachedData = data.data;
+                setMessages(prev => prev.map(msg => 
+                  msg.id === loadingMsgId 
+                    ? {
+                        ...msg,
+                        content: `✅ Analiza zakończona (z cache)!\n\n**Najlepszy pomysł:** ${cachedData.best_idea?.idea || 'Brak'}\n**Ocena:** ${cachedData.best_idea?.overall_score ? (cachedData.best_idea.overall_score * 10).toFixed(1) : '0'}/10\n\n${cachedData.best_idea?.recommendation || ''}`,
+                        contextActions: cachedData.best_idea ? [{
+                          label: '✍️ Wygeneruj draft',
+                          action: () => {
+                            console.log('Generate draft for custom idea:', cachedData.best_idea.idea);
+                          }
+                        }] : []
+                      }
+                    : msg
+                ));
+                break;
+            }
+          } catch (e) {
+            console.error('Error parsing SSE data:', e);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('SSE streaming error:', err);
+    setMessages(prev => prev.map(msg => 
+      msg.id === loadingMsgId 
+        ? { ...msg, content: `❌ Błąd analizy: ${err instanceof Error ? err.message : 'Nieznany błąd'}` }
+        : msg
+    ));
+  }
+}
+
 export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [], onEditDraft }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -802,59 +934,14 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [], onEdi
                     timestamp: new Date()
                   }]);
                   
-                  // Call API
-                  fetch('/api/analyze-custom-ideas', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      folder: analysisResult?.folder || 'unknown',
-                      ideas: ideas,
-                      platform: 'LinkedIn' // Default platform
-                    })
-                  })
-                  .then(res => res.json())
-                  .then(data => {
-                    console.log('Custom ideas analysis result:', data);
-                    
-                    // Replace loading message with results
-                    setMessages(prev => prev.map(msg => 
-                      msg.id === loadingMsgId 
-                        ? {
-                            ...msg,
-                            content: `✅ Analiza zakończona!\n\n**Najlepszy pomysł:** ${data.best_idea?.idea || 'Brak'}\n**Ocena:** ${data.best_idea?.overall_score ? (data.best_idea.overall_score * 10).toFixed(1) : '0'}/10\n\n${data.best_idea?.recommendation || ''}`,
-                            contextActions: data.best_idea ? [{
-                              label: '✍️ Wygeneruj draft',
-                              action: () => {
-                                // Use existing draft generation logic
-                                console.log('Generate draft for custom idea:', data.best_idea.idea);
-                              }
-                            }] : []
-                          }
-                        : msg
-                    ));
-                    
-                    // Add detailed results for all ideas
-                    if (data.ideas && data.ideas.length > 1) {
-                      setTimeout(() => {
-                        setMessages(prev => [...prev, {
-                          id: `custom-ideas-details-${Date.now()}`,
-                          role: 'assistant',
-                          content: `📊 **Wszystkie pomysły:**\n\n${data.ideas.map((idea: any, idx: number) => 
-                            `${idx + 1}. **${idea.idea}**\n   • Viral Score: ${(idea.viral_score * 10).toFixed(1)}/10\n   • Dopasowanie: ${(idea.content_alignment * 10).toFixed(1)}/10\n   • Materiał: ${(idea.available_material * 10).toFixed(1)}/10`
-                          ).join('\n\n')}`,
-                          timestamp: new Date()
-                        }]);
-                      }, 100);
-                    }
-                  })
-                  .catch(err => {
-                    console.error('Custom ideas analysis error:', err);
-                    setMessages(prev => prev.map(msg => 
-                      msg.id === loadingMsgId 
-                        ? { ...msg, content: `❌ Błąd analizy: ${err.message || 'Nieznany błąd'}` }
-                        : msg
-                    ));
-                  });
+                  // Call streaming API with progress
+                  analyzeIdeasWithProgress(
+                    analysisResult?.folder || 'unknown',
+                    ideas,
+                    'LinkedIn',
+                    loadingMsgId,
+                    setMessages
+                  );
                 }
               }
             }}
@@ -887,59 +974,14 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [], onEdi
                     timestamp: new Date()
                   }]);
                   
-                  // Call API
-                  fetch('/api/analyze-custom-ideas', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      folder: analysisResult?.folder || 'unknown',
-                      ideas: ideas,
-                      platform: 'LinkedIn' // Default platform
-                    })
-                  })
-                  .then(res => res.json())
-                  .then(data => {
-                    console.log('Custom ideas analysis result:', data);
-                    
-                    // Replace loading message with results
-                    setMessages(prev => prev.map(msg => 
-                      msg.id === loadingMsgId 
-                        ? {
-                            ...msg,
-                            content: `✅ Analiza zakończona!\n\n**Najlepszy pomysł:** ${data.best_idea?.idea || 'Brak'}\n**Ocena:** ${data.best_idea?.overall_score ? (data.best_idea.overall_score * 10).toFixed(1) : '0'}/10\n\n${data.best_idea?.recommendation || ''}`,
-                            contextActions: data.best_idea ? [{
-                              label: '✍️ Wygeneruj draft',
-                              action: () => {
-                                // Use existing draft generation logic
-                                console.log('Generate draft for custom idea:', data.best_idea.idea);
-                              }
-                            }] : []
-                          }
-                        : msg
-                    ));
-                    
-                    // Add detailed results for all ideas
-                    if (data.ideas && data.ideas.length > 1) {
-                      setTimeout(() => {
-                        setMessages(prev => [...prev, {
-                          id: `custom-ideas-details-${Date.now()}`,
-                          role: 'assistant',
-                          content: `📊 **Wszystkie pomysły:**\n\n${data.ideas.map((idea: any, idx: number) => 
-                            `${idx + 1}. **${idea.idea}**\n   • Viral Score: ${(idea.viral_score * 10).toFixed(1)}/10\n   • Dopasowanie: ${(idea.content_alignment * 10).toFixed(1)}/10\n   • Materiał: ${(idea.available_material * 10).toFixed(1)}/10`
-                          ).join('\n\n')}`,
-                          timestamp: new Date()
-                        }]);
-                      }, 100);
-                    }
-                  })
-                  .catch(err => {
-                    console.error('Custom ideas analysis error:', err);
-                    setMessages(prev => prev.map(msg => 
-                      msg.id === loadingMsgId 
-                        ? { ...msg, content: `❌ Błąd analizy: ${err.message || 'Nieznany błąd'}` }
-                        : msg
-                    ));
-                  });
+                  // Call streaming API with progress
+                  analyzeIdeasWithProgress(
+                    analysisResult?.folder || 'unknown',
+                    ideas,
+                    'LinkedIn',
+                    loadingMsgId,
+                    setMessages
+                  );
                 }
               }}
               disabled={!customIdeasText.trim()}
