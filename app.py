@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, AsyncGenerator
 from datetime import datetime
 import time
 import os
@@ -1721,3 +1722,187 @@ async def analyze_custom_ideas(request: CustomIdeasRequest):
             print(f"⚠️ Failed to cache result: {e}")
     
     return response
+
+async def generate_sse_event(data: Dict[str, Any]) -> str:
+    """Format data as Server-Sent Event"""
+    return f"data: {json.dumps(data)}\n\n"
+
+async def analyze_ideas_stream(
+    folder: str, 
+    ideas: List[str], 
+    platform: str,
+    folder_context: Dict
+) -> AsyncGenerator[str, None]:
+    """
+    Stream analysis results as they become available
+    Yields SSE-formatted events
+    """
+    total_ideas = len(ideas)
+    
+    # Send initial progress event
+    yield await generate_sse_event({
+        "type": "start",
+        "total_ideas": total_ideas,
+        "folder": folder,
+        "platform": platform,
+        "timestamp": datetime.now().isoformat()
+    })
+    
+    analyzed_ideas = []
+    
+    # Analyze each idea and stream results
+    for idx, idea in enumerate(ideas):
+        # Send progress update
+        yield await generate_sse_event({
+            "type": "progress",
+            "current": idx + 1,
+            "total": total_ideas,
+            "percentage": round(((idx + 1) / total_ideas) * 100),
+            "analyzing": idea,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+        # Analyze the idea
+        try:
+            analysis = await analyze_single_idea(idea, folder_context, platform)
+            analyzed_ideas.append(analysis)
+            
+            # Send result for this idea
+            yield await generate_sse_event({
+                "type": "result",
+                "idea_index": idx,
+                "idea": idea,
+                "analysis": analysis.dict(),
+                "timestamp": datetime.now().isoformat()
+            })
+            
+        except Exception as e:
+            # Send error event for this idea
+            yield await generate_sse_event({
+                "type": "error",
+                "idea_index": idx,
+                "idea": idea,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            })
+        
+        # Small delay to prevent overwhelming the client
+        await asyncio.sleep(0.1)
+    
+    # Sort by score and determine best idea
+    analyzed_ideas.sort(key=lambda x: x.overall_score, reverse=True)
+    best_idea = analyzed_ideas[0] if analyzed_ideas else None
+    
+    # Send completion event with summary
+    yield await generate_sse_event({
+        "type": "complete",
+        "total_analyzed": len(analyzed_ideas),
+        "best_idea": best_idea.dict() if best_idea else None,
+        "folder_context": {
+            "total_files": len(folder_context.get("files", [])),
+            "main_topics": folder_context.get("main_topics", []),
+            "content_type": folder_context.get("content_type", "unknown"),
+            "technical_depth": folder_context.get("technical_depth", "medium")
+        },
+        "timestamp": datetime.now().isoformat()
+    })
+
+@app.post("/api/analyze-custom-ideas-stream", tags=["content"],
+         summary="Stream analysis of custom ideas with progress",
+         response_class=StreamingResponse)
+async def analyze_custom_ideas_stream(request: CustomIdeasRequest):
+    """
+    Analyze custom ideas with Server-Sent Events streaming
+    Shows real-time progress as each idea is analyzed
+    """
+    # Check cache first (for entire batch)
+    cache_key = f"custom_ideas:{request.folder}:{request.platform}:{hashlib.md5(':'.join(sorted(request.ideas)).encode()).hexdigest()}"
+    
+    if redis_client:
+        try:
+            cached = redis_client.get(cache_key)
+            if cached:
+                # Even for cached results, stream them for consistent UX
+                result = json.loads(cached)
+                
+                async def stream_cached():
+                    yield await generate_sse_event({
+                        "type": "cached_result",
+                        "data": result,
+                        "timestamp": datetime.now().isoformat()
+                    })
+                
+                return StreamingResponse(
+                    stream_cached(),
+                    media_type="text/event-stream",
+                    headers={
+                        "Cache-Control": "no-cache",
+                        "Connection": "keep-alive",
+                        "X-Accel-Buffering": "no"  # Disable nginx buffering
+                    }
+                )
+        except Exception as e:
+            print(f"⚠️ Redis error: {e}")
+    
+    # Get folder context
+    folder_context = await analyze_folder_content(request.folder)
+    
+    # Create streaming response with caching after completion
+    async def stream_and_cache():
+        """Stream results and cache them after completion"""
+        all_results = []
+        
+        async for event in analyze_ideas_stream(
+            folder=request.folder,
+            ideas=request.ideas,
+            platform=request.platform,
+            folder_context=folder_context
+        ):
+            yield event
+            
+            # Parse event to collect results
+            try:
+                event_data = json.loads(event.replace("data: ", "").strip())
+                if event_data["type"] == "result":
+                    all_results.append(event_data["analysis"])
+            except:
+                pass
+        
+        # After streaming completes, cache the results
+        if redis_client and all_results:
+            try:
+                # Sort results by score
+                all_results.sort(key=lambda x: x["overall_score"], reverse=True)
+                
+                cache_data = {
+                    "folder": request.folder,
+                    "platform": request.platform,
+                    "ideas": all_results,
+                    "best_idea": all_results[0] if all_results else None,
+                    "folder_context": {
+                        "total_files": len(folder_context.get("files", [])),
+                        "main_topics": folder_context.get("main_topics", []),
+                        "content_type": folder_context.get("content_type", "unknown"),
+                        "technical_depth": folder_context.get("technical_depth", "medium")
+                    },
+                    "from_cache": False
+                }
+                
+                redis_client.setex(
+                    cache_key,
+                    300,  # 5 minutes TTL
+                    json.dumps(cache_data)
+                )
+                print(f"📝 Cached streamed analysis results: {cache_key}")
+            except Exception as e:
+                print(f"⚠️ Failed to cache streamed results: {e}")
+    
+    return StreamingResponse(
+        stream_and_cache(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"  # Disable nginx buffering
+        }
+    )

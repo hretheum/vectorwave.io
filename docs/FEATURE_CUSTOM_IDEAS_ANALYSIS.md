@@ -465,15 +465,9 @@ async def refresh_preloaded_data():
 1. **Batch Analysis Progress**
    - Pokazuj progress bar podczas analizy wielu pomysłów
    - Streamuj wyniki jak są gotowe
-
 2. **Historical Tracking**
    - Zapisuj własne pomysły użytkownika
    - Ucz się z jego preferencji
-
-3. **Collaborative Mode**
-   - Możliwość udostępnienia pomysłów zespołowi
-   - Voting na najlepsze pomysły
-
 4. **AI Suggestions**
    - "Based on your ideas, consider also..."
    - Hybrid approach - mieszanka AI i user ideas
