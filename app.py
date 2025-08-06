@@ -8,6 +8,7 @@ import redis
 import json
 import hashlib
 import re
+import asyncio
 from crewai import Agent, Task, Crew
 from langchain_openai import ChatOpenAI
 import chromadb
@@ -1030,30 +1031,44 @@ async def analyze_content_potential(request: AnalyzePotentialRequest):
         content_type = "TECHNICAL" if any(kw in folder_name.lower() for kw in ['code', 'api', 'implementation']) else "GENERAL"
         complexity_level = "advanced" if any(kw in folder_name.lower() for kw in ['advanced', 'expert', 'deep']) else "intermediate"
         
-        # Generate topic suggestions
-        top_topics = []
-        
-        # LinkedIn topic
-        top_topics.append({
-            "title": f"5 Lessons from {title} Implementation",
-            "platform": "LinkedIn",
-            "viralScore": min(10, int(viral_score * 10 + 1))
-        })
-        
-        # Twitter topic
-        main_theme = themes[0] if themes else 'Tech'
-        top_topics.append({
-            "title": f"The {main_theme} Mistake Everyone Makes",
-            "platform": "Twitter",
-            "viralScore": min(10, int(viral_score * 10 + 2))
-        })
-        
-        # Blog topic
-        top_topics.append({
-            "title": f"{title}: A Complete Guide",
-            "platform": "Blog",
-            "viralScore": min(10, int(viral_score * 10))
-        })
+        # Step 6a: Generate topic suggestions with AI
+        try:
+            # Get folder context for AI
+            folder_context = await analyze_folder_content(folder_name)
+            
+            # Generate topics using AI
+            top_topics = await generate_topics_with_ai(
+                folder_name=folder_name,
+                folder_context=folder_context,
+                themes=themes,
+                title=title
+            )
+        except Exception as e:
+            print(f"⚠️ AI topic generation failed, using fallback: {e}")
+            # Fallback to simple topics
+            top_topics = []
+            
+            # LinkedIn topic
+            top_topics.append({
+                "title": f"5 Lessons from {title} Implementation",
+                "platform": "LinkedIn",
+                "viralScore": min(10, int(viral_score * 10 + 1))
+            })
+            
+            # Twitter topic
+            main_theme = themes[0] if themes else 'Tech'
+            top_topics.append({
+                "title": f"The {main_theme} Mistake Everyone Makes",
+                "platform": "Twitter",
+                "viralScore": min(10, int(viral_score * 10 + 2))
+            })
+            
+            # Blog topic
+            top_topics.append({
+                "title": f"{title}: A Complete Guide",
+                "platform": "Blog",
+                "viralScore": min(10, int(viral_score * 10))
+            })
         
         # Generate recommendation
         if viral_score > 0.7:
@@ -1246,6 +1261,98 @@ async def analyze_folder_content(folder: str) -> Dict[str, Any]:
             "technical_depth": "medium",
             "content_type": "article"
         }
+
+async def generate_topics_with_ai(folder_name: str, folder_context: Dict, themes: List[str], title: str) -> List[Dict]:
+    """
+    Generate topic suggestions using AI - Step 6a
+    Uses CrewAI Content Strategy Expert to generate viral topics
+    """
+    try:
+        # Create topic generation expert
+        topic_expert = Agent(
+            role="Viral Content Topic Expert",
+            goal="Generate viral content topics that resonate with technical audience",
+            backstory="""You are an expert at creating viral content topics for technical audiences.
+            You understand LinkedIn, Twitter, and Blog platforms deeply. You know what makes
+            content go viral: pattern interrupts, specific numbers, controversial takes,
+            and solving real problems.""",
+            verbose=False,
+            llm=llm
+        )
+        
+        topic_task = Task(
+            description=f"""
+            Generate 3 viral content topics for this folder:
+            Folder: {folder_name}
+            Title: {title}
+            Themes: {', '.join(themes)}
+            Topics in folder: {', '.join(folder_context.get('main_topics', []))}
+            
+            Requirements:
+            1. One topic for LinkedIn (professional, pattern interrupt style)
+            2. One topic for Twitter (controversial or surprising angle)
+            3. One topic for Blog (comprehensive guide or case study)
+            
+            Our audience: Technical leaders, developers, AI enthusiasts
+            
+            Format each topic as:
+            PLATFORM: [LinkedIn/Twitter/Blog]
+            TITLE: [exact title]
+            VIRAL_SCORE: [1-10]
+            
+            Make titles specific, use numbers, create curiosity gaps.
+            """,
+            agent=topic_expert,
+            expected_output="Three viral topics with platforms and scores"
+        )
+        
+        crew = Crew(
+            agents=[topic_expert],
+            tasks=[topic_task]
+        )
+        
+        result = crew.kickoff()
+        result_text = str(result)
+        
+        # Parse AI response into topics
+        topics = []
+        current_topic = {}
+        
+        for line in result_text.split('\n'):
+            line = line.strip()
+            if line.startswith('PLATFORM:'):
+                if current_topic:
+                    topics.append(current_topic)
+                current_topic = {'platform': line.split(':', 1)[1].strip()}
+            elif line.startswith('TITLE:'):
+                current_topic['title'] = line.split(':', 1)[1].strip()
+            elif line.startswith('VIRAL_SCORE:'):
+                try:
+                    score = int(line.split(':', 1)[1].strip())
+                    current_topic['viralScore'] = min(10, max(1, score))
+                except:
+                    current_topic['viralScore'] = 7
+        
+        # Add last topic
+        if current_topic and 'title' in current_topic:
+            topics.append(current_topic)
+        
+        # Ensure we have 3 topics
+        if len(topics) < 3:
+            # Add fallback topics if needed
+            platforms = ['LinkedIn', 'Twitter', 'Blog']
+            for i in range(len(topics), 3):
+                topics.append({
+                    'title': f"{title} - {platforms[i]} Edition",
+                    'platform': platforms[i],
+                    'viralScore': 6
+                })
+        
+        return topics[:3]
+        
+    except Exception as e:
+        print(f"⚠️ Topic generation with AI failed: {e}")
+        raise
 
 async def analyze_single_idea(idea: str, folder_context: Dict, platform: str) -> IdeaAnalysis:
     """
