@@ -36,6 +36,10 @@ app = FastAPI(
 # Storage dla wykonań flow (w produkcji użyj Redis/DB)
 flow_executions = {}
 
+# Conversation memory storage
+conversation_memory = {}  # session_id -> List[Dict[role, content]]
+MAX_CONVERSATION_LENGTH = 20  # Maximum messages to keep in memory
+
 # Step 6b: Base path for content folders
 CONTENT_BASE_PATH = "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw"
 
@@ -2989,9 +2993,26 @@ async def chat_with_assistant(request: ChatRequest):
     Step 2 implementation - uses GPT-4 for intelligent responses
     """
     try:
+        # Manage conversation memory
+        session_id = request.session_id
+        if session_id not in conversation_memory:
+            conversation_memory[session_id] = []
+        
+        # Add user message to memory
+        conversation_memory[session_id].append({
+            "role": "user",
+            "content": request.message
+        })
+        
+        # Trim conversation if too long
+        if len(conversation_memory[session_id]) > MAX_CONVERSATION_LENGTH:
+            # Keep system message if exists, then trim oldest messages
+            conversation_memory[session_id] = conversation_memory[session_id][-MAX_CONVERSATION_LENGTH:]
+        
         # Log for debugging
         print(f"💬 Chat request: {request.message}")
         print(f"📎 Context keys: {list(request.context.keys()) if request.context else []}")
+        print(f"🧠 Session {session_id}: {len(conversation_memory.get(session_id, []))} messages in memory")
         
         # Build context information if provided
         context_info = ""
@@ -3075,11 +3096,19 @@ Bądź naturalny, pomocny i przyjacielski. To rozmowa, nie tylko wykonywanie pol
             }
         ]
         
-        # Create messages for OpenAI
+        # Create messages for OpenAI with conversation history
         messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": request.message}
+            {"role": "system", "content": system_prompt}
         ]
+        
+        # Add conversation history (excluding the current message we just added)
+        if len(conversation_memory[session_id]) > 1:
+            # Add previous messages (all except the last one which is the current message)
+            for msg in conversation_memory[session_id][:-1]:
+                messages.append(msg)
+        
+        # Add current message
+        messages.append({"role": "user", "content": request.message})
         
         # Call OpenAI API with function calling
         try:
@@ -3285,6 +3314,16 @@ Nie udało się zregenerować draftu z sugestiami.
         # Intent recognition based on keywords
         intent = classify_intent(request.message)
         
+        # Add assistant response to conversation memory
+        conversation_memory[session_id].append({
+            "role": "assistant",
+            "content": ai_response
+        })
+        
+        # Trim again if needed
+        if len(conversation_memory[session_id]) > MAX_CONVERSATION_LENGTH:
+            conversation_memory[session_id] = conversation_memory[session_id][-MAX_CONVERSATION_LENGTH:]
+        
         return ChatResponse(
             response=ai_response,
             intent=intent,
@@ -3315,6 +3354,21 @@ async def chat_with_assistant_stream(request: ChatRequest):
     """
     async def generate() -> AsyncGenerator[str, None]:
         try:
+            # Manage conversation memory
+            session_id = request.session_id
+            if session_id not in conversation_memory:
+                conversation_memory[session_id] = []
+            
+            # Add user message to memory
+            conversation_memory[session_id].append({
+                "role": "user",
+                "content": request.message
+            })
+            
+            # Trim conversation if too long
+            if len(conversation_memory[session_id]) > MAX_CONVERSATION_LENGTH:
+                conversation_memory[session_id] = conversation_memory[session_id][-MAX_CONVERSATION_LENGTH:]
+            
             # Send initial event
             yield f"data: {json.dumps({'type': 'start', 'timestamp': datetime.now().isoformat()})}\n\n"
             
@@ -3400,11 +3454,19 @@ Bądź naturalny, pomocny i przyjacielski. To rozmowa, nie tylko wykonywanie pol
                 }
             ]
             
-            # Create messages
+            # Create messages with conversation history
             messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": request.message}
+                {"role": "system", "content": system_prompt}
             ]
+            
+            # Add conversation history (excluding the current message we just added)
+            if len(conversation_memory[session_id]) > 1:
+                # Add previous messages (all except the last one which is the current message)
+                for msg in conversation_memory[session_id][:-1]:
+                    messages.append(msg)
+            
+            # Add current message
+            messages.append({"role": "user", "content": request.message})
             
             # Intent detection
             intent = classify_intent(request.message)
@@ -3506,6 +3568,17 @@ Bądź naturalny, pomocny i przyjacielski. To rozmowa, nie tylko wykonywanie pol
                 except Exception as func_error:
                     yield f"data: {json.dumps({'type': 'error', 'message': f'Błąd funkcji: {str(func_error)}'})}\n\n"
             
+            # Add assistant response to conversation memory
+            if content_accumulator:
+                conversation_memory[session_id].append({
+                    "role": "assistant",
+                    "content": content_accumulator
+                })
+                
+                # Trim again if needed
+                if len(conversation_memory[session_id]) > MAX_CONVERSATION_LENGTH:
+                    conversation_memory[session_id] = conversation_memory[session_id][-MAX_CONVERSATION_LENGTH:]
+            
             # Send completion event
             yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
             
@@ -3521,3 +3594,14 @@ Bądź naturalny, pomocny i przyjacielski. To rozmowa, nie tylko wykonywanie pol
             "X-Accel-Buffering": "no"  # Disable nginx buffering
         }
     )
+
+@app.delete("/api/chat/memory/{session_id}", tags=["assistant"],
+           summary="Clear conversation memory",
+           description="Clear conversation history for a specific session")
+async def clear_conversation_memory(session_id: str):
+    """Clear conversation memory for a session"""
+    if session_id in conversation_memory:
+        del conversation_memory[session_id]
+        return {"status": "success", "message": f"Conversation memory cleared for session {session_id}"}
+    else:
+        return {"status": "info", "message": f"No conversation memory found for session {session_id}"}
