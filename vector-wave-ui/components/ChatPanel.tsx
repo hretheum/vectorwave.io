@@ -32,6 +32,8 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [], onEdi
   const [isTyping, setIsTyping] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [isDocked, setIsDocked] = useState(true);
+  const [showCustomIdeasInput, setShowCustomIdeasInput] = useState(false);
+  const [customIdeasText, setCustomIdeasText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load messages and docked state from localStorage on mount
@@ -338,6 +340,24 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [], onEdi
             }]);
           }, (index + 1) * 200); // Stagger messages for nicer effect
         });
+        
+        // Add "Mam swoje propozycje" button after all topics
+        setTimeout(() => {
+          setMessages(prev => [...prev, {
+            id: `custom-ideas-prompt-${Date.now()}`,
+            role: 'assistant',
+            content: `Nie podoba Ci się żaden z pomysłów?`,
+            timestamp: new Date(),
+            contextActions: [{
+              label: '💡 Mam swoje propozycje',
+              action: () => {
+                console.log('Custom ideas clicked');
+                setShowCustomIdeasInput(true);
+                setCustomIdeasText('');
+              }
+            }]
+          }]);
+        }, (analysisResult.topTopics.length + 1) * 200);
       }
     }
   }, [analysisResult]);
@@ -677,25 +697,122 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [], onEdi
       )}
 
       {/* Input */}
-      <div className="p-4 bg-white border-t border-gray-200">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Napisz wiadomość..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
-          <Button 
-            onClick={handleSend}
-            disabled={!input.trim() || isTyping}
-            size="icon"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
+      {!showCustomIdeasInput ? (
+        <div className="p-4 bg-white border-t border-gray-200">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="Napisz wiadomość..."
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+            <Button 
+              onClick={handleSend}
+              disabled={!input.trim() || isTyping}
+              size="icon"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="p-4 bg-white border-t border-gray-200">
+          <div className="mb-2 text-sm text-gray-600">
+            <span className="font-semibold">Twoje propozycje dla folderu: {analysisResult?.folder || 'nieznany'}</span>
+            <button
+              onClick={() => {
+                setShowCustomIdeasInput(false);
+                setCustomIdeasText('');
+              }}
+              className="float-right text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+          </div>
+          <textarea
+            value={customIdeasText}
+            onChange={(e) => setCustomIdeasText(e.target.value)}
+            onKeyDown={(e) => {
+              // Option+Enter (Alt+Enter on Windows) for new line
+              if (e.key === 'Enter' && e.altKey) {
+                e.preventDefault();
+                const textarea = e.target as HTMLTextAreaElement;
+                const { selectionStart, selectionEnd } = textarea;
+                const newContent = 
+                  customIdeasText.substring(0, selectionStart) + 
+                  '\n' + 
+                  customIdeasText.substring(selectionEnd);
+                setCustomIdeasText(newContent);
+                // Restore cursor position
+                setTimeout(() => {
+                  textarea.selectionStart = textarea.selectionEnd = selectionStart + 1;
+                }, 0);
+                return;
+              }
+              
+              // Enter without modifier submits
+              if (e.key === 'Enter' && !e.altKey && !e.shiftKey) {
+                e.preventDefault();
+                const ideas = customIdeasText
+                  .split('\n')
+                  .map(idea => idea.trim())
+                  .filter(idea => idea.length > 0);
+                
+                if (ideas.length > 0) {
+                  console.log('Submit ideas:', ideas);
+                  // TODO: Call API
+                  setShowCustomIdeasInput(false);
+                  setCustomIdeasText('');
+                  
+                  // Show confirmation message
+                  setMessages(prev => [...prev, {
+                    id: `custom-ideas-submitted-${Date.now()}`,
+                    role: 'assistant',
+                    content: `📝 Analizuję ${ideas.length} pomysłów...`,
+                    timestamp: new Date()
+                  }]);
+                }
+              }
+            }}
+            placeholder="Wpisz swoje pomysły (jeden per linia)&#10;Option+Enter dla nowej linii"
+            rows={5}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+            autoFocus
+          />
+          <div className="mt-2 flex justify-between text-xs text-gray-500">
+            <span>Enter = wyślij • Option+Enter = nowa linia</span>
+            <button
+              onClick={() => {
+                const ideas = customIdeasText
+                  .split('\n')
+                  .map(idea => idea.trim())
+                  .filter(idea => idea.length > 0);
+                
+                if (ideas.length > 0) {
+                  console.log('Submit ideas:', ideas);
+                  // TODO: Call API
+                  setShowCustomIdeasInput(false);
+                  setCustomIdeasText('');
+                  
+                  // Show confirmation message
+                  setMessages(prev => [...prev, {
+                    id: `custom-ideas-submitted-${Date.now()}`,
+                    role: 'assistant',
+                    content: `📝 Analizuję ${ideas.length} pomysłów...`,
+                    timestamp: new Date()
+                  }]);
+                }
+              }}
+              disabled={!customIdeasText.trim()}
+              className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              Analizuj pomysły
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
