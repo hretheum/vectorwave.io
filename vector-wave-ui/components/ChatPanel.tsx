@@ -680,6 +680,121 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [], onEdi
     }
   }, [analysisResult]);
 
+  // Action handlers for context actions
+  const handleRegenerateWithSuggestions = async (params: any) => {
+    console.log('Regenerating with suggestions:', params);
+    
+    const loadingMsg = {
+      id: `regenerate-${Date.now()}`,
+      role: 'assistant' as const,
+      content: '🔄 Regeneruję draft z Twoimi sugestiami...',
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, loadingMsg]);
+    setIsTyping(true);
+    
+    try {
+      // Call the chat API with regenerate request
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Wygeneruj ponownie draft z sugestiami: ${params.suggestions}`,
+          context: {
+            currentDraft: params.original_draft || '',
+            topicTitle: params.topic || 'Draft Update',
+            platform: params.platform || 'LinkedIn',
+            suggestions: params.suggestions
+          }
+        })
+      });
+      
+      const data = await response.json();
+      
+      // Update the loading message with the result
+      setMessages(prev => prev.map(msg => 
+        msg.id === loadingMsg.id 
+          ? { 
+              ...msg, 
+              content: data.response || 'Regeneracja zakończona',
+              contextActions: data.context_actions?.map((action: any) => ({
+                label: action.label,
+                action: async () => {
+                  if (action.action === 'open_editor' && onEditDraft) {
+                    onEditDraft(action.params.draft, action.params.topic || 'Regenerated Draft', action.params.platform || 'LinkedIn');
+                  } else if (action.action === 'analyze_regenerated_draft') {
+                    // Trigger new analysis
+                    const analysisMessage = `Przeanalizuj różnice między oryginalnym a zregenerowanym draftem`;
+                    setInput(analysisMessage);
+                  }
+                }
+              })) || []
+            }
+          : msg
+      ));
+      
+    } catch (error) {
+      console.error('Regeneration error:', error);
+      setMessages(prev => prev.map(msg => 
+        msg.id === loadingMsg.id 
+          ? { ...msg, content: `❌ Błąd regeneracji: ${error instanceof Error ? error.message : 'Nieznany błąd'}` }
+          : msg
+      ));
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const handleSuggestAlternatives = async (params: any) => {
+    console.log('Suggesting alternatives:', params);
+    
+    const suggestionMsg = {
+      id: `alternatives-${Date.now()}`,
+      role: 'assistant' as const,
+      content: `💭 **Alternatywne podejścia:**
+
+Zamiast "${params.current_approach || 'obecnego podejścia'}", możesz spróbować:
+
+• **Dodaj konkretne liczby** - statystyki zwiększają wiarygodność
+• **Użyj case study** - prawdziwy przykład z Twojego doświadczenia
+• **Postaw prowokacyjne pytanie** - zwiększy engagement
+• **Dodaj call-to-action** - skłoń do interakcji
+
+Która opcja Cię interesuje?`,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, suggestionMsg]);
+  };
+
+  const handleShowDetailedReport = async (params: any) => {
+    console.log('Showing detailed report:', params);
+    
+    const report = params.full_analysis || {};
+    const metrics = params.metrics || {};
+    
+    const reportMsg = {
+      id: `report-${Date.now()}`,
+      role: 'assistant' as const,
+      content: `📄 **Pełny raport analizy**
+
+**📊 Metryki szczegółowe:**
+• Jakość: ${metrics.quality?.before || 'N/A'} → ${metrics.quality?.after || 'N/A'}
+• Viral: ${metrics.viral?.before || 'N/A'} → ${metrics.viral?.after || 'N/A'}
+• Dopasowanie do platformy: ${metrics.platform_fit || 'Nieznane'}
+
+**🤖 Analiza AI (${report.execution_time_seconds || 'N/A'}s):**
+${report.agent_analysis || 'Brak szczegółowej analizy'}
+
+**💰 Koszt:** ${report.cost_estimate || 'N/A'}
+**🎯 Fokus:** ${report.focus_areas?.join(', ') || 'ogólny'}`,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, reportMsg]);
+  };
+
   const handleSend = async () => {
     if (!input.trim()) return;
 
@@ -727,17 +842,185 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [], onEdi
         setIsTyping(false);
         return;
       }
-      // Call the chat API
+      // Build context for AI Assistant
+      const chatContext: any = {
+        folders,
+        analysisResult,
+        previousMessages: messages.slice(-5), // Last 5 messages for context
+      };
+
+      // Add draft context if available from recent messages
+      const recentDraftMessage = messages.slice().reverse().find(msg => 
+        msg.role === 'assistant' && msg.content.includes('Draft gotowy!')
+      );
+
+      if (recentDraftMessage) {
+        // Extract draft content from the message
+        const draftMatch = recentDraftMessage.content.match(/\*\*.*?\*\*[\s\S]*?\n\n([\s\S]*?)\n\n📊/);
+        if (draftMatch) {
+          chatContext.currentDraft = draftMatch[1];
+          chatContext.platform = 'LinkedIn'; // Default platform
+          chatContext.topicTitle = recentDraftMessage.content.match(/\*\*(.*?)\*\*/)?.[1] || '';
+        }
+      }
+
+      // Use streaming API for better UX with long operations
+      const useStreaming = true; // Can be made configurable later
+      
+      if (useStreaming) {
+        // Create placeholder message for streaming response
+        const assistantMessage: Message = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: '',
+          timestamp: new Date(),
+          contextActions: []
+        };
+        
+        setMessages(prev => [...prev, assistantMessage]);
+        
+        // Call streaming API
+        const response = await fetch('/api/chat/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: input,
+            context: chatContext
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        
+        if (reader) {
+          let accumulatedContent = '';
+          let contextActions: any[] = [];
+          
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const eventData = JSON.parse(line.slice(6));
+                  
+                  switch (eventData.type) {
+                    case 'content':
+                      accumulatedContent += eventData.content;
+                      // Update the message in real-time
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === assistantMessage.id 
+                          ? { ...msg, content: accumulatedContent }
+                          : msg
+                      ));
+                      break;
+                      
+                    case 'function_start':
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === assistantMessage.id 
+                          ? { ...msg, content: accumulatedContent + '\n\n🔧 Wywołuję funkcję: ' + eventData.function + '...' }
+                          : msg
+                      ));
+                      break;
+                      
+                    case 'function_processing':
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === assistantMessage.id 
+                          ? { ...msg, content: accumulatedContent + '\n\n⏳ Przetwarzam...' }
+                          : msg
+                      ));
+                      break;
+                      
+                    case 'function_result':
+                      accumulatedContent += '\n\n' + eventData.content;
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === assistantMessage.id 
+                          ? { ...msg, content: accumulatedContent }
+                          : msg
+                      ));
+                      break;
+                      
+                    case 'context_actions':
+                      contextActions = eventData.actions.map((action: any) => ({
+                        label: action.label,
+                        action: async () => {
+                          console.log('Context action clicked:', action.action, action.params);
+                          
+                          if (action.action === 'regenerate_with_suggestions') {
+                            await handleRegenerateWithSuggestions(action.params);
+                          } else if (action.action === 'suggest_alternatives') {
+                            await handleSuggestAlternatives(action.params);
+                          } else if (action.action === 'show_detailed_report') {
+                            await handleShowDetailedReport(action.params);
+                          }
+                        }
+                      }));
+                      
+                      // Update message with context actions
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === assistantMessage.id 
+                          ? { ...msg, contextActions }
+                          : msg
+                      ));
+                      break;
+                      
+                    case 'status':
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === assistantMessage.id 
+                          ? { ...msg, content: accumulatedContent + '\n\n📝 ' + eventData.message }
+                          : msg
+                      ));
+                      break;
+                      
+                    case 'draft_generated':
+                      // Handle draft generation
+                      if (eventData.draft && onEditDraft) {
+                        onEditDraft({
+                          id: Date.now().toString(),
+                          title: chatContext.topicTitle || 'Nowy draft',
+                          content: eventData.draft,
+                          platform: chatContext.platform || 'LinkedIn',
+                          timestamp: new Date()
+                        });
+                      }
+                      break;
+                      
+                    case 'error':
+                      accumulatedContent += '\n\n❌ Błąd: ' + eventData.message;
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === assistantMessage.id 
+                          ? { ...msg, content: accumulatedContent }
+                          : msg
+                      ));
+                      break;
+                  }
+                } catch (e) {
+                  console.error('Error parsing SSE event:', e);
+                }
+              }
+            }
+          }
+        }
+        
+        setIsTyping(false);
+        return;
+      }
+      
+      // Fallback to non-streaming API
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: input,
-          context: {
-            folders,
-            analysisResult,
-            previousMessages: messages.slice(-5) // Last 5 messages for context
-          }
+          context: chatContext
         })
       });
 
@@ -758,7 +1041,27 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [], onEdi
         id: Date.now().toString(),
         role: 'assistant',
         content: data.response || data.message || 'Hmm, nie dostałem odpowiedzi. Spróbuj jeszcze raz?',
-        timestamp: new Date()
+        timestamp: new Date(),
+        contextActions: data.context_actions?.map((action: any) => ({
+          label: action.label,
+          action: async () => {
+            console.log('Context action clicked:', action.action, action.params);
+            
+            if (action.action === 'regenerate_with_suggestions') {
+              await handleRegenerateWithSuggestions(action.params);
+            } else if (action.action === 'suggest_alternatives') {
+              await handleSuggestAlternatives(action.params);
+            } else if (action.action === 'show_detailed_report') {
+              await handleShowDetailedReport(action.params);
+            } else if (action.action === 'open_editor') {
+              if (onEditDraft && action.params.draft) {
+                onEditDraft(action.params.draft, 'Manual Edit', 'LinkedIn');
+              }
+            } else {
+              console.log('Unknown action:', action.action);
+            }
+          }
+        })) || []
       };
 
       setMessages(prev => [...prev, assistantMessage]);

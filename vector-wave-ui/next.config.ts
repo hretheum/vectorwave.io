@@ -4,6 +4,15 @@ const nextConfig: NextConfig = {
   /* config options here */
   async rewrites() {
     return [
+      // AI Assistant chat endpoints
+      {
+        source: '/api/chat',
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8003'}/api/chat`,
+      },
+      {
+        source: '/api/chat/stream',
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8003'}/api/chat/stream`,
+      },
       // Nowe endpointy CrewAI
       {
         source: '/api/crewai/:path*',
