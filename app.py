@@ -336,6 +336,84 @@ async def seed_style_guide():
         "categories": categories
     }
 
+# CrewAI Tool for Style Guide Queries
+def query_style_guide(query: str, n_results: int = 5) -> str:
+    """
+    Query Vector Wave style guide for specific rules.
+    
+    Args:
+        query: What to search for (e.g., "pattern interrupt examples", "LinkedIn hooks", "metric usage")
+        n_results: Number of results to return (default 5)
+    
+    Returns:
+        Formatted string with discovered rules
+    """
+    if not style_guide_collection:
+        return "Style guide not available - ChromaDB connection missing"
+    
+    try:
+        # Real ChromaDB query - NO MOCKS!
+        results = style_guide_collection.query(
+            query_texts=[query],
+            n_results=n_results
+        )
+        
+        # Format results for agent consumption
+        if not results['ids'] or not results['ids'][0]:
+            return f"No style guide rules found for query: '{query}'"
+        
+        formatted_rules = [f"Style Guide Rules for '{query}':\n"]
+        
+        for i, rule_id in enumerate(results['ids'][0]):
+            metadata = results['metadatas'][0][i] if results['metadatas'] else {}
+            document = results['documents'][0][i] if results['documents'] else ""
+            distance = results['distances'][0][i] if results['distances'] else 0
+            
+            # Extract rule text from metadata or document
+            rule_text = metadata.get('rule', '') or document
+            category = metadata.get('category', 'general')
+            priority = metadata.get('priority', 'medium')
+            
+            formatted_rules.append(
+                f"{i+1}. [{category.upper()}] {rule_text}\n"
+                f"   Priority: {priority} | Relevance: {1 - distance:.2%}\n"
+            )
+        
+        return "\n".join(formatted_rules)
+        
+    except Exception as e:
+        return f"Error querying style guide: {str(e)}"
+
+# API endpoint to test the tool directly
+class ToolQueryRequest(BaseModel):
+    """Request for testing style guide tool"""
+    query: str
+    n_results: int = 5
+
+@app.post("/api/tools/query-style-guide", tags=["tools"])
+async def test_query_style_guide_tool(request: ToolQueryRequest):
+    """
+    Test endpoint for the style guide query tool.
+    This allows direct testing without going through an agent.
+    """
+    result = query_style_guide(
+        query=request.query,
+        n_results=request.n_results
+    )
+    
+    # Log for debugging
+    print(f"🔍 Tool query: '{request.query}' returned {request.n_results} results")
+    
+    return {
+        "status": "success",
+        "query": request.query,
+        "n_results": request.n_results,
+        "result": result,
+        "tool_name": "query_style_guide",
+        "is_real_query": True,  # Emphasizing NO MOCKS
+        "backend": "ChromaDB"
+    }
+
 class StyleCheckRequest(BaseModel):
     """Request for style guide checking"""
     content: str
