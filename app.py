@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 import chromadb
 from chromadb.config import Settings
 from openai import AsyncOpenAI
+import json
 
 app = FastAPI(
     title="AI Writing Flow - Container First",
@@ -787,6 +788,201 @@ async def check_style_agentic_v2(request: AgenticStyleCheckRequest):
             "status": "error",
             "error": str(e),
             "message": "Failed to perform TRUE agentic style analysis"
+        }
+
+class IterativeAnalysisRequest(BaseModel):
+    content: str = Field(..., description="Content to analyze")
+    platform: str = Field(default="general", description="Platform: LinkedIn, Twitter, Blog, etc.")
+    context: Optional[str] = Field(None, description="Additional context about the content")
+    max_iterations: int = Field(default=5, description="Maximum search iterations")
+
+@app.post("/api/style-guide/analyze-iterative", tags=["content"])
+async def analyze_with_iterations(request: IterativeAnalysisRequest):
+    """
+    TRUE Iterative Style Guide Analysis with OpenAI Function Calling
+    
+    This endpoint implements real agentic behavior where:
+    - Agent uses OpenAI function calling to search style guide
+    - Agent decides what to search for autonomously
+    - Agent can iterate multiple times until satisfied
+    - No hardcoded queries or patterns!
+    """
+    if not style_guide_collection:
+        return {"status": "error", "message": "ChromaDB not connected"}
+    
+    if not openai_client:
+        return {"status": "error", "message": "OpenAI client not initialized"}
+    
+    try:
+        print(f"🚀 Starting Iterative Analysis for {request.platform} content")
+        start_time = time.time()
+        
+        # Initialize conversation with system prompt
+        messages = [
+            {
+                "role": "system",
+                "content": """You are a Vector Wave style guide expert. Your job is to analyze content 
+                against our comprehensive style guide by searching for relevant rules.
+                
+                You have access to a search_style_guide function that queries our style database.
+                Use it iteratively to discover all relevant rules for the given content.
+                
+                Search strategy:
+                1. Start with platform-specific rules
+                2. Search for content type patterns
+                3. Look for specific techniques mentioned
+                4. Find rules about tone and voice
+                5. Check for any red flags or things to avoid
+                
+                Keep searching until you have a comprehensive understanding of all applicable rules."""
+            },
+            {
+                "role": "user",
+                "content": f"""Analyze this content against Vector Wave style guide:
+                
+Content: "{request.content}"
+Platform: {request.platform}
+Context: {request.context or 'General business content'}
+
+Search the style guide iteratively to find all relevant rules. Start with platform-specific guidelines."""
+            }
+        ]
+        
+        # Define the function for OpenAI
+        functions = [
+            {
+                "name": "search_style_guide",
+                "description": "Search the Vector Wave style guide for specific rules and patterns",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "What to search for in the style guide (e.g., 'LinkedIn hooks', 'pattern interrupt', 'metrics usage')"
+                        },
+                        "n_results": {
+                            "type": "integer",
+                            "description": "Number of results to return",
+                            "default": 5
+                        }
+                    },
+                    "required": ["query"]
+                }
+            }
+        ]
+        
+        # Track iterations and searches
+        iterations = 0
+        search_log = []
+        total_rules_discovered = set()
+        
+        # Iterative search loop
+        while iterations < request.max_iterations:
+            # Call OpenAI with function calling
+            response = await openai_client.chat.completions.create(
+                model="gpt-4-turbo-preview",
+                messages=messages,
+                functions=functions,
+                function_call="auto",
+                temperature=0.7
+            )
+            
+            message = response.choices[0].message
+            
+            # Check if agent wants to call a function
+            if message.function_call:
+                # Extract function call details
+                function_name = message.function_call.name
+                function_args = json.loads(message.function_call.arguments)
+                
+                print(f"🔍 Iteration {iterations + 1}: Agent searching for '{function_args.get('query')}'")
+                
+                # Execute the search
+                if function_name == "search_style_guide":
+                    search_result = query_style_guide(
+                        query=function_args.get("query"),
+                        n_results=function_args.get("n_results", 5)
+                    )
+                    
+                    # Log the search
+                    search_log.append({
+                        "iteration": iterations + 1,
+                        "query": function_args.get("query"),
+                        "timestamp": datetime.now().isoformat(),
+                        "results_preview": search_result[:200] + "..." if len(search_result) > 200 else search_result
+                    })
+                    
+                    # Track discovered rules
+                    if "Style Guide Rules for" in search_result:
+                        # Extract rule count from result
+                        import re
+                        rule_matches = re.findall(r'^\d+\.\s+\[', search_result, re.MULTILINE)
+                        total_rules_discovered.update(rule_matches)
+                    
+                    # Add function result to conversation
+                    messages.append({
+                        "role": "assistant",
+                        "content": None,
+                        "function_call": {
+                            "name": function_name,
+                            "arguments": message.function_call.arguments
+                        }
+                    })
+                    
+                    messages.append({
+                        "role": "function",
+                        "name": function_name,
+                        "content": search_result
+                    })
+                
+                iterations += 1
+            else:
+                # Agent is done searching - get final analysis
+                final_analysis = message.content
+                print(f"✅ Agent completed analysis after {iterations} iterations")
+                break
+        
+        # If we hit max iterations, ask for final analysis
+        if iterations >= request.max_iterations:
+            messages.append({
+                "role": "user",
+                "content": "Based on all your searches, provide a comprehensive style analysis with score and recommendations."
+            })
+            
+            final_response = await openai_client.chat.completions.create(
+                model="gpt-4-turbo-preview",
+                messages=messages,
+                temperature=0.7
+            )
+            
+            final_analysis = final_response.choices[0].message.content
+        
+        # Extract style score from analysis
+        score_match = re.search(r'(?:score|rating).*?(\d+)\s*(?:/\s*100|%)', final_analysis, re.IGNORECASE)
+        style_score = int(score_match.group(1)) if score_match else 75
+        
+        return {
+            "status": "success",
+            "analysis_type": "iterative_openai",
+            "iterations_used": iterations,
+            "total_searches": len(search_log),
+            "unique_rules_discovered": len(total_rules_discovered),
+            "search_log": search_log,
+            "style_score": style_score,
+            "analysis": final_analysis,
+            "platform": request.platform,
+            "execution_time_seconds": round(time.time() - start_time, 2),
+            "note": "Agent autonomously explored style guide using OpenAI function calling"
+        }
+        
+    except Exception as e:
+        print(f"❌ Error in iterative analysis: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "status": "error",
+            "error": str(e),
+            "message": "Failed to perform iterative style analysis"
         }
 
 @app.post("/api/style-guide/compare", tags=["content"])
