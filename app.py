@@ -1353,78 +1353,201 @@ async def verify_openai():
 
 async def analyze_folder_content(folder: str) -> Dict[str, Any]:
     """
-    Analyze folder content - Step 2
-    For now returns enhanced mock data based on folder name
+    Analyze real folder content from /content/raw/{folder}/
+    Returns actual topics, files, and content analysis
     """
-    # Mock implementation - will be replaced with real folder analysis
-    folder_mocks = {
-        "distributed-tracing": {
-            "files": ["opentelemetry-intro.md", "jaeger-setup.md", "tracing-patterns.md"],
-            "main_topics": ["opentelemetry", "jaeger", "distributed systems", "observability"],
-            "technical_depth": "high",
-            "content_type": "technical guide"
-        },
-        "ai-agents": {
-            "files": ["crewai-basics.md", "agent-patterns.md", "multi-agent-systems.md"],
-            "main_topics": ["crewai", "agents", "AI coordination", "automation"],
-            "technical_depth": "medium",
-            "content_type": "implementation guide"
-        }
+    # Path to content folders
+    content_path = "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw"
+    folder_path = os.path.join(content_path, folder)
+    
+    # Default response if folder doesn't exist
+    default_response = {
+        "files": [],
+        "main_topics": ["general"],
+        "technical_depth": "medium",
+        "content_type": "article",
+        "actual_content": False
     }
     
-    # Return specific mock or default
-    if folder in folder_mocks:
-        return folder_mocks[folder]
-    else:
+    # Check if folder exists
+    if not os.path.exists(folder_path):
+        print(f"⚠️ Folder not found: {folder_path}")
+        return default_response
+    
+    try:
+        # Analyze actual folder content
+        files = []
+        main_topics = set()
+        content_snippets = []
+        technical_keywords = []
+        
+        # Read all markdown files in the folder
+        for filename in os.listdir(folder_path):
+            if filename.endswith('.md'):
+                files.append(filename)
+                file_path = os.path.join(folder_path, filename)
+                
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()[:2000]  # First 2000 chars
+                        
+                        # Extract topics from README
+                        if filename == 'README.md':
+                            # Look for main topic indicators
+                            lines = content.lower().split('\n')
+                            for line in lines:
+                                if 'topic:' in line or 'temat:' in line:
+                                    topic = line.split(':', 1)[1].strip()
+                                    main_topics.add(topic)
+                                elif '#' in line and len(line) < 100:
+                                    # Headers often contain topics
+                                    topic = line.replace('#', '').strip()
+                                    if len(topic) > 3:
+                                        main_topics.add(topic)
+                        
+                        # Extract technical keywords
+                        tech_terms = ['api', 'docker', 'kubernetes', 'ai', 'agent', 'crewai', 
+                                     'rag', 'embedding', 'vector', 'database', 'redis', 'cache',
+                                     'typescript', 'react', 'python', 'fastapi', 'gpt', 'claude']
+                        
+                        for term in tech_terms:
+                            if term in content.lower():
+                                technical_keywords.append(term)
+                        
+                        # Save snippet for analysis
+                        content_snippets.append(content[:500])
+                        
+                except Exception as e:
+                    print(f"Error reading {file_path}: {e}")
+        
+        # Determine technical depth based on keywords
+        technical_depth = "low"
+        if len(technical_keywords) > 10:
+            technical_depth = "high"
+        elif len(technical_keywords) > 5:
+            technical_depth = "medium"
+        
+        # Determine content type
+        content_type = "article"
+        if any('case study' in s.lower() for s in content_snippets):
+            content_type = "case study"
+        elif any('guide' in s.lower() or 'tutorial' in s.lower() for s in content_snippets):
+            content_type = "technical guide"
+        elif any('experiment' in s.lower() or 'test' in s.lower() for s in content_snippets):
+            content_type = "experiment"
+        
+        # Clean up topics
+        main_topics = list(main_topics)[:10]  # Limit to 10 topics
+        if not main_topics:
+            # Extract from folder name
+            main_topics = folder.replace('-', ' ').split()
+        
         return {
-            "files": ["file1.md", "file2.md"],
-            "main_topics": ["general", "content"],
-            "technical_depth": "medium",
-            "content_type": "article"
+            "files": files,
+            "main_topics": main_topics,
+            "technical_depth": technical_depth,
+            "content_type": content_type,
+            "actual_content": True,
+            "technical_keywords": list(set(technical_keywords))[:10],
+            "content_preview": content_snippets[0][:200] if content_snippets else "",
+            "file_count": len(files)
         }
+        
+    except Exception as e:
+        print(f"Error analyzing folder {folder}: {e}")
+        return default_response
 
 async def generate_topics_with_ai(folder_name: str, folder_context: Dict, themes: List[str], title: str) -> List[Dict]:
     """
-    Generate topic suggestions using AI - Step 6a
-    Uses CrewAI Content Strategy Expert to generate viral topics
+    Generate topic suggestions using AI with Vector Wave style guide
+    Uses CrewAI Content Strategy Expert + Style Guide Rules
     """
     try:
-        # Create topic generation expert
+        # Get style guide rules for each platform
+        style_rules = {}
+        platforms = ['LinkedIn', 'Twitter', 'Blog']
+        
+        if style_guide_collection:
+            for platform in platforms:
+                try:
+                    # Query style guide for platform-specific rules
+                    results = style_guide_collection.query(
+                        query_texts=[f"{platform} viral content rules opening patterns"],
+                        n_results=5,
+                        where={"platform": platform}
+                    )
+                    
+                    if results['documents'][0]:
+                        style_rules[platform] = "\n".join(results['documents'][0][:3])
+                    else:
+                        style_rules[platform] = "No specific rules found"
+                        
+                except Exception as e:
+                    print(f"Error querying style guide for {platform}: {e}")
+                    style_rules[platform] = "Default rules"
+        else:
+            print("⚠️ Style guide collection not available")
+        
+        # Extract actual content preview if available
+        content_preview = folder_context.get('content_preview', '')
+        technical_keywords = folder_context.get('technical_keywords', [])
+        
+        # Create topic generation expert with style guide knowledge
         topic_expert = Agent(
-            role="Viral Content Topic Expert",
-            goal="Generate viral content topics that resonate with technical audience",
-            backstory="""You are an expert at creating viral content topics for technical audiences.
-            You understand LinkedIn, Twitter, and Blog platforms deeply. You know what makes
-            content go viral: pattern interrupts, specific numbers, controversial takes,
-            and solving real problems.""",
+            role="Vector Wave Content Strategy Expert",
+            goal="Generate viral content topics that follow Vector Wave style guide",
+            backstory="""You are Vector Wave's content strategy expert. You understand our style guide
+            perfectly and know how to create viral content that follows our specific patterns.
+            You never use generic openings - always pattern interrupts, specific metrics, or bold claims.
+            You understand LinkedIn, Twitter, and Blog platforms deeply.""",
             verbose=False,
             llm=llm
         )
         
         topic_task = Task(
             description=f"""
-            Generate 3 viral content topics for this folder:
+            Generate 3 viral content topics based on ACTUAL folder content:
+            
             Folder: {folder_name}
-            Title: {title}
-            Themes: {', '.join(themes)}
-            Topics in folder: {', '.join(folder_context.get('main_topics', []))}
+            Actual files: {', '.join(folder_context.get('files', [])[:5])}
+            Main topics found: {', '.join(folder_context.get('main_topics', []))}
+            Technical keywords: {', '.join(technical_keywords[:5])}
+            Content preview: {content_preview[:200]}...
+            
+            VECTOR WAVE STYLE GUIDE RULES:
+            
+            LinkedIn Rules:
+            {style_rules.get('LinkedIn', 'Use pattern interrupts')}
+            
+            Twitter Rules:
+            {style_rules.get('Twitter', 'Be controversial')}
+            
+            Blog Rules:
+            {style_rules.get('Blog', 'Comprehensive guides')}
             
             Requirements:
-            1. One topic for LinkedIn (professional, pattern interrupt style)
-            2. One topic for Twitter (controversial or surprising angle)
-            3. One topic for Blog (comprehensive guide or case study)
+            1. LinkedIn topic - MUST use pattern interrupt or specific metric from the content
+            2. Twitter topic - MUST be controversial or surprising based on actual content
+            3. Blog topic - MUST be comprehensive guide based on real files in folder
+            
+            DO NOT create generic topics. Use ACTUAL content from the folder.
+            If folder has "hybrid-rag-crewai" content, topic must be about that specific implementation.
             
             Our audience: Technical leaders, developers, AI enthusiasts
             
             Format each topic as:
             PLATFORM: [LinkedIn/Twitter/Blog]
-            TITLE: [exact title]
+            TITLE: [exact title following style guide]
             VIRAL_SCORE: [1-10]
+            STYLE_GUIDE_MATCH: [Yes/No - does it follow the rules?]
             
-            Make titles specific, use numbers, create curiosity gaps.
+            Examples of GOOD titles from style guide:
+            - "Dlaczego 90% projektów AI upada w pierwszym miesiącu (i jak tego uniknąć)"
+            - "Pattern Interrupt: Czy 250ms to za długo na decyzję redakcyjną?"
+            - "Zbudowaliśmy system gdzie AI agenty same piszą kod. Oto co się stało."
             """,
             agent=topic_expert,
-            expected_output="Three viral topics with platforms and scores"
+            expected_output="Three viral topics with platforms, scores, and style guide compliance"
         )
         
         crew = Crew(
@@ -1453,6 +1576,8 @@ async def generate_topics_with_ai(folder_name: str, folder_context: Dict, themes
                     current_topic['viralScore'] = min(10, max(1, score))
                 except:
                     current_topic['viralScore'] = 7
+            elif line.startswith('STYLE_GUIDE_MATCH:'):
+                current_topic['styleGuideMatch'] = line.split(':', 1)[1].strip().lower() == 'yes'
         
         # Add last topic
         if current_topic and 'title' in current_topic:
