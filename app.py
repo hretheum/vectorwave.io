@@ -17,6 +17,25 @@ import chromadb
 from chromadb.config import Settings
 from openai import AsyncOpenAI
 import json
+import structlog
+
+# Configure structured logging
+structlog.configure(
+    processors=[
+        structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.dev.ConsoleRenderer()
+    ],
+    context_class=dict,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    cache_logger_on_first_use=True,
+)
+logger = structlog.get_logger()
 
 app = FastAPI(
     title="AI Writing Flow - Container First",
@@ -29,9 +48,39 @@ app = FastAPI(
         {"name": "content", "description": "Content analysis and generation"},
         {"name": "research", "description": "Research operations"},
         {"name": "flow", "description": "Complete flow execution"},
-        {"name": "diagnostics", "description": "Flow diagnostics and monitoring"}
+        {"name": "diagnostics", "description": "Flow diagnostics and monitoring"},
+        {"name": "assistant", "description": "AI Assistant chat endpoints"}
     ]
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Log startup configuration and validate services"""
+    logger.info("🚀 AI Writing Flow starting up...", version="2.0.0")
+    
+    # Check OpenAI configuration
+    if OPENAI_API_KEY:
+        logger.info("✅ OpenAI API configured", key_prefix=OPENAI_API_KEY[:7])
+    else:
+        logger.warning("⚠️ OpenAI API key not configured - AI Assistant will be unavailable")
+    
+    # Check Redis
+    if redis_client:
+        try:
+            redis_client.ping()
+            logger.info("✅ Redis connected")
+        except:
+            logger.warning("⚠️ Redis not available - caching disabled")
+    
+    # Check ChromaDB
+    if style_guide_collection:
+        try:
+            count = style_guide_collection.count()
+            logger.info("✅ ChromaDB connected", style_rules=count)
+        except:
+            logger.warning("⚠️ ChromaDB not available - style guide features limited")
+    
+    logger.info("🎯 Startup complete")
 
 # Storage dla wykonań flow (w produkcji użyj Redis/DB)
 flow_executions = {}
@@ -66,10 +115,15 @@ llm = ChatOpenAI(
     api_key=os.getenv("OPENAI_API_KEY")
 )
 
-# Initialize AsyncOpenAI client for streaming
-openai_client = AsyncOpenAI(
-    api_key=os.getenv("OPENAI_API_KEY")
-)
+# Initialize AsyncOpenAI client for streaming with validation
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    print("⚠️ WARNING: OPENAI_API_KEY not found in environment variables")
+    print("⚠️ AI Assistant features will not work without it")
+    openai_client = None
+else:
+    print(f"✅ OpenAI API key configured (starts with: {OPENAI_API_KEY[:7]}...)")
+    openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 # Redis connection
 try:
@@ -2992,6 +3046,15 @@ async def chat_with_assistant(request: ChatRequest):
     
     Step 2 implementation - uses GPT-4 for intelligent responses
     """
+    # Check if OpenAI client is initialized
+    if not openai_client:
+        return ChatResponse(
+            response="❌ AI Assistant jest niedostępny. Brak konfiguracji OPENAI_API_KEY.",
+            intent=None,
+            context_actions=[],
+            error="service_unavailable"
+        )
+    
     try:
         # Manage conversation memory
         session_id = request.session_id
@@ -3286,26 +3349,51 @@ Nie udało się zregenerować draftu z sugestiami.
             print(f"✅ OpenAI response received, length: {len(ai_response)}")
             
         except Exception as openai_error:
+            logger.error(f"OpenAI API error in chat endpoint: {openai_error}")
             print(f"❌ OpenAI API error: {openai_error}")
             
-            # Check for specific errors
-            if "api_key" in str(openai_error).lower():
+            # Specific error handling with user-friendly messages
+            error_str = str(openai_error).lower()
+            
+            if "api_key" in error_str or "authentication" in error_str:
                 return ChatResponse(
-                    response="Brak klucza API OpenAI. Skonfiguruj OPENAI_API_KEY w pliku .env",
+                    response="❌ Brak klucza API OpenAI. Administrator musi skonfigurować OPENAI_API_KEY w pliku .env",
                     intent=None,
                     context_actions=[],
                     error="missing_api_key"
                 )
-            elif "rate" in str(openai_error).lower() or "limit" in str(openai_error).lower():
+            elif "rate" in error_str or "limit" in error_str or "429" in error_str:
                 return ChatResponse(
-                    response="Przekroczono limit API. Spróbuj za chwilę.",
+                    response="⏳ Przekroczono limit zapytań do API. Proszę spróbować za chwilę (zwykle 1-2 minuty).",
                     intent=None,
                     context_actions=[],
                     error="rate_limit"
                 )
-            else:
+            elif "timeout" in error_str or "timed out" in error_str:
                 return ChatResponse(
-                    response=f"Błąd API: {str(openai_error)}",
+                    response="⏱️ Przekroczono czas oczekiwania na odpowiedź. Proszę spróbować ponownie.",
+                    intent=None,
+                    context_actions=[],
+                    error="timeout"
+                )
+            elif "connection" in error_str or "network" in error_str:
+                return ChatResponse(
+                    response="🌐 Błąd połączenia z serwerem OpenAI. Sprawdź połączenie internetowe.",
+                    intent=None,
+                    context_actions=[],
+                    error="connection_error"
+                )
+            elif "model" in error_str:
+                return ChatResponse(
+                    response="🤖 Niedostępny model GPT-4. Skontaktuj się z administratorem.",
+                    intent=None,
+                    context_actions=[],
+                    error="model_error"
+                )
+            else:
+                # Generic error with sanitized message
+                return ChatResponse(
+                    response=f"❌ Wystąpił błąd podczas przetwarzania: {str(openai_error)[:100]}...",
                     intent=None,
                     context_actions=[],
                     error="api_error"
@@ -3332,16 +3420,42 @@ Nie udało się zregenerować draftu z sugestiami.
         )
         
     except Exception as e:
+        logger.error(f"Chat endpoint general error: {e}")
         print(f"❌ Chat error: {e}")
         import traceback
         traceback.print_exc()
         
-        return ChatResponse(
-            response=f"Wystąpił błąd: {str(e)}",
-            intent=None,
-            context_actions=[],
-            error=str(e)
-        )
+        # Handle unexpected errors gracefully
+        error_str = str(e).lower()
+        
+        if "chromadb" in error_str or "vector" in error_str:
+            return ChatResponse(
+                response="⚠️ Błąd połączenia z bazą wektorową. Funkcje style guide mogą być niedostępne.",
+                intent=None,
+                context_actions=[],
+                error="vector_db_error"
+            )
+        elif "redis" in error_str:
+            return ChatResponse(
+                response="⚠️ Błąd cache. Historia konwersacji może nie być zapisywana.",
+                intent=None,
+                context_actions=[],
+                error="cache_error"
+            )
+        elif "json" in error_str:
+            return ChatResponse(
+                response="📝 Błąd formatu danych. Sprawdź poprawność zapytania.",
+                intent=None,
+                context_actions=[],
+                error="format_error"
+            )
+        else:
+            return ChatResponse(
+                response=f"❌ Wystąpił nieoczekiwany błąd. Spróbuj ponownie lub skontaktuj się z administratorem.",
+                intent=None,
+                context_actions=[],
+                error="unexpected_error"
+            )
 
 @app.post("/api/chat/stream", tags=["assistant"],
          summary="Chat with AI Assistant (Streaming)",
@@ -3352,6 +3466,20 @@ async def chat_with_assistant_stream(request: ChatRequest):
     
     Step 10 implementation - uses Server-Sent Events for streaming responses
     """
+    # Check if OpenAI client is initialized
+    if not openai_client:
+        async def error_generator():
+            yield f"data: {json.dumps({'type': 'error', 'error_type': 'service_unavailable', 'message': '❌ AI Assistant jest niedostępny. Brak konfiguracji OPENAI_API_KEY.'})}\n\n"
+        return StreamingResponse(
+            error_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no"
+            }
+        )
+    
     async def generate() -> AsyncGenerator[str, None]:
         try:
             # Manage conversation memory
@@ -3583,7 +3711,30 @@ Bądź naturalny, pomocny i przyjacielski. To rozmowa, nie tylko wykonywanie pol
             yield f"data: {json.dumps({'type': 'complete', 'timestamp': datetime.now().isoformat()})}\n\n"
             
         except Exception as e:
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+            logger.error(f"Streaming chat error: {e}")
+            error_str = str(e).lower()
+            
+            # Determine error type and user-friendly message
+            if "api_key" in error_str or "authentication" in error_str:
+                error_type = "missing_api_key"
+                message = "❌ Brak klucza API OpenAI. Administrator musi skonfigurować OPENAI_API_KEY w pliku .env"
+            elif "rate" in error_str or "limit" in error_str or "429" in error_str:
+                error_type = "rate_limit"
+                message = "⏳ Przekroczono limit zapytań do API. Proszę spróbować za chwilę (zwykle 1-2 minuty)."
+            elif "timeout" in error_str or "timed out" in error_str:
+                error_type = "timeout"
+                message = "⏱️ Przekroczono czas oczekiwania na odpowiedź. Proszę spróbować ponownie."
+            elif "connection" in error_str or "network" in error_str:
+                error_type = "connection_error"
+                message = "🌐 Błąd połączenia z serwerem OpenAI. Sprawdź połączenie internetowe."
+            elif "model" in error_str:
+                error_type = "model_error"
+                message = "🤖 Niedostępny model GPT-4. Skontaktuj się z administratorem."
+            else:
+                error_type = "unknown_error"
+                message = f"❌ Wystąpił błąd: {str(e)[:100]}..."
+            
+            yield f"data: {json.dumps({'type': 'error', 'error_type': error_type, 'message': message})}\n\n"
     
     return StreamingResponse(
         generate(),
@@ -3605,3 +3756,98 @@ async def clear_conversation_memory(session_id: str):
         return {"status": "success", "message": f"Conversation memory cleared for session {session_id}"}
     else:
         return {"status": "info", "message": f"No conversation memory found for session {session_id}"}
+
+@app.get("/api/chat/health", tags=["assistant"],
+         summary="Check AI Assistant health",
+         description="Verify API keys and service availability")
+async def check_chat_health():
+    """Check if AI Assistant is properly configured and available"""
+    health_status = {
+        "status": "checking",
+        "timestamp": datetime.now().isoformat(),
+        "checks": {}
+    }
+    
+    # Check OpenAI API key
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        health_status["checks"]["openai_api_key"] = {
+            "status": "error",
+            "message": "OPENAI_API_KEY not configured in environment"
+        }
+        health_status["status"] = "unhealthy"
+    elif not api_key.startswith("sk-"):
+        health_status["checks"]["openai_api_key"] = {
+            "status": "warning",
+            "message": "OPENAI_API_KEY format appears incorrect"
+        }
+        health_status["status"] = "degraded"
+    else:
+        health_status["checks"]["openai_api_key"] = {
+            "status": "ok",
+            "message": "API key configured"
+        }
+    
+    # Test OpenAI connection if key exists
+    if api_key and health_status["status"] != "unhealthy":
+        try:
+            # Quick test with minimal tokens
+            test_response = await openai_client.chat.completions.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": "test"}],
+                max_tokens=1
+            )
+            health_status["checks"]["openai_connection"] = {
+                "status": "ok",
+                "message": "Successfully connected to OpenAI API",
+                "model": "gpt-4"
+            }
+            if health_status["status"] == "checking":
+                health_status["status"] = "healthy"
+        except Exception as e:
+            error_msg = str(e)
+            if "rate" in error_msg.lower():
+                health_status["checks"]["openai_connection"] = {
+                    "status": "warning",
+                    "message": "Rate limit reached, but API is working"
+                }
+                if health_status["status"] == "checking":
+                    health_status["status"] = "degraded"
+            else:
+                health_status["checks"]["openai_connection"] = {
+                    "status": "error",
+                    "message": f"Connection failed: {error_msg[:100]}"
+                }
+                health_status["status"] = "unhealthy"
+    
+    # Check conversation memory
+    health_status["checks"]["conversation_memory"] = {
+        "status": "ok",
+        "message": f"Active sessions: {len(conversation_memory)}",
+        "max_length": MAX_CONVERSATION_LENGTH
+    }
+    
+    # Check ChromaDB connection
+    if style_guide_collection:
+        try:
+            count = style_guide_collection.count()
+            health_status["checks"]["vector_db"] = {
+                "status": "ok",
+                "message": f"ChromaDB connected, {count} style rules loaded"
+            }
+        except:
+            health_status["checks"]["vector_db"] = {
+                "status": "warning",
+                "message": "ChromaDB unavailable, style guide features limited"
+            }
+    else:
+        health_status["checks"]["vector_db"] = {
+            "status": "warning",
+            "message": "ChromaDB not initialized"
+        }
+    
+    # Final status determination
+    if health_status["status"] == "checking":
+        health_status["status"] = "healthy"
+    
+    return health_status
