@@ -2,7 +2,13 @@
 
 ## 🚀 Quick Start
 
-Base URL: `http://localhost:8003/api`
+Base URL: `http://localhost:8003`
+
+## 📊 Current Status (2025-08-06)
+- ✅ Phase 5: AI Assistant Integration - COMPLETED (12/12 steps)
+- ✅ Phase 6: TRUE Agentic RAG - COMPLETED
+- ✅ All endpoints production-ready with error handling
+- ✅ Conversation memory & streaming support
 
 ## 🔥 Core Endpoints
 
@@ -56,18 +62,53 @@ POST /style-guide/analyze-iterative
 
 ### 5. Chat with AI Assistant
 ```bash
-POST /chat
+POST /api/chat
 {
   "message": "Make the draft more engaging",
+  "session_id": "user-123-session-456",
   "context": {
-    "draft_content": "current draft...",
-    "topic_title": "AI in Marketing"
+    "currentDraft": "current draft...",
+    "topicTitle": "AI in Marketing",
+    "platform": "LinkedIn",
+    "metrics": {
+      "quality_score": 7.5,
+      "viral_score": 6.0
+    }
   }
 }
 ```
 - Natural language draft editing
-- Intent recognition
+- Intent recognition with function calling
 - Context-aware responses
+- Conversation memory (20 messages per session)
+
+### 6. Streaming Chat (SSE)
+```bash
+POST /api/chat/stream
+{
+  "message": "Analyze impact of adding hook",
+  "session_id": "user-123-session-456",
+  "context": {...}
+}
+```
+- Real-time streaming responses
+- Progress updates for long operations
+- Same features as regular chat
+
+### 7. Clear Conversation Memory
+```bash
+DELETE /api/chat/memory/{session_id}
+```
+- Clears conversation history for a session
+- Returns success/info status
+
+### 8. AI Assistant Health Check
+```bash
+GET /api/chat/health
+```
+- Checks OpenAI API configuration
+- Tests connection and model availability
+- Reports vector DB and memory status
 
 ## 📊 Style Guide Endpoints
 
@@ -119,9 +160,40 @@ GET /docs
    - 5-minute TTL
    - Preload on startup
 
-## 🚨 Important Notes
+## 🚨 Error Handling
+
+All endpoints return structured error responses with user-friendly messages:
+
+### Error Types
+- `missing_api_key` - "❌ Brak klucza API OpenAI"
+- `rate_limit` - "⏳ Przekroczono limit zapytań"
+- `timeout` - "⏱️ Przekroczono czas oczekiwania"
+- `connection_error` - "🌐 Błąd połączenia"
+- `model_error` - "🤖 Niedostępny model"
+- `vector_db_error` - "⚠️ Błąd bazy wektorowej"
+- `service_unavailable` - "❌ AI Assistant niedostępny"
+
+### Example Error Response
+```json
+{
+  "response": "⏳ Przekroczono limit zapytań do API. Proszę spróbować za chwilę (zwykle 1-2 minuty).",
+  "intent": null,
+  "context_actions": [],
+  "error": "rate_limit"
+}
+```
+
+## 📋 Requirements
 
 - OpenAI API key required (`OPENAI_API_KEY`)
 - ChromaDB must be running (port 8001)
 - Redis must be running (port 6380)
 - All times are estimates based on OpenAI response times
+
+## 🚀 Performance
+
+- **generate-draft**: 20-50s (with full Agentic RAG)
+- **analyze-potential**: 1ms (cached/calculated)
+- **chat**: 5-15s (depending on operation)
+- **chat/stream**: Real-time streaming
+- **analyze-iterative**: 15-30s

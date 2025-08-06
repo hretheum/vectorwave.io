@@ -70,9 +70,13 @@ Generated Content (Unique Each Time)
 - **Input**: Style guide discoveries from OpenAI agent
 - **Output**: Platform-optimized content
 
-### 3. Style Guide Expert (Deprecated)
-- Previously used for "fake" agentic RAG
-- Replaced by OpenAI Function Calling
+### 3. AI Assistant Agent (Chat)
+- **Role**: Interactive draft editor
+- **Model**: GPT-4
+- **Functions**: 
+  - `analyze_draft_impact` - Predict metric changes
+  - `regenerate_draft_with_suggestions` - Apply edits
+- **Memory**: 20 messages per session
 
 ## 💾 Data Storage
 
@@ -89,6 +93,11 @@ Generated Content (Unique Each Time)
 - **Preload Cache**: Content folders on startup
 - **Batch Results**: Custom ideas analysis
 
+### In-Memory Storage
+- **Conversation Memory**: Session-based chat history
+- **Flow Executions**: Diagnostic tracking
+- **Max Messages**: 20 per session
+
 ## 🔌 API Endpoints
 
 ### Core Endpoints
@@ -96,11 +105,13 @@ Generated Content (Unique Each Time)
 2. `POST /api/style-guide/analyze-iterative` - Direct iterative analysis
 3. `POST /api/analyze-custom-ideas-stream` - SSE batch analysis
 4. `POST /api/chat` - AI Assistant for draft editing
+5. `POST /api/chat/stream` - Streaming AI Assistant
 
 ### Supporting Endpoints
 - `/api/style-guide/seed` - Load rules from files
 - `/api/style-guide/check` - Simple style check
 - `/api/analyze-potential` - Quick content scoring
+- `/api/chat/health` - Service health check
 - `/health` - Container health check
 
 ## 🚀 Key Design Decisions
@@ -125,6 +136,11 @@ Generated Content (Unique Each Time)
 - **Solution**: Multi-layer cache (preload → Redis → generate)
 - **Result**: Instant responses for repeated queries
 
+### 5. Conversation Memory
+- **Problem**: No context between messages
+- **Solution**: Session-based memory storage
+- **Result**: Natural multi-turn conversations
+
 ## 📊 Performance Characteristics
 
 ### Response Times
@@ -132,6 +148,7 @@ Generated Content (Unique Each Time)
 - **analyze-potential**: 1ms (cached/calculated)
 - **style-guide/analyze-iterative**: 15-30s
 - **chat**: 5-15s (depending on operation)
+- **chat/stream**: Real-time streaming
 
 ### Resource Usage
 - **Memory**: ~2GB (mainly ChromaDB embeddings)
@@ -144,6 +161,7 @@ Generated Content (Unique Each Time)
 2. **Network**: Internal Docker network
 3. **Ports**: Minimal exposure (8003 for API)
 4. **Data**: No PII stored, only content
+5. **Error Handling**: Sanitized error messages
 
 ## 🎯 Future Optimizations
 
@@ -151,3 +169,4 @@ Generated Content (Unique Each Time)
 2. **Search Caching**: Cache individual style guide searches
 3. **Model Selection**: Use smaller models for simple queries
 4. **Batch Generation**: Process multiple drafts in parallel
+5. **Persistent Memory**: Move conversation storage to Redis
