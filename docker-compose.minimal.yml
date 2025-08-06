@@ -23,6 +23,7 @@ services:
       - ./app.py:/app/app.py  # Hot reload dla development
       - ../content:/Users/hretheum/dev/bezrobocie/vector-wave/content:ro  # Content folders
       - ./ai_writing_flow:/app/ai_writing_flow:ro  # CrewAI flow modules
+      - ../styleguides:/Users/hretheum/dev/bezrobocie/vector-wave/styleguides:ro  # Style guides
     depends_on:
       - redis
       - chromadb

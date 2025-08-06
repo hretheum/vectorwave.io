@@ -132,69 +132,151 @@ async def test_cache():
 
 @app.post("/api/style-guide/seed", tags=["content"])
 async def seed_style_guide():
-    """Seed ChromaDB with Vector Wave style guide rules"""
+    """Seed ChromaDB with Vector Wave style guide rules from actual files"""
     if not style_guide_collection:
         return {"status": "error", "message": "ChromaDB not connected"}
     
-    # Vector Wave style guide rules
-    style_rules = [
-        {
-            "id": "tone-1",
-            "rule": "Use conversational, approachable tone",
-            "category": "tone",
-            "examples": ["Let's dive into...", "Here's the thing about..."],
-            "priority": "high"
-        },
-        {
-            "id": "tone-2",
-            "rule": "Avoid corporate jargon and buzzwords",
-            "category": "tone",
-            "examples": ["synergy", "leverage", "paradigm shift"],
-            "priority": "high"
-        },
-        {
-            "id": "structure-1",
-            "rule": "Start with a hook that grabs attention",
-            "category": "structure",
-            "examples": ["Ever wondered why...", "The moment I realized..."],
-            "priority": "high"
-        },
-        {
-            "id": "structure-2",
-            "rule": "Use short paragraphs (max 3 sentences)",
-            "category": "structure",
-            "examples": ["Break up long text", "White space is your friend"],
-            "priority": "medium"
-        },
-        {
-            "id": "linkedin-1",
-            "rule": "LinkedIn posts should start with a pattern interrupt",
-            "category": "platform-linkedin",
-            "examples": ["Unpopular opinion:", "I was wrong about..."],
-            "priority": "high"
-        },
-        {
-            "id": "linkedin-2",
-            "rule": "Include a clear CTA at the end",
-            "category": "platform-linkedin",
-            "examples": ["What's your experience?", "Drop a comment if..."],
-            "priority": "medium"
-        },
-        {
-            "id": "technical-1",
-            "rule": "Explain technical concepts with analogies",
-            "category": "technical",
-            "examples": ["Redis is like a sticky note on your monitor..."],
-            "priority": "high"
-        },
-        {
-            "id": "engagement-1",
-            "rule": "Ask questions to encourage comments",
-            "category": "engagement",
-            "examples": ["What would you do?", "Have you tried...?"],
-            "priority": "medium"
-        }
-    ]
+    # Path to styleguides folder
+    styleguides_path = "/Users/hretheum/dev/bezrobocie/vector-wave/styleguides"
+    
+    # Parse style guide files and extract rules
+    style_rules = []
+    
+    try:
+        # Read all style guide files
+        for filename in sorted(os.listdir(styleguides_path)):
+            if filename.endswith('.md') and filename.startswith(('01-', '02-', '03-', '04-', '05-', '06-', '07-', '08-')):
+                filepath = os.path.join(styleguides_path, filename)
+                
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # Extract category from filename
+                category = filename.split('-')[2].replace('.md', '')
+                
+                # Parse sections and rules
+                lines = content.split('\n')
+                current_section = ""
+                
+                for i, line in enumerate(lines):
+                    line = line.strip()
+                    
+                    # Section headers
+                    if line.startswith('###'):
+                        current_section = line.replace('#', '').strip()
+                    
+                    # Rules often start with numbers or bullets
+                    elif (line.startswith(('1.', '2.', '3.', '4.', '5.', '-', '*', '•')) and 
+                          len(line) > 3 and 
+                          not line.startswith('**')):
+                        
+                        # Extract rule text
+                        rule_text = line
+                        for prefix in ['1.', '2.', '3.', '4.', '5.', '-', '*', '•']:
+                            rule_text = rule_text.replace(prefix, '', 1).strip()
+                        
+                        # Skip if too short or looks like a header
+                        if len(rule_text) < 10 or rule_text.isupper():
+                            continue
+                        
+                        # Create rule ID
+                        rule_id = f"{category}-{len(style_rules)+1}"
+                        
+                        # Determine priority based on keywords
+                        priority = "medium"
+                        if any(word in rule_text.lower() for word in ['always', 'never', 'must', 'critical']):
+                            priority = "high"
+                        elif any(word in rule_text.lower() for word in ['should', 'prefer', 'recommended']):
+                            priority = "medium"
+                        elif any(word in rule_text.lower() for word in ['can', 'may', 'optional']):
+                            priority = "low"
+                        
+                        style_rules.append({
+                            "id": rule_id,
+                            "rule": rule_text,
+                            "category": category,
+                            "section": current_section,
+                            "source_file": filename,
+                            "priority": priority
+                        })
+                    
+                    # Also capture "WHAT WE ALWAYS DO" and "WHAT WE NEVER DO" sections
+                    elif line.startswith('**') and any(phrase in line for phrase in ['ALWAYS', 'NEVER', 'MUST', 'DO NOT']):
+                        # Look for rules in the next few lines
+                        for j in range(i+1, min(i+10, len(lines))):
+                            next_line = lines[j].strip()
+                            if next_line.startswith(('1.', '2.', '3.', '4.', '5.')) and '**' in next_line:
+                                # Extract the bold part as the rule
+                                import re
+                                bold_match = re.search(r'\*\*([^*]+)\*\*', next_line)
+                                if bold_match:
+                                    rule_text = bold_match.group(1)
+                                    # Add the rest of the line as context
+                                    full_text = next_line.split('**')[-1].strip(' -')
+                                    if full_text:
+                                        rule_text = f"{rule_text} - {full_text}"
+                                    
+                                    rule_id = f"{category}-{len(style_rules)+1}"
+                                    style_rules.append({
+                                        "id": rule_id,
+                                        "rule": rule_text,
+                                        "category": category,
+                                        "section": line.replace('*', '').strip(),
+                                        "source_file": filename,
+                                        "priority": "high"  # ALWAYS/NEVER rules are high priority
+                                    })
+        
+        # Add some key specific rules from what we know about Vector Wave
+        additional_rules = [
+            {
+                "id": "tone-conversational",
+                "rule": "Use conversational, approachable tone avoiding corporate jargon",
+                "category": "tone",
+                "section": "Voice Guidelines",
+                "source_file": "manual",
+                "priority": "high"
+            },
+            {
+                "id": "structure-hook",
+                "rule": "Start with a pattern interrupt or hook that grabs attention",
+                "category": "structure",
+                "section": "Content Structure",
+                "source_file": "manual",
+                "priority": "high"
+            },
+            {
+                "id": "linkedin-cta",
+                "rule": "LinkedIn posts must end with engaging CTA question",
+                "category": "platform",
+                "section": "Platform Specific",
+                "source_file": "manual",
+                "priority": "high"
+            },
+            {
+                "id": "technical-clarity",
+                "rule": "Explain technical concepts with clear analogies and examples",
+                "category": "technical",
+                "section": "Technical Writing",
+                "source_file": "manual",
+                "priority": "high"
+            }
+        ]
+        
+        style_rules.extend(additional_rules)
+        
+    except Exception as e:
+        print(f"Error reading style guide files: {e}")
+        # Fall back to some basic rules
+        style_rules = [
+            {
+                "id": "fallback-1",
+                "rule": "Write in clear, conversational tone",
+                "category": "general",
+                "section": "Fallback",
+                "source_file": "fallback",
+                "priority": "high"
+            }
+        ]
     
     # Clear existing rules
     try:
@@ -210,11 +292,18 @@ async def seed_style_guide():
     ids = []
     
     for rule in style_rules:
-        documents.append(f"{rule['rule']}. Examples: {', '.join(rule['examples'])}")
+        # Create document text from rule
+        doc_text = f"{rule['rule']}"
+        if rule.get('section'):
+            doc_text = f"[{rule['section']}] {doc_text}"
+        
+        documents.append(doc_text)
         metadatas.append({
             "category": rule["category"],
             "priority": rule["priority"],
-            "rule_text": rule["rule"]
+            "rule_text": rule["rule"],
+            "section": rule.get("section", ""),
+            "source_file": rule.get("source_file", "")
         })
         ids.append(rule["id"])
     
@@ -224,10 +313,21 @@ async def seed_style_guide():
         ids=ids
     )
     
+    # Print summary of loaded rules
+    print(f"📚 Loaded {len(style_rules)} style guide rules:")
+    categories = {}
+    for rule in style_rules:
+        cat = rule['category']
+        categories[cat] = categories.get(cat, 0) + 1
+    
+    for cat, count in sorted(categories.items()):
+        print(f"  - {cat}: {count} rules")
+    
     return {
         "status": "success",
         "rules_added": len(style_rules),
-        "total_rules": style_guide_collection.count()
+        "total_rules": style_guide_collection.count(),
+        "categories": categories
     }
 
 class StyleCheckRequest(BaseModel):
@@ -1514,8 +1614,17 @@ async def refresh_preloaded_data():
 
 @app.on_event("startup")
 async def preload_popular_folders():
-    """Preload analysis for all content folders on startup"""
+    """Preload analysis for all content folders on startup and seed style guide"""
     global last_refresh_time
+    
+    # First, seed the style guide if ChromaDB is available
+    if style_guide_collection:
+        print("📚 Seeding style guide rules...")
+        try:
+            result = await seed_style_guide()
+            print(f"✅ Style guide seeded: {result['rules_added']} rules loaded")
+        except Exception as e:
+            print(f"⚠️ Failed to seed style guide: {e}")
     
     print("🚀 Starting preload of content folders...")
     
