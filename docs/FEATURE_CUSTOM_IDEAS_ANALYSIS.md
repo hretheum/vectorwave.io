@@ -951,3 +951,267 @@ ASSISTANT_TEMPERATURE=0.7
 - Correct intent recognition > 85%
 - User can modify draft through natural language
 - Context maintained across conversation
+
+## Phase 6: TRUE Agentic RAG Implementation (NO MOCKS, NO BULLSHIT)
+
+### Problem Statement
+Currently we have **Naive RAG pretending to be Agentic RAG**:
+- We query ChromaDB with hardcoded queries
+- We select rules FOR the agent
+- Agent just uses what we give it
+- No iterative querying, no agent autonomy
+
+### Goal
+Implement TRUE Agentic RAG where:
+- Agent has a TOOL to query style guide
+- Agent decides WHAT to search for
+- Agent can iterate - search, analyze, search again
+- Agent builds its own context
+
+### Implementation Steps - Atomic & Testable
+
+#### Step 1: Create Style Guide Query Tool (15 min)
+Create a tool that agents can use to query the style guide.
+
+```python
+@tool
+def query_style_guide(query: str, n_results: int = 5) -> List[Dict]:
+    """Query Vector Wave style guide for specific rules"""
+    # Real ChromaDB query, NO MOCKS
+    results = style_guide_collection.query(
+        query_texts=[query],
+        n_results=n_results
+    )
+    return format_rules(results)
+```
+
+**Test:**
+```bash
+# Direct tool test
+curl -X POST http://localhost:8003/api/tools/query-style-guide \
+  -d '{"query": "pattern interrupt", "n_results": 3}'
+```
+- [ ] Returns actual rules from ChromaDB
+- [ ] No hardcoded responses
+- [ ] Different queries return different results
+
+#### Step 2: Create Agentic Style Checker with Tool Access (20 min)
+Replace fake agentic endpoint with real one.
+
+```python
+style_agent = Agent(
+    role="Style Guide Researcher",
+    tools=[query_style_guide],  # AGENT HAS THE TOOL!
+    goal="Research and apply Vector Wave style rules"
+)
+```
+
+**Test:**
+```bash
+# Test agent can use tool autonomously
+curl -X POST http://localhost:8003/api/style-guide/check-agentic-v2 \
+  -d '{"content": "AI revolutionizes content", "platform": "LinkedIn"}'
+```
+- [ ] See in logs: Agent calling query_style_guide multiple times
+- [ ] Agent searches for different aspects (e.g., "LinkedIn rules", then "AI content", then "opening hooks")
+- [ ] Final result uses rules agent found, not pre-selected ones
+
+#### Step 3: Add Tool to Draft Generation Agent (25 min)
+Give the Writer Agent access to style guide tool.
+
+```python
+writer = Agent(
+    role=f"{content.platform} Content Writer",
+    tools=[query_style_guide],  # NOW IT CAN SEARCH!
+    goal=f"Write while researching Vector Wave style"
+)
+```
+
+**Test:**
+```bash
+# Generate draft and watch logs
+curl -X POST http://localhost:8003/api/generate-draft \
+  -d '{"content": {"title": "Test Agentic RAG", "platform": "LinkedIn"}}'
+```
+- [ ] Logs show: Writer queries "LinkedIn best practices"
+- [ ] Logs show: Writer queries "pattern interrupt examples"
+- [ ] Logs show: Writer queries specific to the topic
+- [ ] Generated draft uses discovered rules
+
+#### Step 4: Add Tool to Regeneration Agent (20 min)
+Same for regenerate_draft_with_suggestions.
+
+**Test:**
+```bash
+# Test regeneration with tool access
+curl -X POST http://localhost:8003/api/chat \
+  -d '{"message": "Add more specific metrics", "context": {"currentDraft": "AI is great"}}'
+```
+- [ ] Rewrite agent searches "metrics examples"
+- [ ] Rewrite agent searches "specific numbers rules"
+- [ ] Result includes actual metrics from style guide
+
+#### Step 5: Create Style Guide Explorer Agent (30 min)
+Agent that can deeply explore style guide for complex queries.
+
+```python
+explorer = Agent(
+    role="Style Guide Deep Researcher",
+    tools=[query_style_guide, summarize_rules, find_examples],
+    goal="Deep dive into style guide for specific needs"
+)
+```
+
+**Test:**
+```bash
+# Complex style query
+curl -X POST http://localhost:8003/api/style-guide/deep-research \
+  -d '{"topic": "How to write about technical topics for non-technical audience"}'
+```
+- [ ] Multiple iterative searches visible in logs
+- [ ] Agent builds comprehensive rule set
+- [ ] Returns structured findings with examples
+
+#### Step 6: Add Memory to Style Queries (25 min)
+Cache successful rule discoveries per context.
+
+```python
+# Redis cache for style discoveries
+style_cache.set(f"rules:{platform}:{topic_type}", discovered_rules)
+```
+
+**Test:**
+- [ ] First query takes 10+ seconds (searching)
+- [ ] Second identical query takes <2 seconds (cached)
+- [ ] Cache invalidates after style guide updates
+
+#### Step 7: Create Meta-Agent for Rule Selection (30 min)
+Agent that helps other agents find the RIGHT rules.
+
+```python
+meta_agent = Agent(
+    role="Style Rule Advisor",
+    tools=[analyze_content_needs, suggest_queries, rank_rules],
+    goal="Help other agents find most relevant style rules"
+)
+```
+
+**Test:**
+- [ ] Writer asks Meta-Agent: "What rules for viral LinkedIn post?"
+- [ ] Meta-Agent responds with specific query suggestions
+- [ ] Writer uses suggestions to query more effectively
+
+#### Step 8: Implement Feedback Loop (25 min)
+Track which rules lead to better content.
+
+```python
+# After content generation
+track_rule_effectiveness(used_rules, content_metrics)
+```
+
+**Test:**
+- [ ] Generate content with specific rules
+- [ ] System tracks which rules were used
+- [ ] Over time, frequently effective rules rank higher
+
+#### Step 9: Add A/B Testing for Rules (30 min)
+Test different rule combinations.
+
+```python
+# Generate two versions with different rule sets
+version_a = generate_with_rules(rules_set_a)
+version_b = generate_with_rules(rules_set_b)
+```
+
+**Test:**
+- [ ] Same topic generates 2 different versions
+- [ ] Each uses different style rules
+- [ ] System tracks which performs better
+
+#### Step 10: Create Style Guide Updater Agent (35 min)
+Agent that can suggest new rules based on performance.
+
+```python
+updater = Agent(
+    role="Style Guide Evolver",
+    tools=[analyze_performance, suggest_new_rules, test_rule_impact],
+    goal="Evolve style guide based on real results"
+)
+```
+
+**Test:**
+- [ ] Updater analyzes successful content
+- [ ] Suggests new rules based on patterns
+- [ ] New rules available for querying
+
+### Validation Checklist
+
+**CRITICAL - After EACH step above:**
+1. [ ] NO hardcoded rules in code
+2. [ ] NO mock responses
+3. [ ] NO predetermined rule selections
+4. [ ] Agent makes autonomous decisions
+5. [ ] Different inputs = different agent behavior
+6. [ ] Real ChromaDB queries visible in logs
+
+### Anti-Pattern Detector
+
+Run this after implementation:
+```bash
+# This should return ZERO results
+grep -r "style_rules = \[" app.py
+grep -r "if.*pattern.*interrupt" app.py
+grep -r "quality_boost = " app.py
+grep -r "viral_boost = " app.py
+```
+
+### Success Metrics
+- Agent makes 3-10 style guide queries per content generation
+- Different topics result in different query patterns
+- Content quality improves with more specific queries
+- No two generations use exact same rule set
+
+### Architecture Diagram
+```
+User Request
+    ↓
+CrewAI Agent (with tools!)
+    ↓
+Agent: "I need LinkedIn rules"
+    ↓
+query_style_guide("LinkedIn best practices")
+    ↓
+Agent: "Now I need hook examples"
+    ↓
+query_style_guide("pattern interrupt examples")
+    ↓
+Agent: "Let me check metrics rules"
+    ↓
+query_style_guide("specific numbers metrics")
+    ↓
+Agent generates content using discovered rules
+```
+
+NOT this (current state):
+```
+User Request → We query rules → We give to agent → Agent uses what we gave
+```
+
+### Final Test - The Litmus Test
+
+Generate content for same topic 3 times:
+```bash
+for i in {1..3}; do
+  curl -X POST http://localhost:8003/api/generate-draft \
+    -d '{"content": {"title": "AI in Marketing", "platform": "LinkedIn"}}' \
+    > result_$i.json
+done
+```
+
+Success criteria:
+- [ ] Each generation shows DIFFERENT query patterns in logs
+- [ ] Each uses DIFFERENT combination of rules
+- [ ] Content varies based on what agent discovered
+- [ ] NO identical results
+
+If results are identical or queries are same = YOU FAILED, IT'S STILL NAIVE RAG
