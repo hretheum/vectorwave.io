@@ -6,15 +6,25 @@ AI-powered content generation platform with comprehensive automated auditing
 
 Vector Wave is an advanced content generation platform that uses AI agents to automatically create, optimize, and publish content across multiple channels. The platform includes a comprehensive audit framework for continuous monitoring and quality assurance.
 
+### 🎯 Latest Achievement: TRUE Agentic RAG in Kolegium
+
+The Kolegium module now features **TRUE Agentic RAG** where AI agents autonomously decide what to search for in the style guide:
+- **Zero hardcoded rules** - agent makes all decisions
+- **3-5 autonomous queries** per content generation
+- **Unique results** - same input produces different content each time
+- **OpenAI Function Calling** - native integration, no regex hacks
+- **180 style guide rules** loaded from markdown files
+
 ## 📦 Project Structure
 
 | Module | Repository | Description | Status |
 |--------|------------|-------------|--------|
-| content | [vector-wave-presenton](https://github.com/hretheum/vector-wave-presenton) 🔒 | AI-powered presentation generator with custom templates | 🟢 Active |
-| ideas | [vector-wave-presenton](https://github.com/hretheum/vector-wave-presenton) 🔒 | AI-powered presentation generator with custom templates | 🟡 In Development |
-| kolegium | [vector-wave-presenton](https://github.com/hretheum/vector-wave-presenton) 🔒 | AI-powered presentation generator with custom templates | 🟡 In Development |
-| n8n | [vector-wave-presenton](https://github.com/hretheum/vector-wave-presenton) 🔒 | AI-powered presentation generator with custom templates | 🟢 Active |
-| presenton | [vector-wave-presenton](https://github.com/hretheum/vector-wave-presenton) 🔒 | AI-powered presentation generator with custom templates | 🟢 Active |
+| content | [content-library](https://github.com/hretheum/vector-wave-content) | Generated content storage and organization | 🟢 Active |
+| ideas | [idea-bank](https://github.com/hretheum/vector-wave-ideas) | Content ideas and brainstorming storage | 🟡 In Development |
+| kolegium | [editorial-crew](https://github.com/hretheum/vector-wave-editorial-crew) | AI Editorial System with TRUE Agentic RAG | 🟢 Active |
+| linkedin | [linkedin-automation](https://github.com/hretheum/vector-wave-linkedin) 🔒 | LinkedIn post automation module | 🟡 In Development |
+| n8n | [workflow-automation](https://github.com/hretheum/vector-wave-n8n) 🔒 | n8n workflow automation | 🟢 Active |
+| presenton | [presentation-generator](https://github.com/hretheum/vector-wave-presenton) 🔒 | AI-powered presentation generator | 🟢 Active |
 
 ## 🛠️ Setup
 

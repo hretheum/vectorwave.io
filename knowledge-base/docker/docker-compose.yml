@@ -1,3 +1,4 @@
+name: knowledge-base
 services:
   knowledge-base:
     build: 
