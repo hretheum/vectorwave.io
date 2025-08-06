@@ -1,12 +1,12 @@
 # AI Kolegium Redakcyjne
 
 ## 🚨 **CRITICAL: Latest Working Version**
-- **Commit**: `2cca7b2` (2025-08-06 10:22:00 CEST)
-- **Status**: ✅ Batch Analysis Progress & Style Guide Loading COMPLETED
-- **Current Phase**: Production Container - Choose: Sprint 3.2.5 or Frontend Progress Bar
-- **Last Achievement**: 180 real style guide rules + SSE streaming for batch analysis
-- **Key Features**: Dual RAG system (Naive <100ms, Agentic 12-18s), Real-time progress tracking
-- **Documentation**: See [CONTAINER_FIRST_TRANSFORMATION_PLAN.md](./transformation/CONTAINER_FIRST_TRANSFORMATION_PLAN.md)
+- **Commit**: `3d857b2` (2025-08-06 15:45:00 CEST)
+- **Status**: ✅ TRUE Agentic RAG Implementation COMPLETED
+- **Current Phase**: Production Container - Ready for Sprint 3.2.5
+- **Last Achievement**: Full autonomous agent-driven style guide discovery with OpenAI Function Calling
+- **Key Features**: TRUE Agentic RAG (agent decides what to search), Real-time progress tracking, Zero hardcoded rules
+- **Documentation**: See [FEATURE_CUSTOM_IDEAS_ANALYSIS.md](./docs/FEATURE_CUSTOM_IDEAS_ANALYSIS.md)
 
 ## 🚀 **Intelligent Editorial System with AI Agent Collaboration**
 
@@ -62,19 +62,26 @@ Inteligentny system który **automatyzuje proces redakcyjny** od odkrycia trendu
 
 ### 🆕 **Najnowsze Features (2025-08-06)**
 
-1. **Dual RAG System dla Style Guide**
-   - **Naive RAG**: <100ms response dla szybkich sprawdzeń
-   - **Agentic RAG**: 12-18s dla głębokiej analizy z alternatywnymi openingami
-   - **180 reguł** ładowanych automatycznie z plików styleguides
-   - **Porównanie**: `/api/style-guide/compare` pokazuje różnice obu systemów
+1. **TRUE Agentic RAG System**
+   - **Autonomous Agent**: Agent sam decyduje co i jak szukać w style guide
+   - **OpenAI Function Calling**: Natywna integracja z function calling (nie hacki z regex!)
+   - **Iterative Search**: 3-5 autonomicznych wyszukiwań per generacja
+   - **Zero Hardcoded Rules**: Brak predetermined queries czy fallback rules
+   - **Unique Results**: Ten sam input → różne queries → różny content
 
-2. **SSE Streaming dla Batch Analysis**
+2. **Complete Style Guide Integration**
+   - **180 reguł** ładowanych automatycznie z plików styleguides
+   - **ChromaDB Vector Search**: Semantyczne wyszukiwanie reguł
+   - **Real Query Logs**: Każde wyszukiwanie agenta widoczne w logach
+   - **Dynamic Discovery**: Agent odkrywa różne reguły dla różnych tematów
+
+3. **SSE Streaming dla Batch Analysis**
    - **Real-time progress**: Widać postęp analizy każdego pomysłu
    - **Progress bar ready**: Procenty 0-100% dla UI
    - **Event types**: start, progress, result, error, complete
    - **Cache support**: Wyniki całego batcha są cachowane
 
-3. **AI-Powered Dashboard z Preload**
+4. **AI-Powered Dashboard z Preload**
    - **Instant response**: Preload przy starcie kontenera
    - **Auto-refresh**: Co 20 minut odświeża preloaded data
    - **Smart fallback**: Preload → cache → generate
