@@ -37,6 +37,8 @@ async function analyzeIdeasWithProgress(
   const analyzedResults: any[] = [];
   let currentProgress = 0;
 
+  console.log('🔄 Starting SSE analysis for:', { folder, ideas, platform });
+
   try {
     const response = await fetch('/api/analyze-custom-ideas-stream', {
       method: 'POST',
@@ -46,6 +48,7 @@ async function analyzeIdeasWithProgress(
 
     const reader = response.body?.getReader();
     const decoder = new TextDecoder();
+    let buffer = '';
 
     if (!reader) throw new Error('No response body');
 
@@ -53,21 +56,36 @@ async function analyzeIdeasWithProgress(
       const { done, value } = await reader.read();
       if (done) break;
 
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
+      // Append new chunk to buffer
+      buffer += decoder.decode(value, { stream: true });
+      
+      // Process complete lines
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || ''; // Keep incomplete line in buffer
 
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
+        const trimmedLine = line.trim();
+        if (trimmedLine.startsWith('data: ')) {
           try {
-            const data = JSON.parse(line.substring(6));
+            const data = JSON.parse(trimmedLine.substring(6));
             console.log('SSE Event:', data);
 
             switch (data.type) {
               case 'start':
-                // Initial message already shown
+                console.log('🚀 SSE Start event received:', data);
+                // Update initial message with total count
+                setMessages(prev => prev.map(msg => 
+                  msg.id === loadingMsgId 
+                    ? {
+                        ...msg,
+                        content: `📝 Rozpoczynam analizę ${data.total_ideas} pomysłów dla folderu "${folder}"...\n\n⏳ Przygotowuję AI do analizy...`
+                      }
+                    : msg
+                ));
                 break;
 
               case 'progress':
+                console.log('📊 SSE Progress event:', data);
                 currentProgress = data.percentage;
                 const progressBarLength = 20;
                 const filledBars = Math.floor((currentProgress / 100) * progressBarLength);
@@ -84,14 +102,16 @@ async function analyzeIdeasWithProgress(
                 break;
 
               case 'result':
+                console.log('✅ SSE Result event for idea:', data.idea);
                 analyzedResults.push(data.analysis);
                 break;
 
               case 'error':
-                console.error('Idea analysis error:', data);
+                console.error('❌ SSE Error event:', data);
                 break;
 
               case 'complete':
+                console.log('🎉 SSE Complete event:', data);
                 // Show final results
                 setMessages(prev => prev.map(msg => 
                   msg.id === loadingMsgId 
