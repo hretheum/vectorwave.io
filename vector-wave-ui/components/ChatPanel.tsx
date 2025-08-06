@@ -154,7 +154,7 @@ async function analyzeIdeasWithProgress(
                       const scoreEmoji = parseFloat(overallScore) >= 7 ? '✅' : parseFloat(overallScore) >= 5 ? '⚠️' : '❌';
                       
                       setMessages(prev => [...prev, {
-                        id: `custom-idea-${idx}-${Date.now()}`,
+                        id: `custom-idea-${idx}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                         role: 'assistant',
                         content: `${emoji} **${idea.idea}**\n\n${idea.recommendation || 'Brak rekomendacji'}\n\n**Ocena:** ${overallScore}/10 ${scoreEmoji}\n• Viral Score: ${(idea.viral_score * 10).toFixed(1)}/10\n• Dopasowanie: ${(idea.content_alignment * 10).toFixed(1)}/10\n• Materiał: ${(idea.available_material * 10).toFixed(1)}/10${idea.suggested_angle ? `\n\n💡 **Sugerowany angle:** ${idea.suggested_angle}` : ''}`,
                         timestamp: new Date(),
@@ -256,7 +256,7 @@ async function analyzeIdeasWithProgress(
                       const scoreEmoji = parseFloat(overallScore) >= 7 ? '✅' : parseFloat(overallScore) >= 5 ? '⚠️' : '❌';
                       
                       setMessages(prev => [...prev, {
-                        id: `custom-idea-cached-${idx}-${Date.now()}`,
+                        id: `custom-idea-cached-${idx}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                         role: 'assistant',
                         content: `${emoji} **${idea.idea}**\n\n${idea.recommendation || 'Brak rekomendacji'}\n\n**Ocena:** ${overallScore}/10 ${scoreEmoji}\n• Viral Score: ${(idea.viral_score * 10).toFixed(1)}/10\n• Dopasowanie: ${(idea.content_alignment * 10).toFixed(1)}/10\n• Materiał: ${(idea.available_material * 10).toFixed(1)}/10${idea.suggested_angle ? `\n\n💡 **Sugerowany angle:** ${idea.suggested_angle}` : ''}`,
                         timestamp: new Date(),
@@ -799,7 +799,7 @@ ${report.agent_analysis || 'Brak szczegółowej analizy'}
     if (!input.trim()) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       role: 'user',
       content: input,
       timestamp: new Date()
@@ -828,7 +828,7 @@ ${report.agent_analysis || 'Brak szczegółowej analizy'}
         
         if (feedbackResponse.ok) {
           setMessages(prev => [...prev, {
-            id: Date.now().toString(),
+            id: `feedback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             role: 'assistant',
             content: `✅ Feedback otrzymany! Typ: **${feedbackType}**\n\nPrzetwarzam zmiany...`,
             timestamp: new Date()
@@ -868,9 +868,9 @@ ${report.agent_analysis || 'Brak szczegółowej analizy'}
       const useStreaming = true; // Can be made configurable later
       
       if (useStreaming) {
-        // Create placeholder message for streaming response
+        // Create placeholder message for streaming response with unique ID
         const assistantMessage: Message = {
-          id: Date.now().toString(),
+          id: `assistant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           role: 'assistant',
           content: '',
           timestamp: new Date(),
@@ -984,7 +984,7 @@ ${report.agent_analysis || 'Brak szczegółowej analizy'}
                       // Handle draft generation
                       if (eventData.draft && onEditDraft) {
                         onEditDraft({
-                          id: Date.now().toString(),
+                          id: `draft-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                           title: chatContext.topicTitle || 'Nowy draft',
                           content: eventData.draft,
                           platform: chatContext.platform || 'LinkedIn',
@@ -1038,7 +1038,7 @@ ${report.agent_analysis || 'Brak szczegółowej analizy'}
       }
 
       const assistantMessage: Message = {
-        id: Date.now().toString(),
+        id: `assistant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         role: 'assistant',
         content: data.response || data.message || 'Hmm, nie dostałem odpowiedzi. Spróbuj jeszcze raz?',
         timestamp: new Date(),
@@ -1102,7 +1102,7 @@ ${report.agent_analysis || 'Brak szczegółowej analizy'}
       }
 
       const assistantMessage: Message = {
-        id: Date.now().toString(),
+        id: `assistant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         role: 'assistant',
         content: fallbackResponse,
         timestamp: new Date()
