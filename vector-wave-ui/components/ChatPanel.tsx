@@ -343,20 +343,25 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [], onEdi
         
         // Add "Mam swoje propozycje" button after all topics
         setTimeout(() => {
-          setMessages(prev => [...prev, {
-            id: `custom-ideas-prompt-${Date.now()}`,
-            role: 'assistant',
-            content: `Nie podoba Ci się żaden z pomysłów?`,
-            timestamp: new Date(),
-            contextActions: [{
-              label: '💡 Mam swoje propozycje',
-              action: () => {
-                console.log('Custom ideas clicked');
-                setShowCustomIdeasInput(true);
-                setCustomIdeasText('');
-              }
-            }]
-          }]);
+          console.log('Adding custom ideas button message');
+          setMessages(prev => {
+            console.log('Previous messages:', prev.length);
+            return [...prev, {
+              id: `custom-ideas-prompt-${Date.now()}`,
+              role: 'assistant',
+              content: `Nie podoba Ci się żaden z pomysłów?`,
+              timestamp: new Date(),
+              contextActions: [{
+                label: '💡 Mam swoje propozycje',
+                action: () => {
+                  console.log('Custom ideas clicked');
+                  console.log('Setting showCustomIdeasInput to true');
+                  setShowCustomIdeasInput(true);
+                  setCustomIdeasText('');
+                }
+              }]
+            }];
+          });
         }, (analysisResult.topTopics.length + 1) * 200);
       }
     }
@@ -691,6 +696,17 @@ export function ChatPanel({ onAnalyzeFolder, analysisResult, folders = [], onEdi
               onClick={() => setInput(`Analizuj ${folders[0]?.name}`)}
             >
               🔍 Analizuj najnowszy
+            </Badge>
+            <Badge 
+              variant="outline" 
+              className="cursor-pointer hover:bg-gray-100 whitespace-nowrap"
+              onClick={() => {
+                console.log('Test custom ideas clicked');
+                setShowCustomIdeasInput(true);
+                setCustomIdeasText('');
+              }}
+            >
+              💡 Test: Własne pomysły
             </Badge>
           </div>
         </div>
