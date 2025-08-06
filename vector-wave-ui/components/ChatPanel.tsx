@@ -152,7 +152,7 @@ async function analyzeIdeasWithProgress(
                         const overallScore = (idea.overall_score * 10).toFixed(1);
                         const scoreEmoji = overallScore >= 7 ? '✅' : overallScore >= 5 ? '⚠️' : '❌';
                         
-                        return `${emoji} **${idea.idea}**\n${idea.recommendation || 'Brak rekomendacji'}\n**Ocena:** ${overallScore}/10 ${scoreEmoji}\n• Viral Score: ${(idea.viral_score * 10).toFixed(1)}/10 • Dopasowanie: ${(idea.content_alignment * 10).toFixed(1)}/10 • Materiał: ${(idea.available_material * 10).toFixed(1)}/10${idea.suggested_angle ? `\n💡 **Sugerowany angle:** ${idea.suggested_angle}` : ''}`;
+                        return `${emoji} **${idea.idea}**\n\n${idea.recommendation || 'Brak rekomendacji'}\n\n**Ocena:** ${overallScore}/10 ${scoreEmoji}\n• Viral Score: ${(idea.viral_score * 10).toFixed(1)}/10\n• Dopasowanie: ${(idea.content_alignment * 10).toFixed(1)}/10\n• Materiał: ${(idea.available_material * 10).toFixed(1)}/10${idea.suggested_angle ? `\n\n💡 **Sugerowany angle:** ${idea.suggested_angle}` : ''}`;
                       }).join('\n\n---\n\n')}`,
                       timestamp: new Date()
                     }]);

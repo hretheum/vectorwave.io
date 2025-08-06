@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { flushSync } from "react-dom";
-import { Folder, Sparkles, Clock, FileText, BarChart3, Zap, Brain, Target, TrendingUp, ArrowRight, Loader2, CheckCircle2, AlertCircle, MessageSquare, Download, Copy } from "lucide-react";
+import { Folder, Sparkles, Clock, FileText, BarChart3, Zap, Brain, Target, TrendingUp, ArrowRight, Loader2, CheckCircle2, AlertCircle, MessageSquare, Download, Copy, PenTool } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,7 @@ export default function Home() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportContent, setReportContent] = useState<string>('');
   const [reportCopied, setReportCopied] = useState(false);
+  const [generatingDrafts, setGeneratingDrafts] = useState<Set<string>>(new Set());
   const [useFullAnalysis, setUseFullAnalysis] = useState(false);
   const [chatDocked, setChatDocked] = useState(true);
   const [editingDraft, setEditingDraft] = useState<{draft: string, topic: string, platform: string} | null>(null);
@@ -808,6 +809,98 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
                             </div>
                           </div>
                         </CardHeader>
+                        <CardFooter className="pt-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            disabled={generatingDrafts.has(topic.title)}
+                            onClick={async () => {
+                              console.log('Generate draft for:', topic.title);
+                              
+                              // Mark as generating
+                              setGeneratingDrafts(prev => new Set(prev).add(topic.title));
+                              
+                              try {
+                                // Call writing flow endpoint directly
+                                const response = await fetch('/api/generate-draft', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    topic_title: topic.title,
+                                    platform: topic.platform,
+                                    folder_path: analysisResult.folder,
+                                    content_type: analysisResult.contentType || 'STANDALONE',
+                                    content_ownership: analysisResult.contentOwnership || 'EXTERNAL',
+                                    viral_score: topic.viralScore,
+                                    editorial_recommendations: analysisResult.recommendation || '',
+                                    skip_research: analysisResult.contentOwnership === 'ORIGINAL'
+                                  })
+                                });
+                                
+                                const data = await response.json();
+                                
+                                if (data.success && data.draft) {
+                                  // Open draft editor
+                                  setEditingDraft({
+                                    draft: data.draft.content,
+                                    topic: topic.title,
+                                    platform: topic.platform
+                                  });
+                                  
+                                  // Show success in chat
+                                  if (window.dispatchEvent) {
+                                    window.dispatchEvent(new CustomEvent('show-message', {
+                                      detail: {
+                                        content: `✅ Draft gotowy!\n\n**${topic.title}**\n\nSłowa: ${data.draft.word_count}\nZnaki: ${data.draft.character_count}`,
+                                        role: 'assistant'
+                                      }
+                                    }));
+                                  }
+                                } else if (data.status === 'started' && data.flow_id) {
+                                  // Show in-progress message
+                                  if (window.dispatchEvent) {
+                                    window.dispatchEvent(new CustomEvent('show-message', {
+                                      detail: {
+                                        content: `🚧 Generuję draft...\n\n**Temat:** ${topic.title}\n**Flow ID:** ${data.flow_id}\n\n⏳ To może potrwać kilka minut...`,
+                                        role: 'assistant'
+                                      }
+                                    }));
+                                  }
+                                }
+                              } catch (error) {
+                                console.error('Draft generation error:', error);
+                                if (window.dispatchEvent) {
+                                  window.dispatchEvent(new CustomEvent('show-message', {
+                                    detail: {
+                                      content: `❌ Błąd generowania draftu\n\n${error instanceof Error ? error.message : 'Nieznany błąd'}`,
+                                      role: 'assistant'
+                                    }
+                                  }));
+                                }
+                              } finally {
+                                // Remove from generating set
+                                setGeneratingDrafts(prev => {
+                                  const newSet = new Set(prev);
+                                  newSet.delete(topic.title);
+                                  return newSet;
+                                });
+                              }
+                            }}
+                          >
+                            {generatingDrafts.has(topic.title) ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Generuję...
+                              </>
+                            ) : (
+                              <>
+                                <PenTool className="w-4 h-4 mr-2" />
+                                Wygeneruj draft
+                              </>
+                            )}
+                          </Button>
+                        </CardFooter>
                       </Card>
                     ))}
                   </div>
