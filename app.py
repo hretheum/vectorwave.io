@@ -32,6 +32,12 @@ app = FastAPI(
 # Storage dla wykonań flow (w produkcji użyj Redis/DB)
 flow_executions = {}
 
+# Step 6b: Base path for content folders
+CONTENT_BASE_PATH = "/Users/hretheum/dev/bezrobocie/vector-wave/content/raw"
+
+# Step 6e: Track last refresh time
+last_refresh_time = None
+
 class FlowStep:
     def __init__(self, id: str, name: str):
         self.id = id
@@ -980,14 +986,27 @@ async def analyze_content_potential(request: AnalyzePotentialRequest):
     try:
         folder_name = request.folder
         
-        # Check cache first
-        cache_key = f"analysis:{folder_name}"
+        # Step 6c: Check preload first, then regular cache
         if redis_client:
             try:
+                # First check preloaded data
+                preload_key = f"preload:analyze:{folder_name}"
+                preloaded_result = redis_client.get(preload_key)
+                if preloaded_result:
+                    result = json.loads(preloaded_result)
+                    result["from_cache"] = True
+                    result["from_preload"] = True
+                    result["processing_time_ms"] = int((time.time() - start_time) * 1000)
+                    print(f"💨 Using preloaded data for: {folder_name}")
+                    return result
+                
+                # If not preloaded, check regular cache
+                cache_key = f"analysis:{folder_name}"
                 cached_result = redis_client.get(cache_key)
                 if cached_result:
                     result = json.loads(cached_result)
                     result["from_cache"] = True
+                    result["from_preload"] = False
                     result["processing_time_ms"] = int((time.time() - start_time) * 1000)
                     return result
             except Exception as e:
@@ -1106,7 +1125,8 @@ async def analyze_content_potential(request: AnalyzePotentialRequest):
             "audience_scores": audience_scores,
             "processing_time_ms": int((time.time() - start_time) * 1000),
             "confidence": 0.75,  # Fixed confidence for simple analysis
-            "from_cache": False
+            "from_cache": False,
+            "from_preload": False
         }
         
         # Save to cache
@@ -1353,6 +1373,177 @@ async def generate_topics_with_ai(folder_name: str, folder_context: Dict, themes
     except Exception as e:
         print(f"⚠️ Topic generation with AI failed: {e}")
         raise
+
+async def get_content_folders() -> List[str]:
+    """Get all subfolders from content/raw directory"""
+    try:
+        if os.path.exists(CONTENT_BASE_PATH):
+            # Get all subdirectories
+            folders = [f for f in os.listdir(CONTENT_BASE_PATH) 
+                      if os.path.isdir(os.path.join(CONTENT_BASE_PATH, f))]
+            print(f"📁 Found {len(folders)} content folders to preload")
+            return folders
+        else:
+            print(f"⚠️ Content path not found: {CONTENT_BASE_PATH}")
+            return []
+    except Exception as e:
+        print(f"❌ Error reading content folders: {e}")
+        return []
+
+async def preload_folder_analysis(folder: str):
+    """Preload analysis for a single folder"""
+    try:
+        print(f"🔄 Preloading analysis for folder: {folder}")
+        
+        # Create request object
+        request = AnalyzePotentialRequest(folder=folder, use_flow=False)
+        
+        # Call the analyze function to generate and cache results
+        result = await analyze_content_potential(request)
+        
+        # Store with longer TTL for preload
+        preload_key = f"preload:analyze:{folder}"
+        if redis_client:
+            try:
+                redis_client.setex(
+                    preload_key,
+                    1800,  # 30 minutes TTL for preloaded data
+                    json.dumps(result)
+                )
+                print(f"✅ Preloaded analysis for: {folder}")
+            except Exception as e:
+                print(f"⚠️ Failed to store preload for {folder}: {e}")
+                
+    except Exception as e:
+        print(f"❌ Failed to preload {folder}: {e}")
+
+@app.get("/api/preload-status", tags=["diagnostics"],
+         summary="Check preload status",
+         response_description="Status of preloaded folders with TTL info")
+async def get_preload_status():
+    """
+    Check which folders are preloaded and their TTL
+    """
+    status = {
+        "preloaded_folders": [],
+        "total_folders": 0,
+        "cache_stats": {
+            "preload_ttl_seconds": 1800,
+            "regular_ttl_seconds": 300
+        },
+        "next_refresh": "Auto-refresh every 20 minutes",
+        "last_refresh": last_refresh_time.isoformat() if last_refresh_time else "Not yet (startup preload only)",
+        "startup_time": datetime.now().isoformat()
+    }
+    
+    if redis_client:
+        try:
+            # Get all preload keys
+            preload_keys = redis_client.keys("preload:analyze:*")
+            
+            for key in preload_keys:
+                key_str = key.decode() if isinstance(key, bytes) else key
+                folder_name = key_str.replace("preload:analyze:", "")
+                ttl = redis_client.ttl(key_str)
+                
+                folder_info = {
+                    "folder": folder_name,
+                    "ttl_seconds": ttl,
+                    "ttl_minutes": round(ttl / 60, 1) if ttl > 0 else 0,
+                    "expires_at": datetime.now().timestamp() + ttl if ttl > 0 else None
+                }
+                status["preloaded_folders"].append(folder_info)
+            
+            # Sort by folder name
+            status["preloaded_folders"].sort(key=lambda x: x["folder"])
+            status["total_folders"] = len(status["preloaded_folders"])
+            
+            # Check regular cache stats
+            regular_keys = redis_client.keys("analysis:*")
+            status["cache_stats"]["regular_cache_count"] = len(regular_keys)
+            
+        except Exception as e:
+            status["error"] = str(e)
+    else:
+        status["error"] = "Redis not connected"
+    
+    return status
+
+async def refresh_preloaded_data():
+    """Background task to refresh preloaded data before it expires"""
+    global last_refresh_time
+    
+    while True:
+        try:
+            # Wait 20 minutes (before 30 min TTL expires)
+            await asyncio.sleep(1200)  # 20 minutes
+            
+            print("🔄 Starting automatic refresh of preloaded data...")
+            refresh_start = datetime.now()
+            
+            # Get all content folders
+            folders = await get_content_folders()
+            
+            if folders:
+                refresh_tasks = []
+                for folder in folders:
+                    task = asyncio.create_task(preload_folder_analysis(folder))
+                    refresh_tasks.append(task)
+                
+                print(f"🔄 Refreshing {len(refresh_tasks)} folders...")
+                
+                # Wait for all refresh tasks to complete
+                completed = 0
+                for task in asyncio.as_completed(refresh_tasks):
+                    try:
+                        await task
+                        completed += 1
+                    except Exception as e:
+                        print(f"⚠️ Refresh task failed: {e}")
+                
+                last_refresh_time = datetime.now()
+                print(f"✅ Refresh completed: {completed}/{len(refresh_tasks)} folders at {last_refresh_time}")
+            else:
+                print("⚠️ No folders found to refresh")
+                
+        except Exception as e:
+            print(f"❌ Error in refresh task: {e}")
+            # Continue running even if error occurs
+            await asyncio.sleep(60)  # Wait 1 minute before retry
+
+@app.on_event("startup")
+async def preload_popular_folders():
+    """Preload analysis for all content folders on startup"""
+    global last_refresh_time
+    
+    print("🚀 Starting preload of content folders...")
+    
+    # Get all content folders
+    folders = await get_content_folders()
+    
+    if not folders:
+        print("⚠️ No folders found to preload")
+        return
+    
+    # Create tasks for parallel preloading
+    tasks = []
+    for folder in folders:
+        # Create task but don't await - let it run in background
+        task = asyncio.create_task(preload_folder_analysis(folder))
+        tasks.append(task)
+    
+    # Log that preload started
+    print(f"📊 Started preloading {len(tasks)} folders in background")
+    
+    # Mark initial preload time
+    last_refresh_time = datetime.now()
+    
+    # Step 6e: Start auto-refresh background task
+    asyncio.create_task(refresh_preloaded_data())
+    print("🔄 Auto-refresh task started (every 20 minutes)")
+    
+    # Don't wait for completion - let startup continue
+    # Tasks will complete in background
 
 async def analyze_single_idea(idea: str, folder_context: Dict, platform: str) -> IdeaAnalysis:
     """
