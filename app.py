@@ -2219,29 +2219,91 @@ async def chat_with_assistant(request: ChatRequest):
                     context_info += f"\n- Zgodność ze stylem: {metrics['compliance_score']}/10"
                 context_info += "\n"
         
-        # System prompt for Vector Wave AI Assistant
-        system_prompt = f"""Jesteś AI Assistantem Vector Wave - inteligentnym partnerem do rozmowy o content marketingu, strategii publikacji i tworzeniu angażujących treści.
+        # Enhanced system prompt emphasizing conversational nature
+        system_prompt = f"""Jesteś AI Assistantem Vector Wave - inteligentnym partnerem do rozmowy o content marketingu.
 
-Twoje cechy:
-- Jesteś przyjacielski, pomocny i konkretny
-- Znasz się na marketingu, social media, SEO i content strategy
-- Rozumiesz polski i odpowiadasz po polsku
-- Możesz rozmawiać na różne tematy, nie tylko biznesowe
-- Jesteś kreatywny i potrafisz doradzać
+NAJWAŻNIEJSZE: Jesteś przede wszystkim konwersacyjnym assistentem. Możesz:
+- Rozmawiać na dowolne tematy związane z marketingiem, pisaniem, AI bądź czymkolwiek innym
+- Żartować, filozofować, doradzać
+- Odpowiadać na pytania niezwiązane z draftem
+- Po prostu gawędzić z użytkownikiem
 
-Odpowiadaj naturalnie, bez sztuczności. Jeśli user pyta o coś niezwiązanego z pracą, po prostu podejmij temat.
+Masz OPCJONALNY dostęp do narzędzi, ale używaj ich TYLKO gdy użytkownik wyraźnie:
+- Prosi o analizę wpływu zmian na metryki
+- Chce regenerować draft z konkretnymi sugestiami
+- Pyta o konkretne score'y lub compliance
+
+NIE używaj narzędzi gdy użytkownik:
+- Pyta ogólne pytania ("Co sądzisz o AI?")
+- Chce pogadać ("Nudzi mi się")
+- Prosi o opinię niezwiązaną z konkretnymi metrykami
+- Żartuje lub bawi się konwersacją
+
+Bądź naturalny, pomocny i przyjacielski. To rozmowa, nie tylko wykonywanie poleceń.
 {context_info if context_info else ""}"""
 
+        # Define tools for function calling
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "analyze_draft_impact",
+                    "description": "Use ONLY when user explicitly asks about impact on scores/metrics",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "original_draft": {"type": "string", "description": "The current draft content"},
+                            "suggested_changes": {"type": "string", "description": "Changes user wants to make"},
+                            "platform": {"type": "string", "description": "Platform: LinkedIn, Twitter, or Blog"}
+                        },
+                        "required": ["original_draft", "suggested_changes", "platform"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "regenerate_draft_with_suggestions",
+                    "description": "Use ONLY when user explicitly asks to regenerate with specific changes",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "topic_title": {"type": "string", "description": "Title of the topic"},
+                            "suggestions": {"type": "string", "description": "User's suggestions for regeneration"},
+                            "platform": {"type": "string", "description": "Platform: LinkedIn, Twitter, or Blog"}
+                        },
+                        "required": ["topic_title", "suggestions", "platform"]
+                    }
+                }
+            }
+        ]
+        
         # Create messages for OpenAI
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": request.message}
         ]
         
-        # Call OpenAI API
+        # Call OpenAI API with function calling
         try:
-            response = await llm.ainvoke(messages)
-            ai_response = response.content
+            # For function calling, we need to use the OpenAI client directly
+            # or configure LangChain properly
+            llm_with_tools = llm.bind(
+                functions=[tool["function"] for tool in tools],
+                function_call="auto"
+            )
+            
+            response = await llm_with_tools.ainvoke(messages)
+            
+            # Check if function was called
+            if hasattr(response, 'additional_kwargs') and 'function_call' in response.additional_kwargs:
+                function_call = response.additional_kwargs['function_call']
+                print(f"🔧 Function called: {function_call.get('name', 'unknown')}")
+                
+                # For now, return a placeholder response
+                ai_response = f"Chciałbym użyć funkcji {function_call.get('name', 'unknown')} ale ta funkcjonalność jest jeszcze w trakcie implementacji."
+            else:
+                ai_response = response.content
             
             print(f"✅ OpenAI response received, length: {len(ai_response)}")
             
