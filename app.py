@@ -2181,6 +2181,101 @@ def classify_intent(message: str) -> str:
     # Default to general question
     return "general_question"
 
+async def analyze_draft_impact(
+    original_draft: str,
+    suggested_changes: str,
+    platform: str
+) -> Dict:
+    """
+    Analyze impact of suggested changes on draft metrics
+    Uses agentic RAG for deep analysis
+    """
+    try:
+        # Prepare content for analysis
+        combined_content = f"""OBECNY DRAFT:
+{original_draft}
+
+SUGEROWANE ZMIANY:
+{suggested_changes}
+
+Przeanalizuj jak te zmiany wpłyną na:
+1. Jakość contentu (quality_score)
+2. Potencjał viralowy (viral_score)
+3. Zgodność ze stylem platformy {platform}
+4. Ogólną skuteczność przekazu
+
+Oceń obecny draft i przewidywany efekt po zmianach."""
+
+        # Use agentic style check for analysis
+        request = AgenticStyleCheckRequest(
+            content=combined_content,
+            platform=platform,
+            check_mode="comprehensive"
+        )
+        
+        analysis = await check_style_agentic(request)
+        
+        # Extract scores from analysis
+        current_quality = analysis.get("quality_score", 7.0)
+        current_viral = analysis.get("viral_score", 6.0)
+        
+        # For impact analysis, we'll estimate improvements based on the changes
+        # Check what kind of changes are suggested
+        changes_lower = suggested_changes.lower()
+        
+        # Calculate impact based on change type
+        quality_boost = 0
+        viral_boost = 0
+        
+        if any(tech in changes_lower for tech in ["agentic rag", "technologi", "ai", "crewai", "hybrid"]):
+            quality_boost += 0.8  # Technical details improve quality
+            viral_boost += 0.5    # Tech details moderately improve virality
+        
+        if any(word in changes_lower for word in ["dodaj", "włącz", "rozszerz"]):
+            quality_boost += 0.3  # Adding content generally improves quality
+        
+        if any(word in changes_lower for word in ["usuń", "skróć", "wytnij"]):
+            quality_boost -= 0.2  # Removing content might reduce quality
+            viral_boost += 0.2    # But could improve virality through focus
+        
+        predicted_quality = min(10, current_quality + quality_boost)
+        predicted_viral = min(10, current_viral + viral_boost)
+        
+        # Generate impact analysis
+        impact_analysis = f"""Na podstawie analizy sugerowanych zmian:
+
+• **Jakość treści**: {current_quality:.1f} → {predicted_quality:.1f} ({'+' if predicted_quality > current_quality else ''}{predicted_quality - current_quality:.1f})
+• **Potencjał viralowy**: {current_viral:.1f} → {predicted_viral:.1f} ({'+' if predicted_viral > current_viral else ''}{predicted_viral - current_viral:.1f})
+• **Zgodność z platformą {platform}**: {analysis.get('platform_fit', 'Dobra')}
+
+{analysis.get('detailed_feedback', 'Sugerowane zmiany mogą pozytywnie wpłynąć na engagement.')}"""
+
+        # Determine recommendation
+        if predicted_quality > current_quality or predicted_viral > current_viral:
+            recommendation = "✅ Rekomenduje wprowadzenie sugerowanych zmian - powinny poprawić wydajność contentu."
+        else:
+            recommendation = "⚠️ Sugerowane zmiany mogą nie przynieść znaczącej poprawy. Rozważ inne podejście."
+        
+        return {
+            "current_score": current_quality,
+            "predicted_score": predicted_quality,
+            "current_viral": current_viral,
+            "predicted_viral": predicted_viral,
+            "impact": impact_analysis,
+            "recommendation": recommendation,
+            "platform_fit": analysis.get("platform_fit", "Unknown"),
+            "detailed_analysis": analysis
+        }
+        
+    except Exception as e:
+        print(f"❌ Error in analyze_draft_impact: {e}")
+        return {
+            "current_score": 0,
+            "predicted_score": 0,
+            "impact": f"Błąd podczas analizy: {str(e)}",
+            "recommendation": "Nie udało się przeprowadzić analizy"
+        }
+
 @app.post("/api/chat", tags=["assistant"],
          summary="Chat with AI Assistant",
          response_model=ChatResponse,
@@ -2298,12 +2393,60 @@ Bądź naturalny, pomocny i przyjacielski. To rozmowa, nie tylko wykonywanie pol
             # Check if function was called
             if hasattr(response, 'additional_kwargs') and 'function_call' in response.additional_kwargs:
                 function_call = response.additional_kwargs['function_call']
-                print(f"🔧 Function called: {function_call.get('name', 'unknown')}")
+                function_name = function_call.get('name', 'unknown')
+                print(f"🔧 Function called: {function_name}")
                 
-                # For now, return a placeholder response
-                ai_response = f"Chciałbym użyć funkcji {function_call.get('name', 'unknown')} ale ta funkcjonalność jest jeszcze w trakcie implementacji."
+                # Parse function arguments
+                import json
+                try:
+                    function_args = json.loads(function_call.get('arguments', '{}'))
+                except:
+                    function_args = {}
+                
+                # Handle function calls
+                if function_name == "analyze_draft_impact":
+                    # Extract parameters with defaults from context
+                    original_draft = function_args.get('original_draft') or request.context.get('currentDraft', '')
+                    suggested_changes = function_args.get('suggested_changes', '')
+                    platform = function_args.get('platform') or request.context.get('platform', 'LinkedIn')
+                    
+                    # Call the analysis function
+                    result = await analyze_draft_impact(original_draft, suggested_changes, platform)
+                    
+                    # Format response
+                    ai_response = f"""Analiza wpływu sugerowanych zmian:
+
+**Obecny score:** {result['current_score']:.1f}/10
+**Przewidywany score:** {result['predicted_score']:.1f}/10
+
+{result['impact']}
+
+**Rekomendacja:** {result['recommendation']}"""
+                    
+                    # Add context actions if improvement is predicted
+                    context_actions = []
+                    if result['predicted_score'] > result['current_score']:
+                        context_actions.append({
+                            "label": "✍️ Wygeneruj draft z sugestiami",
+                            "action": "regenerate_with_suggestions",
+                            "params": {
+                                "suggestions": suggested_changes,
+                                "platform": platform
+                            }
+                        })
+                
+                elif function_name == "regenerate_draft_with_suggestions":
+                    # This will be implemented in Step 9
+                    ai_response = f"Funkcja regeneracji draftu jest w trakcie implementacji (Step 9)."
+                    context_actions = []
+                
+                else:
+                    ai_response = response.content
+                    context_actions = []
+                    
             else:
                 ai_response = response.content
+                context_actions = []
             
             print(f"✅ OpenAI response received, length: {len(ai_response)}")
             
@@ -2339,7 +2482,7 @@ Bądź naturalny, pomocny i przyjacielski. To rozmowa, nie tylko wykonywanie pol
         return ChatResponse(
             response=ai_response,
             intent=intent,
-            context_actions=[],
+            context_actions=context_actions if 'context_actions' in locals() else [],
             error=None
         )
         
