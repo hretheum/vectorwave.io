@@ -2413,32 +2413,86 @@ Bądź naturalny, pomocny i przyjacielski. To rozmowa, nie tylko wykonywanie pol
                     # Call the analysis function
                     result = await analyze_draft_impact(original_draft, suggested_changes, platform)
                     
-                    # Format response
-                    ai_response = f"""Analiza wpływu sugerowanych zmian:
+                    # Enhanced response formatting with emoji indicators
+                    score_diff = result['predicted_score'] - result['current_score']
+                    viral_diff = result.get('predicted_viral', result.get('current_viral', 0)) - result.get('current_viral', 0)
+                    
+                    # Choose emoji based on impact
+                    impact_emoji = "📈" if score_diff > 0 else ("📉" if score_diff < 0 else "➡️")
+                    
+                    ai_response = f"""### {impact_emoji} Analiza wpływu sugerowanych zmian
 
-**Obecny score:** {result['current_score']:.1f}/10
-**Przewidywany score:** {result['predicted_score']:.1f}/10
+**📊 Metryki główne:**
+• **Jakość treści:** {result['current_score']:.1f} → {result['predicted_score']:.1f} ({'+' if score_diff >= 0 else ''}{score_diff:.1f})
+• **Potencjał viralowy:** {result.get('current_viral', 6.0):.1f} → {result.get('predicted_viral', 6.0):.1f} ({'+' if viral_diff >= 0 else ''}{viral_diff:.1f})
 
+**💡 Analiza szczegółowa:**
 {result['impact']}
 
-**Rekomendacja:** {result['recommendation']}"""
+**🎯 Rekomendacja:** {result['recommendation']}"""
                     
-                    # Add context actions if improvement is predicted
+                    # Enhanced context actions based on analysis results
                     context_actions = []
+                    
+                    # Add regenerate button if improvement is predicted
                     if result['predicted_score'] > result['current_score']:
                         context_actions.append({
                             "label": "✍️ Wygeneruj draft z sugestiami",
                             "action": "regenerate_with_suggestions",
                             "params": {
                                 "suggestions": suggested_changes,
+                                "platform": platform,
+                                "original_draft": original_draft
+                            }
+                        })
+                    
+                    # Add alternative suggestions button if no improvement
+                    elif score_diff <= 0:
+                        context_actions.append({
+                            "label": "💭 Zaproponuj inne podejście",
+                            "action": "suggest_alternatives",
+                            "params": {
+                                "current_approach": suggested_changes,
                                 "platform": platform
                             }
                         })
+                    
+                    # Always add detailed report button
+                    context_actions.append({
+                        "label": "📄 Pokaż pełny raport",
+                        "action": "show_detailed_report",
+                        "params": {
+                            "full_analysis": result.get('detailed_analysis', {}),
+                            "metrics": {
+                                "quality": {"before": result['current_score'], "after": result['predicted_score']},
+                                "viral": {"before": result.get('current_viral', 0), "after": result.get('predicted_viral', 0)},
+                                "platform_fit": result.get('platform_fit', 'Unknown')
+                            }
+                        }
+                    })
                 
                 elif function_name == "regenerate_draft_with_suggestions":
                     # This will be implemented in Step 9
-                    ai_response = f"Funkcja regeneracji draftu jest w trakcie implementacji (Step 9)."
-                    context_actions = []
+                    ai_response = f"""### 🚧 Funkcja w trakcie implementacji
+
+Regeneracja draftu z sugestiami będzie dostępna wkrótce (Step 9).
+
+**Co będzie możliwe:**
+• Automatyczne włączenie sugestii do draftu
+• Zachowanie oryginalnego stylu i tonu
+• Optymalizacja pod kątem platformy {function_args.get('platform', 'LinkedIn')}
+• Poprawa metryk engagement
+
+Tymczasem możesz ręcznie edytować draft w edytorze."""
+                    
+                    context_actions = [{
+                        "label": "📝 Edytuj draft ręcznie",
+                        "action": "open_editor",
+                        "params": {
+                            "draft": request.context.get('currentDraft', ''),
+                            "suggestions": function_args.get('suggestions', '')
+                        }
+                    }]
                 
                 else:
                     ai_response = response.content
