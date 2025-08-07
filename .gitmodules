@@ -16,3 +16,6 @@
 [submodule "presenton"]
 	path = presenton
 	url = git@github.com:hretheum/vector-wave-presenton.git
+[submodule "publisher"]
+	path = publisher
+	url = git@github.com:hretheum/vector-wave-publisher.git
