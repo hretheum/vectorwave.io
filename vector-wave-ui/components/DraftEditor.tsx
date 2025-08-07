@@ -25,7 +25,7 @@ export function DraftEditor({
   onPublish 
 }: DraftEditorProps) {
   const [draft, setDraft] = useState(initialDraft);
-  const [activeView, setActiveView] = useState<'edit' | 'preview' | 'diagnostics'>('edit');
+  const [activeView, setActiveView] = useState<'edit' | 'preview' | 'linkedin' | 'diagnostics'>('edit');
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -61,6 +61,24 @@ export function DraftEditor({
 
   const wordCount = draft.split(/\s+/).filter(word => word.length > 0).length;
   const charCount = draft.length;
+
+  // Format draft for LinkedIn (preserves LinkedIn formatting)
+  const formatForLinkedIn = (text: string): string => {
+    return text
+      // Clean up title formatting (remove "Title:" prefix if present)
+      .replace(/^Title:\s*\*?\*?(.+?)\*?\*?\n*/i, '$1\n\n')
+      // Keep **bold** as is (LinkedIn supports this)
+      .replace(/\*\*(.*?)\*\*/g, '**$1**')
+      // Keep hashtags as is (LinkedIn will auto-link them)
+      .replace(/#([a-zA-Z0-9_]+)/g, '#$1')
+      // Clean up multiple line breaks but preserve intentional spacing
+      .replace(/\n{3,}/g, '\n\n')
+      // Remove any markdown remnants
+      .replace(/^\s*-\s*/gm, '• ')  // Convert - to bullet points
+      .trim();
+  };
+
+  const linkedInFormattedText = formatForLinkedIn(draft);
 
   return (
     <div className="h-full flex flex-col max-w-5xl mx-auto">
@@ -112,12 +130,21 @@ export function DraftEditor({
                   Podgląd
                 </Button>
                 <Button
+                  variant={activeView === 'linkedin' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveView('linkedin')}
+                  className="gap-2 h-8"
+                >
+                  <Target className="w-4 h-4" />
+                  LinkedIn
+                </Button>
+                <Button
                   variant={activeView === 'diagnostics' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setActiveView('diagnostics')}
                   className="gap-2 h-8"
                 >
-                  <Target className="w-4 h-4" />
+                  <Sparkles className="w-4 h-4" />
                   Pipeline
                 </Button>
               </div>
@@ -187,7 +214,125 @@ export function DraftEditor({
             </CardHeader>
             <CardContent>
               <div className="prose prose-gray max-w-none">
-                <ReactMarkdown>{draft}</ReactMarkdown>
+                {/* Enhanced text formatting with line breaks, bold, hashtags */}
+                <div 
+                  className="whitespace-pre-wrap leading-relaxed"
+                  dangerouslySetInnerHTML={{
+                    __html: draft
+                      // Convert \n to <br> for line breaks
+                      .replace(/\n/g, '<br>')
+                      // Convert **text** to <strong>text</strong>
+                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      // Convert *text* to <em>text</em> 
+                      .replace(/(?<!\*)\*([^\*\n]+?)\*(?!\*)/g, '<em>$1</em>')
+                      // Convert #hashtags to styled spans
+                      .replace(/#([a-zA-Z0-9_]+)/g, '<span class="text-blue-600 font-medium">#$1</span>')
+                      // Convert URLs to links
+                      .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>')
+                      // Convert email addresses to links
+                      .replace(/\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b/g, '<a href="mailto:$1" class="text-blue-600 hover:underline">$1</a>')
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeView === 'linkedin' && (
+          <Card className="h-full m-6 overflow-auto">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-blue-600" />
+                  LinkedIn Preview
+                </CardTitle>
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(linkedInFormattedText);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                  >
+                    {copied ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        Skopiowano dla LinkedIn
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        Kopiuj dla LinkedIn
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* LinkedIn Post Preview */}
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm max-w-xl mx-auto">
+                {/* LinkedIn Post Header */}
+                <div className="p-4 border-b border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                      <span className="text-white font-semibold text-lg">VW</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-900">Vector Wave</div>
+                      <div className="text-sm text-gray-600">AI Content Creator • Now</div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* LinkedIn Post Content */}
+                <div className="p-4">
+                  <div 
+                    className="text-gray-900 whitespace-pre-line leading-relaxed"
+                    style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+                  >
+                    {linkedInFormattedText.split('\n').map((line, index) => (
+                      <div key={`linkedin-line-${index}`}>
+                        <span dangerouslySetInnerHTML={{
+                          __html: line
+                            // Render hashtags with LinkedIn blue color
+                            .replace(/#([a-zA-Z0-9_]+)/g, '<span style="color: #0077b5; font-weight: 500;">#$1</span>')
+                            // Render bold text
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            // Convert bullet points to proper bullets
+                            .replace(/^• /g, '• ')
+                        }} />
+                        {index < linkedInFormattedText.split('\n').length - 1 && <br />}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* LinkedIn Post Actions */}
+                <div className="border-t border-gray-100 p-3">
+                  <div className="flex items-center justify-between text-sm text-gray-600">
+                    <div className="flex items-center gap-4">
+                      <span className="flex items-center gap-1">👍 Like</span>
+                      <span className="flex items-center gap-1">💬 Comment</span>
+                      <span className="flex items-center gap-1">🔄 Repost</span>
+                      <span className="flex items-center gap-1">📤 Send</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* LinkedIn Formatting Tips */}
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-semibold text-blue-900 mb-2">💡 LinkedIn Formatting Tips:</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• <strong>Bold text:</strong> Use **text** (będzie sformatowane jako bold)</li>
+                  <li>• <strong>Hashtagi:</strong> #AI #ContentMarketing (automatycznie linkowane)</li>
+                  <li>• <strong>Linki:</strong> Automatycznie przekształcane w klikalnie linki</li>
+                  <li>• <strong>Łamanie linii:</strong> Podwójne naciśnięcie Enter dla nowego akapitu</li>
+                  <li>• <strong>Emoji:</strong> 🚀 Zwiększają engagement o ~25%</li>
+                </ul>
               </div>
             </CardContent>
           </Card>
@@ -232,6 +377,12 @@ export function DraftEditor({
             <p>
               👁️ <strong>Podgląd:</strong> Zobacz jak będzie wyglądał Twój content po opublikowaniu. 
               Przełącz na "Edytor" aby wprowadzić zmiany.
+            </p>
+          )}
+          {activeView === 'linkedin' && (
+            <p>
+              🔵 <strong>LinkedIn Preview:</strong> Zobacz dokładnie jak Twój post będzie wyglądał na LinkedIn. 
+              Użyj przycisku "Kopiuj dla LinkedIn" aby skopiować tekst z poprawnym formatowaniem.
             </p>
           )}
           {activeView === 'diagnostics' && (

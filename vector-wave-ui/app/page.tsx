@@ -498,7 +498,7 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {folders.map((folder, idx) => (
                 <Card 
-                  key={idx} 
+                  key={`folder-${folder.name}-${idx}`} 
                   className={cn(
                     "group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
                     selectedFolder === folder.name && "ring-2 ring-indigo-500"
@@ -656,7 +656,7 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
                       <div className="flex gap-0.5">
                         {[...Array(10)].map((_, i) => (
                           <div
-                            key={i}
+                            key={`score-bar-${i}`}
                             className={cn(
                               "w-2 h-8 rounded-sm transition-all",
                               i < analysisResult.valueScore
@@ -727,7 +727,7 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
                   <div className="grid gap-3">
                     {analysisResult.topTopics.map((topic: any, idx: number) => (
                       <Card 
-                        key={idx} 
+                        key={`topic-${idx}-${topic.title?.slice(0, 20) || idx}`} 
                         className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
                       >
                         <CardHeader className="pb-3">
@@ -865,17 +865,6 @@ ${analysis.topTopics && analysis.topTopics.length > 0 ?
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   Zapisz metadane
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="secondary"
-                  onClick={() => {
-                    // TODO: Implement pipeline run
-                    console.log('Running pipeline for:', analysisResult.folder);
-                  }}
-                >
-                  <Zap className="w-4 h-4" />
-                  Uruchom pipeline
                 </Button>
                 <Button 
                   size="lg" 

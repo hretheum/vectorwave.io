@@ -2717,6 +2717,67 @@ def classify_intent(message: str) -> str:
     # Default to general question
     return "general_question"
 
+async def analyze_style_compliance(draft_content: str, platform: str):
+    """
+    Analyze draft compliance with Vector Wave style guidelines using the iterative agent.
+    """
+    try:
+        print(f"🔍 Starting style compliance analysis for {platform} content...")
+        
+        # Call the style guide analysis endpoint
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                'http://localhost:8002/api/style-guide/analyze-iterative',
+                json={
+                    "content": draft_content,
+                    "platform": platform
+                },
+                timeout=30.0
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                # Format the analysis results for the user
+                analysis_text = f"""📊 **Analiza zgodności ze styleguide ({platform})**
+
+**Ocena ogólna:** {result.get('overall_score', 'N/A')}/100
+
+**Główne wyniki:**
+{result.get('analysis_summary', 'Brak podsumowania')}
+
+**Szczegółowa analiza:**
+{result.get('detailed_analysis', 'Brak szczegółów')}
+
+**Sugestie poprawek:**
+{result.get('suggestions', 'Brak sugestii')}
+
+**Czas analizy:** {result.get('analysis_time_seconds', 'N/A')}s
+**Liczba zapytań do styleguide:** {result.get('queries_made', 'N/A')}
+"""
+                
+                print(f"✅ Style compliance analysis completed: {result.get('overall_score', 'N/A')}/100")
+                return {
+                    "status": "success",
+                    "analysis": analysis_text,
+                    "score": result.get('overall_score', 0),
+                    "suggestions": result.get('suggestions', 'Brak sugestii')
+                }
+            else:
+                error_msg = f"Style guide API error: {response.status_code}"
+                print(f"❌ {error_msg}")
+                return {
+                    "status": "error",
+                    "message": f"Nie udało się przeanalizować zgodności ze styleguide: {error_msg}"
+                }
+                
+    except Exception as e:
+        print(f"❌ Error in analyze_style_compliance: {e}")
+        return {
+            "status": "error",
+            "message": f"Błąd podczas analizy styleguide: {str(e)}"
+        }
+
 async def regenerate_draft_with_suggestions(
     topic_title: str,
     suggestions: str,
@@ -3156,6 +3217,21 @@ Bądź naturalny, pomocny i przyjacielski. To rozmowa, nie tylko wykonywanie pol
                         "required": ["topic_title", "suggestions", "platform"]
                     }
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "analyze_style_compliance",
+                    "description": "Use when user asks about style guide compliance or wants to check if draft follows Vector Wave style guidelines",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "draft_content": {"type": "string", "description": "The draft content to analyze for style compliance"},
+                            "platform": {"type": "string", "description": "Platform: LinkedIn, Twitter, or Blog"}
+                        },
+                        "required": ["draft_content", "platform"]
+                    }
+                }
             }
         ]
         
@@ -3264,6 +3340,24 @@ Bądź naturalny, pomocny i przyjacielski. To rozmowa, nie tylko wykonywanie pol
                             }
                         }
                     })
+                
+                elif function_name == "analyze_style_compliance":
+                    # Extract parameters
+                    draft_content = function_args.get('draft_content', '') or request.context.get('currentDraft', '')
+                    platform = function_args.get('platform') or request.context.get('platform', 'LinkedIn')
+                    
+                    if not draft_content:
+                        function_response = "❌ Brak contentu do analizy. Najpierw wygeneruj draft."
+                    else:
+                        print(f"🔍 Analyzing style compliance for {platform} content...")
+                        
+                        # Call the style compliance function
+                        result = await analyze_style_compliance(draft_content, platform)
+                        
+                        if result["status"] == "success":
+                            function_response = result["analysis"]
+                        else:
+                            function_response = result["message"]
                 
                 elif function_name == "regenerate_draft_with_suggestions":
                     # Extract parameters
@@ -3579,6 +3673,21 @@ Bądź naturalny, pomocny i przyjacielski. To rozmowa, nie tylko wykonywanie pol
                             "required": ["topic_title", "suggestions", "platform"]
                         }
                     }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "analyze_style_compliance",
+                        "description": "Use when user asks about style guide compliance or wants to check if draft follows Vector Wave style guidelines",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "draft_content": {"type": "string"},
+                                "platform": {"type": "string"}
+                            },
+                            "required": ["draft_content", "platform"]
+                        }
+                    }
                 }
             ]
             
@@ -3676,6 +3785,22 @@ Bądź naturalny, pomocny i przyjacielski. To rozmowa, nie tylko wykonywanie pol
                             })
                         
                         yield f"data: {json.dumps({'type': 'context_actions', 'actions': context_actions})}\n\n"
+                    
+                    elif current_function_name == "analyze_style_compliance":
+                        yield f"data: {json.dumps({'type': 'status', 'message': 'Analizuję zgodność ze styleguide...'})}\n\n"
+                        
+                        draft_content = function_args.get('draft_content', '') or request.context.get('currentDraft', '')
+                        platform = function_args.get('platform') or request.context.get('platform', 'LinkedIn')
+                        
+                        if not draft_content:
+                            yield f"data: {json.dumps({'type': 'partial', 'content': '❌ Brak contentu do analizy. Najpierw wygeneruj draft.'})}\n\n"
+                        else:
+                            result = await analyze_style_compliance(draft_content, platform)
+                            
+                            if result["status"] == "success":
+                                yield f"data: {json.dumps({'type': 'partial', 'content': result['analysis']})}\n\n"
+                            else:
+                                yield f"data: {json.dumps({'type': 'partial', 'content': result['message']})}\n\n"
                     
                     elif current_function_name == "regenerate_draft_with_suggestions":
                         yield f"data: {json.dumps({'type': 'status', 'message': 'Generuję nowy draft z Twoimi sugestiami...'})}\n\n"

@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     
     // Forward to new AI Assistant backend API with timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout for AI operations
     
     const response = await fetch('http://localhost:8003/api/chat', {
       method: 'POST',
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     // Check if it's a timeout error
     if (error instanceof Error && error.name === 'AbortError') {
       return NextResponse.json({
-        response: "Analiza zajmuje trochę więcej czasu. Proszę spróbuj ponownie lub zadaj prostsze pytanie.",
+        response: "⏱️ Operacja trwa dłużej niż oczekiwano (>90s). To może oznaczać, że AI generuje szczególnie złożony content lub backend jest obciążony. Spróbuj ponownie za chwilę lub zadaj prostsze pytanie.",
         error: "timeout"
       });
     }
