@@ -1,6 +1,77 @@
 # 🛣️ Vector Wave Migration Roadmap
 **From Hardcoded Rules to ChromaDB-Centric Architecture**
 
+## 📋 Extracted Validation Scripts
+
+### **Data Integrity Validation**
+```bash
+# Verify 355+ rules loaded
+curl http://localhost:8040/cache/stats | jq '.total_rules' 
+# Expected: >= 355
+
+# Check for zero hardcoded rules
+find . -name "*.py" -o -name "*.js" -o -name "*.md" | xargs grep -l "hardcoded\|fallback_rules\|default_rules" | wc -l
+# Expected: 0
+
+# Verify 100% ChromaDB sourcing
+curl http://localhost:8040/cache/dump | jq '[.[] | select(.chromadb_metadata == null)] | length'
+# Expected: 0
+```
+
+### **Performance Validation**
+```bash
+# P95 latency verification (10,000 queries benchmark)
+curl -X POST http://localhost:8040/benchmark/latency \
+  -H "Content-Type: application/json" \
+  -d '{"queries": 10000, "report_percentiles": [95, 99]}'
+# Expected: P95 < 200ms, P99 < 500ms
+
+# Cache warmup verification
+time curl http://localhost:8040/health/ready
+# Expected: Service ready with 355+ rules within 10s
+
+# Auth overhead measurement
+time curl -H "Authorization: Bearer test" http://localhost:8040/validate/comprehensive
+time curl http://localhost:8040/validate/comprehensive  
+# Expected: (time_with_auth - time_without_auth) < 50ms
+```
+
+### **Dual Workflow Validation**
+```bash
+# Selective validation rule count
+curl -X POST http://localhost:8040/validate/selective \
+  -H "Content-Type: application/json" \
+  -d '{"content": "test article", "platform": "linkedin"}' | jq '.rules | length'
+# Expected: 3-4 rules
+
+# Comprehensive validation rule count  
+curl -X POST http://localhost:8040/validate/comprehensive \
+  -H "Content-Type: application/json" \
+  -d '{"content": "test article", "platform": "linkedin"}' | jq '.rules | length'
+# Expected: 8-12 rules
+
+# Same input different processing verification
+test_content='{"content": "revolutionary AI solution leveraging paradigm shift", "platform": "twitter"}'
+selective_count=$(curl -X POST http://localhost:8040/validate/selective -H "Content-Type: application/json" -d "$test_content" | jq '.violations | length')
+comprehensive_count=$(curl -X POST http://localhost:8040/validate/comprehensive -H "Content-Type: application/json" -d "$test_content" | jq '.violations | length') 
+# Expected: comprehensive_count > selective_count
+```
+
+### **Strategy Pattern Validation**
+```bash
+# Factory pattern performance test
+python -c "
+from validation import ValidationStrategyFactory
+import time
+start = time.time()
+strategies = [ValidationStrategyFactory.create('comprehensive') for _ in range(1000)]
+end = time.time()
+print(f'1000 strategy creations: {(end-start)*1000:.1f}ms')
+assert (end-start) < 0.010, f'Too slow: {(end-start)*1000:.1f}ms > 10ms'
+"
+# Expected: < 10ms total (< 10μs per creation)
+```
+
 ## 📊 Migration Overview
 
 ### Transformation Scope
