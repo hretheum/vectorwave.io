@@ -77,7 +77,7 @@ assert (end-start) < 0.010, f'Too slow: {(end-start)*1000:.1f}ms > 10ms'
 ### Transformation Scope
 - **From**: 355+ hardcoded rules scattered across 25+ files
 - **To**: Unified ChromaDB vector database with 5 specialized collections
-- **Timeline**: 13 weeks (3 phases + CrewAI Orchestrator)
+- **Timeline**: 15 weeks (3 phases + task atomization)
 - **Approach**: Incremental migration with zero downtime
 - **Risk Level**: Medium (comprehensive rollback strategies in place)
 
@@ -90,8 +90,8 @@ assert (end-start) < 0.010, f'Too slow: {(end-start)*1000:.1f}ms > 10ms'
 
 ---
 
-## 🎯 Phase 1: ChromaDB Infrastructure & Editorial Service
-**Duration**: 5 weeks | **Objective**: Foundation layer with zero hardcoded rules + CrewAI Orchestrator
+## 🎯 Phase 1: ChromaDB Infrastructure & Editorial Service  
+**Duration**: 6 weeks | **Objective**: Foundation layer with zero hardcoded rules + CrewAI Orchestrator
 
 ### 📋 Phase 1 Task Breakdown
 
@@ -454,15 +454,120 @@ Each collection setup includes:
 4. `scheduling_optimization` - Timing intelligence rules
 5. `user_preferences` - User behavior learning data
 
-#### **WEEK 3: Hardcoded Rule Migration**
+#### **WEEK 3-4: Hardcoded Rule Migration** 🆕 **EXTENDED DUE TO ATOMIZATION**
 
-##### Task 1.3.1: Kolegium Rule Extraction (2 days) ⏱️ 16h
+##### Task 1.3.1A: Rule Discovery & Cataloging (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
 ```yaml
-objective: "Extract 180+ hardcoded rules from Kolegium"
+objective: "Complete inventory of hardcoded rules in Kolegium files"
 source_files:
   - "/kolegium/ai_writing_flow/src/ai_writing_flow/crews/style_crew.py"
   - "/kolegium/ai_writing_flow/src/ai_writing_flow/tools/styleguide_loader.py"
-deliverable: "180 rules migrated to style_editorial_rules collection"
+deliverable: "Structured catalog of all hardcoded rules with source mapping"
+
+acceptance_criteria:
+  - All hardcoded rules cataloged in structured JSON
+  - No rules missed (verified by second pass scan)
+  - Categories properly assigned (forbidden_phrases, required_elements, style_patterns)
+  - Source file mapping with line numbers
+
+validation_commands:
+  - "python migration/catalog_rules.py --verify | jq '.total_rules' # Expected: >180"
+  - "python migration/catalog_rules.py --check-completeness | jq '.missed_rules' # Expected: 0"
+
+test_requirements:
+  unit_tests:
+    - test_rule_discovery_completeness()
+    - test_rule_categorization_accuracy()
+    - test_source_file_mapping()
+  validation_tests:
+    - "Catalog contains >180 rules"
+    - "All source files scanned"
+    - "Zero uncategorized rules"
+```
+
+##### Task 1.3.1B: Rule Validation & Transformation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Validate extracted rules and transform to ChromaDB format"
+dependencies: ["Task 1.3.1A"]
+deliverable: "ChromaDB-ready rule documents with enriched metadata"
+
+acceptance_criteria:
+  - All rules have valid ChromaDB metadata structure
+  - No malformed or duplicate rules detected
+  - Metadata complete (priority, platform, workflow, source)
+  - Quality score assigned to each rule
+
+validation_commands:
+  - "python migration/validate_rules.py --check-format | jq '.validation_errors' # Expected: 0"
+  - "python migration/validate_rules.py --check-duplicates | jq '.duplicate_count' # Expected: 0"
+
+test_requirements:
+  unit_tests:
+    - test_rule_validation_logic()
+    - test_chromadb_format_transformation()
+    - test_metadata_enrichment()
+    - test_duplicate_detection()
+  validation_tests:
+    - "0 validation errors"
+    - "100% rules have required metadata fields"
+    - "No duplicate rule content detected"
+```
+
+##### Task 1.3.1C: ChromaDB Collection Preparation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Prepare ChromaDB collection for rule import with optimization"
+dependencies: ["Task 1.2.2"]
+deliverable: "Optimized ChromaDB collection ready for bulk import"
+
+acceptance_criteria:
+  - Collection created with proper schema and indexes
+  - Query performance <100ms P95 for rule lookups
+  - Collection handles >500 rules without degradation
+  - Backup and rollback strategy implemented
+
+validation_commands:
+  - "curl http://localhost:8000/api/v1/collections/style_editorial_rules/count # Expected: 0 (empty, ready)"
+  - "python migration/test_collection_performance.py # Expected: P95 < 100ms"
+
+test_requirements:
+  unit_tests:
+    - test_collection_creation()
+    - test_index_optimization()
+    - test_schema_validation()
+  performance_tests:
+    - test_query_performance_under_load()
+    - test_concurrent_access()
+    - "Collection query time <100ms P95"
+```
+
+##### Task 1.3.1D: Migration Execution & Verification (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Execute bulk import and verify migration success"
+dependencies: ["Task 1.3.1A", "Task 1.3.1B", "Task 1.3.1C"]
+deliverable: "180+ rules successfully migrated with verification report"
+
+acceptance_criteria:
+  - All 180+ rules successfully imported to ChromaDB
+  - Zero import errors or data corruption
+  - All rules queryable via Editorial Service
+  - Migration rollback plan tested and ready
+
+validation_commands:
+  - "curl http://localhost:8040/cache/stats | jq '.total_rules' # Expected: >= 180"
+  - "curl http://localhost:8040/cache/dump | jq '[.[] | select(.chromadb_metadata == null)] | length' # Expected: 0"
+  - "python migration/verify_migration.py --full-check # Expected: 100% success"
+
+test_requirements:
+  unit_tests:
+    - test_batch_import_success()
+    - test_rule_queryability()
+    - test_migration_rollback()
+  integration_tests:
+    - test_editorial_service_can_query_rules()
+    - test_full_validation_workflow_with_new_rules()
+  validation_tests:
+    - "curl http://localhost:8040/cache/stats | jq '.total_rules' >= 180"
+    - "All rules accessible via Editorial Service API"
 ```
 
 **Migration Script Example:**
@@ -544,9 +649,20 @@ if __name__ == "__main__":
     print(f"🎉 Total rules migrated: {len(total_rules)}")
 ```
 
-##### Task 1.3.2: AI Writing Flow Rules (2 days) ⏱️ 16h
-##### Task 1.3.3: Publisher Platform Rules (2 days) ⏱️ 16h
-##### Task 1.3.4: Rule Transformation (2 days) ⏱️ 16h
+##### Task 1.3.2A: AI Writing Flow Rule Discovery (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.2B: AI Writing Flow Rule Validation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**  
+##### Task 1.3.2C: AI Writing Flow Rule Migration (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.2D: AI Writing Flow Migration Verification (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+
+##### Task 1.3.3A: Publisher Platform Rule Discovery (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.3B: Publisher Platform Rule Validation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.3C: Publisher Platform Rule Migration (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**  
+##### Task 1.3.3D: Publisher Platform Migration Verification (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+
+##### Task 1.3.4A: Rule Transformation Schema Design (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.4B: Rule Transformation Implementation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.4C: Rule Transformation Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.4D: Rule Transformation Optimization (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
 ##### Task 1.3.5: Batch ChromaDB Import (1 day) ⏱️ 8h
 ##### Task 1.3.6: Migration Verification (1.5 days) ⏱️ 12h
 
@@ -711,7 +827,7 @@ class ChromaDBCache:
         }
 ```
 
-#### **WEEK 5: CrewAI Orchestrator Service** 🆕 **CRITICAL ADDITION**
+#### **WEEK 6: CrewAI Orchestrator Service** 🆕 **CRITICAL ADDITION**
 
 ##### Task 1.5.1: FastAPI CrewAI Service Foundation (1 day) ⏱️ 8h
 ```yaml
@@ -1349,7 +1465,10 @@ class EditorialServiceClient:
         return response.json()
 ```
 
-##### Task 2.1.2: Selective Validation Integration (2 days) ⏱️ 16h
+##### Task 2.1.2A: Editorial Service HTTP Client (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.1.2B: Selective Validation Logic (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.1.2C: Checkpoint Integration (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.1.2D: Integration Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
 Replace hardcoded styleguide_loader.py with API calls:
 
 ```python
@@ -1442,61 +1561,203 @@ class CheckpointValidator:
 #### **WEEK 6: Kolegium Integration & CrewAI Migration**
 
 ##### Task 2.2.1: Kolegium Editorial Service Client (1 day) ⏱️ 8h
-##### Task 2.2.2: Comprehensive Validation Integration (2 days) ⏱️ 16h
-##### Task 2.2.3: Multi-Agent Workflow API Integration (2 days) ⏱️ 16h
+##### Task 2.2.2A: Comprehensive Validation Client (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.2.2B: Multi-Rule Processing Logic (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**  
+##### Task 2.2.2C: Kolegium Integration (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.2.2D: Comprehensive Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
 
-##### Task 2.6: CrewAI Crew Migration from Hardcoded Rules (10 days) ⏱️ 80h
-**Migrate all CrewAI crews from hardcoded rules to ChromaDB**
+##### Task 2.2.3A: Multi-Agent API Design (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.2.3B: Agent Coordination Logic (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.2.3C: Workflow State Management (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**  
+##### Task 2.2.3D: Multi-Agent Integration Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
 
-```python
-# Migration targets:
-CREWAI_MIGRATION_TARGETS = {
-    "style_crew": {
-        "path": "/kolegium/ai_writing_flow/src/ai_writing_flow/crews/style_crew.py",
-        "hardcoded_items": [
-            "self.forbidden_phrases (30+ items)",
-            "self.required_elements dict",
-            "self.style_patterns regex"
-        ],
-        "replacement": "ChromaDB via Editorial Service HTTP"
-    },
-    "research_crew": {
-        "path": "/kolegium/ai_writing_flow/src/ai_writing_flow/crews/research_crew.py",
-        "migration": "Add Topic Database integration"
-    },
-    "writer_crew": {
-        "path": "/kolegium/ai_writing_flow/src/ai_writing_flow/crews/writer_crew.py",
-        "migration": "Replace style validation with Editorial Service"
-    }
-}
+##### Task 2.6A: Style Crew Migration (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+```yaml
+objective: "Migrate style_crew from hardcoded rules to Editorial Service HTTP calls"
+source_file: "/kolegium/ai_writing_flow/src/ai_writing_flow/crews/style_crew.py"
+deliverable: "Style crew using only Editorial Service validation"
 
-# Validation after migration
-assert grep_hardcoded_rules("kolegium/") == 0
+hardcoded_items_to_replace:
+  - "self.forbidden_phrases (30+ items)"  
+  - "self.required_elements dict"
+  - "self.style_patterns regex"
+
+acceptance_criteria:
+  - Zero hardcoded rules in style_crew.py
+  - All validation calls go to Editorial Service (port 8040)
+  - Comprehensive validation mode used for style validation
+  - Circuit breaker implemented for Editorial Service failures
+
+validation_commands:
+  - "grep -r 'forbidden_phrases\\|required_elements\\|style_patterns' /kolegium/ai_writing_flow/src/ai_writing_flow/crews/style_crew.py | wc -l # Expected: 0"
+  - "grep -r 'http://localhost:8040' /kolegium/ai_writing_flow/src/ai_writing_flow/crews/style_crew.py | wc -l # Expected: >0"
 ```
 
-##### Task 2.7: Linear Flow Implementation (5 days) ⏱️ 40h
-**Replace @router/@listen patterns with Process.sequential**
+##### Task 2.6B: Research Crew Topic Integration (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+```yaml
+objective: "Integrate research_crew with Topic Manager for dynamic topic discovery"
+source_file: "/kolegium/ai_writing_flow/src/ai_writing_flow/crews/research_crew.py"
+deliverable: "Research crew with Topic Manager integration"
 
-```python
-# Before: Problematic router pattern
-@router
-def route_to_style(content):
-    return style_flow.execute(content)  # Infinite loop risk
+integration_requirements:
+  - HTTP client for Topic Manager (port 8041)
+  - Topic suggestion API integration
+  - Topic relevance scoring
+  - Auto-scraping trigger capability
 
-# After: Linear sequential flow
-crew = Crew(
-    agents=[research_agent, writer_agent, style_agent, quality_agent],
-    tasks=[research_task, writing_task, style_task, quality_task],
-    process=Process.sequential,  # Linear execution
-    verbose=True
-)
+validation_commands:
+  - "curl -X POST http://localhost:8041/topics/research-trigger -d '{\"agent\":\"research\"}'"
+  - "grep -r 'localhost:8041' /kolegium/ai_writing_flow/src/ai_writing_flow/crews/research_crew.py | wc -l # Expected: >0"
+```
+
+##### Task 2.6C: Writer Crew Editorial Integration (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+```yaml
+objective: "Replace writer_crew hardcoded validation with Editorial Service"
+source_file: "/kolegium/ai_writing_flow/src/ai_writing_flow/crews/writer_crew.py" 
+deliverable: "Writer crew using Editorial Service selective validation"
+
+validation_mode: "selective" # 3-4 rules for human-assisted workflow
+endpoint_integration: "http://localhost:8040/validate/selective"
+
+validation_commands:
+  - "grep -r 'validate/selective' /kolegium/ai_writing_flow/src/ai_writing_flow/crews/writer_crew.py | wc -l # Expected: >0"
+  - "curl -X POST http://localhost:8040/validate/selective -d '{\"content\":\"test\",\"agent\":\"writer\"}'"
+```
+
+##### Task 2.6D: Audience Crew Platform Optimization (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+```yaml
+objective: "Implement audience_crew with platform-specific optimization"
+source_file: "/kolegium/ai_writing_flow/src/ai_writing_flow/crews/audience_crew.py"
+deliverable: "Audience crew with platform-aware content optimization"
+
+platform_optimization:
+  - LinkedIn professional tone rules
+  - Twitter character limit optimization  
+  - Newsletter engagement patterns
+  - Platform-specific validation modes
+
+validation_commands:
+  - "curl -X POST http://localhost:8040/validate/comprehensive -d '{\"content\":\"test\",\"platform\":\"linkedin\",\"agent\":\"audience\"}'"
+```
+
+##### Task 2.6E: Quality Crew Final Validation (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+```yaml
+objective: "Implement quality_crew as final validation step"
+source_file: "/kolegium/ai_writing_flow/src/ai_writing_flow/crews/quality_crew.py"
+deliverable: "Quality crew with comprehensive final validation"
+
+validation_approach: "comprehensive" # 8-12 rules for final quality check
+final_validation_rules:
+  - Grammar and style consistency
+  - Platform compliance verification
+  - Brand voice alignment  
+  - Content completeness check
+
+validation_commands:
+  - "curl -X POST http://localhost:8040/validate/comprehensive -d '{\"content\":\"test\",\"agent\":\"quality\"}'"
+```
+
+##### Task 2.7A: Router Pattern Elimination (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+```yaml
+objective: "Eliminate all @router/@listen patterns from codebase"
+scope: "All CrewAI crew files and coordination logic"
+deliverable: "Zero @router/@listen patterns in entire codebase"
+
+patterns_to_eliminate:
+  - "@router decorators"
+  - "@listen event handlers" 
+  - "Dynamic routing logic"
+  - "Event-driven crew coordination"
+
+acceptance_criteria:
+  - grep -r '@router\\|@listen' returns 0 results
+  - All crew coordination uses Process.sequential
+  - No infinite loop risks identified
+  - Linear execution flow documented
+
+validation_commands:
+  - "grep -r '@router\\|@listen' kolegium/ crewai-orchestrator/ | wc -l # Expected: 0"
+  - "python scripts/verify_linear_flow.py --check-patterns # Expected: PASS"
+```
+
+##### Task 2.7B: Sequential Process Implementation (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+```yaml
+objective: "Implement Process.sequential for all crew coordination"
+deliverable: "All crews use sequential execution pattern"
+
+implementation_pattern:
+  ```python
+  # Standard sequential flow implementation
+  crew = Crew(
+      agents=[research_agent, audience_agent, writer_agent, style_agent, quality_agent],
+      tasks=[research_task, audience_task, writing_task, style_task, quality_task],
+      process=Process.sequential,  # Guaranteed linear execution
+      verbose=True,
+      memory=True
+  )
+  ```
+
+validation_commands:
+  - "grep -r 'Process.sequential' kolegium/ | wc -l # Expected: >5"
+  - "python scripts/test_crew_execution_order.py # Expected: SEQUENTIAL"
+```
+
+##### Task 2.7C: Crew State Management (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+```yaml
+objective: "Implement proper state management between sequential agents"
+deliverable: "State persistence and recovery for crew executions"
+
+state_management_features:
+  - Agent execution state tracking
+  - Intermediate result persistence  
+  - Failure recovery and resume capability
+  - Execution metrics and logging
+
+validation_commands:
+  - "curl http://localhost:8042/flows/status/{flow_id} # Expected: detailed state"
+  - "python scripts/test_state_persistence.py # Expected: PASS"
+```
+
+##### Task 2.7D: Crew Performance Optimization (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+```yaml
+objective: "Optimize sequential crew execution performance"  
+deliverable: "Optimized crews meeting performance targets"
+
+optimization_targets:
+  - Total crew execution <30 seconds
+  - Individual agent response <5 seconds
+  - Memory usage <512MB per crew
+  - Concurrent crew support (5+ crews)
+
+validation_commands:
+  - "python scripts/benchmark_crew_performance.py # Expected: <30s total"
+  - "curl http://localhost:8042/monitoring/performance # Expected: targets met"
+```
+
+##### Task 2.7E: Integration Testing & Validation (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+```yaml
+objective: "Comprehensive testing of linear flow implementation"
+deliverable: "Full test coverage of sequential crew execution"
+
+testing_scope:
+  - End-to-end crew workflow testing
+  - Error handling and recovery testing
+  - Performance regression testing
+  - Integration with Editorial Service testing
+
+validation_commands:
+  - "python scripts/test_complete_crew_workflow.py # Expected: 100% pass"
+  - "pytest tests/integration/crew/ -v # Expected: all green"
 ```
 ##### Task 2.2.4: Style Crew Replacement (1 day) ⏱️ 8h
 ##### Task 2.2.5: End-to-End Kolegium Testing (1 day) ⏱️ 8h
 
 #### **WEEK 7-8: Topic Manager Implementation**
 
-##### Task 2.3.1: Topic Manager Service Foundation (2 days) ⏱️ 16h
+##### Task 2.3.1A: Topic Manager FastAPI Foundation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.3.1B: Topic Database Schema Design (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.3.1C: Topic CRUD Operations (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.3.1D: Topic Manager Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
 ```python
 # topic-manager/src/main.py
 from fastapi import FastAPI
@@ -1541,7 +1802,10 @@ async def trigger_auto_scraping():
 
 ##### Task 2.3.2: Manual Topic Addition API (1 day) ⏱️ 8h
 ##### Task 2.3.3: Topic Suggestion Generation with AI (2 days) ⏱️ 16h
-##### Task 2.3.4: Platform Assignment Algorithm (2 days) ⏱️ 16h
+##### Task 2.3.4A: Platform Matching Logic (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.3.4B: Content-Platform Optimization (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.3.4C: Assignment Algorithm Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.3.4D: Algorithm Performance Optimization (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
 ##### Task 2.3.5: Topic Database Integration Testing (1.5 days) ⏱️ 12h
 
 #### **WEEK 9: Auto-Scraping Integration**
@@ -1583,7 +1847,10 @@ class HackerNewsTopicScraper(TopicScraper):
 
 #### **WEEK 10: Hardcoded Rules Elimination**
 
-##### Task 2.5.1: Remove All Hardcoded Arrays (2 days) ⏱️ 16h
+##### Task 2.5.1A: Hardcoded Rule Detection (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.5.1B: Automated Rule Removal (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.5.1C: Code Refactoring & Cleanup (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.5.1D: Zero Hardcoded Rules Verification (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
 ```bash
 # Elimination Script
 #!/bin/bash
@@ -1762,8 +2029,15 @@ async def generate_platform_content(topic: Dict, platform: str, config: Platform
     }
 ```
 
-##### Task 3.1.2: Multi-Platform Content Generation (2 days) ⏱️ 16h
-##### Task 3.1.3: Scheduling Agent Integration (2 days) ⏱️ 16h
+##### Task 3.1.2A: Platform-Specific Content Adapters (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 3.1.2B: Content Variation Generation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 3.1.2C: Multi-Platform Validation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 3.1.2D: Content Generation Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+
+##### Task 3.1.3A: Scheduling Logic Foundation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 3.1.3B: Optimal Time Slot Algorithm (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 3.1.3C: Platform Schedule Coordination (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 3.1.3D: Scheduling Integration Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
 ##### Task 3.1.4: Platform Adapter Coordination (1 day) ⏱️ 8h
 ##### Task 3.1.5: Publication Status Tracking (1 day) ⏱️ 8h
 
@@ -1864,7 +2138,10 @@ async def get_user_insights(user_id: str):
 
 #### **WEEK 13: Integration Testing & Documentation**
 
-##### Task 3.4.1: End-to-End User Workflow Testing (2 days) ⏱️ 16h
+##### Task 3.4.1A: User Workflow Test Design (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 3.4.1B: Complete Journey Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 3.4.1C: Edge Case & Error Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 3.4.1D: Performance & Load Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
 ```python
 # tests/e2e/test_complete_workflow.py
 import pytest
