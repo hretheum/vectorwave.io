@@ -14,7 +14,8 @@
   - **AI Writing Flow** (Human-assisted): Selective validation (krytyczne reguły w checkpoints)
 - **Wykorzystanie**: Istniejący ChromaDB + flexible validation modes
 - **Zachowanie**: Linear Flow pattern (nie CrewAI Flows)
-- **Eliminacja**: Wszystkich hardcoded rules
+- **Eliminacja**: Wszystkich hardcoded rules INCLUDING cache fallbacks i mock data
+- **Gwarancja**: Cache i mocks populated WYŁĄCZNIE z ChromaDB responses
 - **Rozszerzenie**: Content planning + publication type guidance + dual workflow optimization
 
 ## 🚀 PLAN W 6 BLOKACH (11.5h total, 14 zadań atomowych)
@@ -59,11 +60,14 @@
 
 ## 📊 METRYKI SUKCESU
 - **355+ rules** loaded w ChromaDB (280 style/editorial + 75 platform)
-- **0 hardcoded rules** pozostały w kodzie  
+- **0 hardcoded rules** pozostały w kodzie, cache, mocks, lub fallbacks
+- **100% ChromaDB sourcing** dla cache i mock data z metadata verification
 - **Dual Validation**: AI Writing Flow (3-4 queries) vs Kolegium (8-12 queries)
 - **<200ms** per query (optimized for dual access patterns)
 - **Same input → different validation depth** (workflow-dependent)
 - **2 collections** operational w ChromaDB (consolidated architecture)
+- **Cache transparency**: All cached rules traceable do ChromaDB origin
+- **Graceful degradation**: 503 Service Unavailable gdy brak ChromaDB-sourced cache
 
 ## 🎯 KOŃCOWY STAN
 - **Shared Editorial Service** w kontenerze na port 8040
@@ -75,6 +79,8 @@
 - **Circuit Breaker**: fallback dla high availability
 - **Repository Pattern**: clean separation of concerns
 - **Zero dependency** na hardcoded data w obu workflows
+- **Zero hardcoded fallbacks** w cache, mocks, lub emergency responses
+- **ChromaDB-sourced cache** z explicit origin metadata dla każdej rule
 
 ---
 
@@ -117,15 +123,18 @@
 **Walidacja ChromaDB**: Service connects i serves dual workflows
 
 #### **Zadanie 1.2**: Circuit Breaker Implementation ⏱️ 60min
-**Cel**: Resilience pattern dla high availability
-**Deliverable**: Circuit breaker z fallback cache
-**Metryka sukcesu**: Service remains functional during ChromaDB outages
+**Cel**: Resilience pattern dla high availability z ChromaDB-only cache
+**Deliverable**: Circuit breaker z fallback cache popolowany WYŁĄCZNIE z ChromaDB
+**Metryka sukcesu**: Service remains functional during ChromaDB outages using ONLY previously cached ChromaDB rules
 **Test**: 
+- System startup: ChromaDB populations cache from 355+ rules
 - `docker stop chromadb-container` 
-- `curl http://localhost:8040/validate/comprehensive` returns 200 (cached)
+- `curl http://localhost:8040/validate/comprehensive` returns 200 (from ChromaDB-populated cache)
+- Assert: Cache contains ONLY previously fetched ChromaDB rules
+- Assert: `grep -r "hardcoded|fallback_rules" cache/` returns empty
 - `docker start chromadb-container`
 - Verify service recovers within 30s
-**Walidacja**: Graceful degradation w obu workflow types
+**Walidacja**: Zero hardcoded fallbacks, cache sourced exclusively from ChromaDB
 
 #### **Zadanie 1.3**: Validation Mode API ⏱️ 45min
 **Cel**: REST API z dual workflow support
@@ -191,24 +200,35 @@
 ### **BLOK 3: Shared ChromaDB Collections**
 
 #### **Zadanie 3.1**: Repository Pattern Implementation ⏱️ 45min
-**Cel**: Clean data access layer dla dual workflows
+**Cel**: Clean data access layer dla dual workflows z ChromaDB-sourced mocks
 **Deliverable**: 
 - IRuleRepository interface
 - ChromaDBRuleRepository implementation
 - ValidationStrategy abstractions
-**Metryka sukcesu**: Clean separation between business logic i data access
-**Test**: Repository pattern allows easy testing z mock implementations
-**Walidacja**: Strategy pattern enables workflow-specific validation
+- **KRYTYCZNE**: Mock implementations using ONLY ChromaDB rule subsets
+**Metryka sukcesu**: Clean separation between business logic i data access, zero hardcoded mocks
+**Test**: 
+- Repository pattern allows testing with ChromaDB-sourced mocks
+- Mock data MUST be subset of actual ChromaDB collections
+- Assert: `grep -r "hardcoded|test_rules" mocks/` returns empty
+- Assert: All mock rules have ChromaDB collection origin metadata
+**Walidacja**: Strategy pattern enables workflow-specific validation, mocks reflect real ChromaDB data
 
-#### **Zadanie 3.2**: Query Optimization ⏱️ 45min
-**Cel**: Performance optimization dla dual access patterns
+#### **Zadanie 3.2**: Query Optimization z ChromaDB-Only Cache ⏱️ 45min
+**Cel**: Performance optimization dla dual access patterns z explicit cache strategy
 **Deliverable**: 
 - Indexed embeddings dla fast retrieval
 - Query batching dla multi-rule validation
-- Caching layer dla frequently accessed rules
-**Metryka sukcesu**: <200ms per query, regardless of workflow
-**Test**: Performance benchmarks meet targets for both workflows
-**Walidacja**: Same performance regardless of validation mode
+- **KRYTYCZNE**: Caching layer populated EXCLUSIVELY from ChromaDB responses
+- Cache warmup strategy using real ChromaDB rules
+- Zero hardcoded cache seeds
+**Metryka sukcesu**: <200ms per query, cache populated only from ChromaDB
+**Test**: 
+- Performance benchmarks meet targets for both workflows
+- Assert: Cache initialization queries ChromaDB for seed data
+- Assert: `grep -r "cache_seed|default_rules" cache/` returns empty
+- Assert: All cached rules have ChromaDB query timestamps
+**Walidacja**: Same performance regardless of validation mode, cache transparency
 
 ### **BLOK 4: Workflow-Specific Features**
 
@@ -239,21 +259,25 @@
 **Test**: Kolegium validates all aspects: style, structure, platform, audience
 **Walidacja**: Comprehensive validation catches all potential issues
 
-#### **Zadanie 4.3**: Error Handling & Fallbacks ⏱️ 45min
-**Cel**: Resilience patterns dla production readiness
+#### **Zadanie 4.3**: Error Handling & ChromaDB-Only Fallbacks ⏱️ 45min
+**Cel**: Resilience patterns dla production readiness z ChromaDB-sourced fallbacks
 **Deliverable**: 
 - Circuit breaker implementation
-- Cached rule fallbacks
-- Graceful degradation strategies
-**Metryka sukcesu**: Service remains functional przy ChromaDB issues
+- **KRYTYCZNE**: Cached rule fallbacks sourced EXCLUSIVELY from ChromaDB
+- Graceful degradation strategies without hardcoded rules
+- Cache invalidation strategy ensuring freshness
+**Metryka sukcesu**: Service remains functional przy ChromaDB issues using ONLY ChromaDB-sourced cache
 **Test**: 
+- System warmup: Cache populated from ChromaDB (355+ rules)
 - `docker stop chromadb-container`
-- `curl http://localhost:8040/validate/selective` returns 200 (from cache)
-- `curl http://localhost:8040/validate/comprehensive` returns 200 (from cache)
+- `curl http://localhost:8040/validate/selective` returns 200 (from ChromaDB-sourced cache)
+- `curl http://localhost:8040/validate/comprehensive` returns 200 (from ChromaDB-sourced cache)
+- Assert: `grep -r "emergency_rules|hardcoded" fallback/` returns empty
+- Assert: All cache entries have ChromaDB origin metadata
 - Verify: Response times <500ms with cached fallback
 - `docker start chromadb-container`
 - Verify: Service switches back to ChromaDB within 60s
-**Walidacja**: Both workflows maintain functionality during outages
+**Walidacja**: Both workflows maintain functionality during outages using ONLY ChromaDB-derived data
 
 ### **BLOK 5: Testing & Security**
 
@@ -310,10 +334,12 @@
 
 ### **Success Metrics Summary**:
 - **Rules Migration**: 355+ rules in ChromaDB w 2 consolidated collections (0 hardcoded)
+- **Zero Hardcoded Fallbacks**: Cache, mocks, emergency responses sourced exclusively from ChromaDB
+- **Cache Transparency**: All cached rules have ChromaDB origin metadata i timestamps
 - **Dual Workflows**: AI Writing Flow (selective) + Kolegium (comprehensive) supported
 - **Performance**: <200ms per query dla both validation modes
 - **Validation Depth**: 3-4 rules (selective) vs 8-12 rules (comprehensive)
-- **Circuit Breaker**: High availability z graceful fallback
+- **Circuit Breaker**: High availability z ChromaDB-sourced fallback
 - **Repository Pattern**: Clean separation między workflows
 - **Security**: JWT authentication + rate limiting
 - **Container-First**: Shared service architecture
@@ -327,3 +353,24 @@
 - **Kolegium (Comprehensive)**: Full pipeline x 8-12 rules = 40-60 total queries
 - **Same ChromaDB collections**, different access patterns
 - **Repository pattern** enables clean separation of validation logic
+
+### **🚫 ZERO HARDCODED RULES GUARANTEE**:
+
+#### **Cache Strategy - ChromaDB-Only**:
+- **Warmup**: Cache populated during startup z ChromaDB queries
+- **Source**: ALL cached rules MUST have ChromaDB origin metadata
+- **Fallback**: Circuit breaker uses ONLY previously cached ChromaDB responses
+- **Verification**: `grep -r "hardcoded|emergency_rules|fallback_data" cache/` MUST return empty
+- **Timestamps**: Every cache entry includes ChromaDB query timestamp
+
+#### **Mock Data Strategy - ChromaDB Subset**:
+- **Source**: Test mocks use subset of actual ChromaDB collections
+- **Generation**: Mocks generated from real ChromaDB queries
+- **Verification**: `grep -r "test_rules|hardcoded" mocks/` MUST return empty
+- **Metadata**: All mock rules include original ChromaDB collection reference
+
+#### **Emergency Procedures - No Hardcoded Fallbacks**:
+- **Outage**: Service fails gracefully when cache empty AND ChromaDB down
+- **No Emergency Rules**: Zero hardcoded "emergency rule sets"
+- **Degradation**: Service returns 503 Service Unavailable rather than fallback to hardcoded
+- **Recovery**: Automatic ChromaDB reconnection repopulates cache from source
