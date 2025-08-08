@@ -48,6 +48,9 @@
 #### ✅ CONTAINER-FIRST ARCHITECTURE
 - **Zero Local Building**: Everything runs in containers
 - **Docker Compose**: Full development environment
+- **Port Management**: Coordinated port allocation across all services
+
+🚢 **Port Registry**: All Vector Wave services follow coordinated port allocation documented in [PORT_ALLOCATION.md](./PORT_ALLOCATION.md). New services must check for port conflicts before deployment.
 - **Health Monitoring**: Multi-component system status
 - **Auto-scaling**: Resource-aware configuration
 - **One-Command Setup**: `make dev-setup` for new developers

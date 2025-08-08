@@ -18,7 +18,7 @@
 - **Gwarancja**: Cache i mocks populated WYŁĄCZNIE z ChromaDB responses
 - **Rozszerzenie**: Content planning + publication type guidance + dual workflow optimization
 
-## 🚀 PLAN W 6 BLOKACH (11.5h total, 14 zadań atomowych)
+## 🚀 PLAN W 6 BLOKACH (11.5h total, 16 zadań atomowych)
 
 ### **BLOK 0**: Architecture Foundation - Dual Workflow (1.5h)
 - **NOWY BLOK**: Editorial Service z dual workflow support
@@ -58,16 +58,28 @@
 - Executable tests z concrete verification steps
 - Zero tolerance dla hardcoded rules
 
-## 📊 METRYKI SUKCESU
-- **355+ rules** loaded w ChromaDB (280 style/editorial + 75 platform)
-- **0 hardcoded rules** pozostały w kodzie, cache, mocks, lub fallbacks
-- **100% ChromaDB sourcing** dla cache i mock data z metadata verification
-- **Dual Validation**: AI Writing Flow (3-4 queries) vs Kolegium (8-12 queries)
-- **<200ms** per query (optimized for dual access patterns)
-- **Same input → different validation depth** (workflow-dependent)
-- **2 collections** operational w ChromaDB (consolidated architecture)
-- **Cache transparency**: All cached rules traceable do ChromaDB origin
-- **Graceful degradation**: 503 Service Unavailable gdy brak ChromaDB-sourced cache
+## 📊 METRYKI SUKCESU - ULTRA-PRECYZYJNE
+
+### **Data Integrity Metrics**
+- **355+ rules** loaded: `curl http://localhost:8040/cache/stats | jq '.total_rules' >= 355`
+- **0 hardcoded rules**: `grep -r "hardcoded|fallback_rules|default_rules" src/ cache/ mocks/ | wc -l == 0`
+- **100% ChromaDB sourcing**: `curl http://localhost:8040/cache/dump | jq '[.[] | select(.chromadb_metadata == null)] | length' == 0`
+
+### **Performance Metrics**
+- **P95 <200ms**: Verified by 10,000 query benchmark showing P95 latency
+- **P99 <500ms**: Verified by 10,000 query benchmark showing P99 latency
+- **Auth overhead <50ms**: `(time_with_auth - time_without_auth) < 50ms`
+- **Cache warmup <10s**: Service ready with 355+ rules within 10s of startup
+
+### **Validation Depth Metrics**
+- **Selective**: `curl .../validate/selective | jq '.rules | length' ∈ [3,4]`
+- **Comprehensive**: `curl .../validate/comprehensive | jq '.rules | length' ∈ [8,12]`
+- **Same input test**: Both modes process identical content differently
+
+### **Resilience Metrics**
+- **Circuit breaker**: Service returns 200 (not 503) during ChromaDB outage
+- **Recovery time <30s**: Auto-reconnects when ChromaDB available
+- **Fallback performance <500ms**: Cached responses maintain sub-500ms latency
 
 ## 🎯 KOŃCOWY STAN
 - **Shared Editorial Service** w kontenerze na port 8040
@@ -91,36 +103,169 @@
 #### **Zadanie 0.1**: Dual Workflow Architecture Design ⏱️ 45min
 **Cel**: Repository pattern z Strategy dla validation modes
 **Deliverable**: Abstract interfaces dla ValidationStrategy (comprehensive vs selective)
-**Metryka sukcesu**: Clean separation między workflow types
-**Test**: 
-- `ValidationStrategyFactory.create('comprehensive')` returns ComprehensiveStrategy
-- `ValidationStrategyFactory.create('selective')` returns SelectiveStrategy  
-- Both strategies implement same IValidationStrategy interface
-**Walidacja**: 
-- ComprehensiveStrategy.validate() returns 8-12 rules
-- SelectiveStrategy.validate() returns 3-4 rules
-- Same input content processed by both strategies
+
+**Konkretne kryteria sukcesu**:
+✅ **Clean separation** = Each strategy in separate file, zero cross-dependencies
+✅ **Interface compliance** = All 3 methods implemented: validate(), supports_request(), get_expected_rule_count_range()
+✅ **Factory pattern** = Factory method returns correct strategy type in <10ms
+
+**Executable testy**:
+```bash
+# Test 1: Factory returns correct strategy types
+python -c "from validation import ValidationStrategyFactory as F; assert type(F.create('comprehensive')).__name__ == 'ComprehensiveStrategy'"
+python -c "from validation import ValidationStrategyFactory as F; assert type(F.create('selective')).__name__ == 'SelectiveStrategy'"
+
+# Test 2: Interface implementation verification
+python -c "from validation import IValidationStrategy; assert hasattr(IValidationStrategy, 'validate')"
+python -c "from validation import IValidationStrategy; assert hasattr(IValidationStrategy, 'supports_request')"
+python -c "from validation import IValidationStrategy; assert hasattr(IValidationStrategy, 'get_expected_rule_count_range')"
+
+# Test 3: Rule count verification
+python -c "
+from validation import ValidationStrategyFactory
+strategy = ValidationStrategyFactory.create('comprehensive')
+rules = strategy.validate({'content': 'test article'})
+assert 8 <= len(rules) <= 12, f'Expected 8-12 rules, got {len(rules)}'
+"
+
+# Test 4: Performance verification
+time python -c "from validation import ValidationStrategyFactory; [ValidationStrategyFactory.create('selective') for _ in range(1000)]"
+# Expected: real time <0.010s (10ms for 1000 creations = <10μs per creation)
+```
+
+**Walidacja ChromaDB origin**:
+```bash
+# Verify no hardcoded rules in strategies
+grep -r "forbidden_phrases\|leveraging\|paradigm" validation/ | wc -l
+# Expected output: 0
+```
 
 #### **Zadanie 0.2**: Consolidated ChromaDB Collections ⏱️ 45min
 **Cel**: Migracja z 8 collections do 2 consolidated
 **Deliverable**: 
 - style_editorial_rules (280+ rules)
 - publication_platform_rules (75+ rules)
-**Metryka sukcesu**: 355+ rules w 2 collections
-**Test**: Query performance <200ms per collection
-**Walidacja**: Both workflows can access same data with different patterns
+
+**Konkretne kryteria sukcesu**:
+✅ **280+ rules** in style_editorial_rules collection (count verified)
+✅ **75+ rules** in publication_platform_rules collection (count verified)
+✅ **Query performance** = P95 latency <200ms across 1000 queries
+✅ **Zero data loss** = All 355 rules migrated successfully
+
+**Executable testy**:
+```bash
+# Test 1: Verify collection sizes
+curl -X GET http://localhost:8000/collections/style_editorial_rules/count | jq '.count'
+# Expected output: >=280
+
+curl -X GET http://localhost:8000/collections/publication_platform_rules/count | jq '.count'
+# Expected output: >=75
+
+# Test 2: Query performance benchmark
+python -c "
+import time, requests, statistics
+times = []
+for _ in range(1000):
+    start = time.perf_counter()
+    requests.post('http://localhost:8000/query', json={'collection': 'style_editorial_rules', 'text': 'test'})
+    times.append((time.perf_counter() - start) * 1000)
+p95 = statistics.quantiles(times, n=20)[18]  # 95th percentile
+assert p95 < 200, f'P95 latency {p95:.1f}ms exceeds 200ms limit'
+print(f'✅ P95 latency: {p95:.1f}ms')
+"
+
+# Test 3: Verify both workflows can access
+curl -X POST http://localhost:8040/validate/selective -d '{"content":"test"}' | jq '.rules | length'
+# Expected: 3-4
+
+curl -X POST http://localhost:8040/validate/comprehensive -d '{"content":"test"}' | jq '.rules | length'  
+# Expected: 8-12
+
+# Test 4: Data integrity check
+python -c "
+import chromadb
+client = chromadb.HttpClient(host='localhost', port=8000)
+style_rules = client.get_collection('style_editorial_rules')
+platform_rules = client.get_collection('publication_platform_rules')
+total = style_rules.count() + platform_rules.count()
+assert total >= 355, f'Expected 355+ rules, found {total}'
+print(f'✅ Total rules: {total}')
+"
+```
 
 ### **BLOK 1: Editorial Service Implementation**
 
-#### **Zadanie 1.1**: Editorial Service z Dual Support ⏱️ 75min
-**Cel**: Shared service z dual workflow support
-**Deliverable**: editorial-service/ z validation mode endpoints
-**Metryka sukcesu**: 
-- `curl http://localhost:8040/health` returns 200
-- `curl http://localhost:8040/validate/comprehensive` works
-- `curl http://localhost:8040/validate/selective` works
-**Test**: Service supports both validation modes
-**Walidacja ChromaDB**: Service connects i serves dual workflows
+#### **Zadanie 1.1a**: Editorial Service Foundation ⏱️ 45min
+**Cel**: Docker service foundation z FastAPI basic setup
+**Deliverable**: editorial-service/ z health endpoint i ChromaDB client
+
+**Konkretne kryteria sukcesu**:
+✅ **Container starts** = docker-compose up completes in <30s
+✅ **Health endpoint** = Returns 200 OK with service metadata
+✅ **ChromaDB connection** = Successfully connects to ChromaDB at startup
+✅ **Startup time** = Service ready in <5s after container start
+
+**Executable testy**:
+```bash
+# Test 1: Container startup
+time docker-compose up -d editorial-service
+# Expected: Completes in <30s
+
+# Test 2: Health endpoint
+curl -w "\n%{http_code} %{time_total}s\n" http://localhost:8040/health
+# Expected output:
+# {"status":"healthy","service":"editorial-service","version":"1.0.0","chromadb":"connected"}
+# 200 0.050s
+
+# Test 3: ChromaDB connection verification
+docker logs editorial-service 2>&1 | grep "ChromaDB connected"
+# Expected: "ChromaDB connected to localhost:8000"
+
+# Test 4: Service readiness probe
+for i in {1..10}; do curl -s http://localhost:8040/health > /dev/null && echo "Ready in ${i}s" && break || sleep 1; done
+# Expected: "Ready in 1s" or max "Ready in 5s"
+```
+
+#### **Zadanie 1.1b**: Validation Mode Endpoints ⏱️ 30min
+**Cel**: Implementation of dual validation mode endpoints
+**Deliverable**: POST endpoints for comprehensive and selective validation
+
+**Konkretne kryteria sukcesu**:
+✅ **Comprehensive endpoint** = Returns 8-12 rules for test content
+✅ **Selective endpoint** = Returns 3-4 rules for same test content
+✅ **Response time** = Both endpoints respond in <200ms
+✅ **Error handling** = Returns 400 for invalid JSON, 422 for missing fields
+
+**Executable testy**:
+```bash
+# Test 1: Comprehensive validation
+curl -X POST http://localhost:8040/validate/comprehensive \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Test article about AI technology"}' \
+  -w "\nRules: %{size_download} bytes in %{time_total}s\n" | jq '.rules | length'
+# Expected: 8-12 (rule count), time <0.200s
+
+# Test 2: Selective validation  
+curl -X POST http://localhost:8040/validate/selective \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Test article about AI technology"}' \
+  -w "\nRules: %{size_download} bytes in %{time_total}s\n" | jq '.rules | length'
+# Expected: 3-4 (rule count), time <0.200s
+
+# Test 3: Error handling - Invalid JSON
+curl -X POST http://localhost:8040/validate/comprehensive \
+  -H "Content-Type: application/json" \
+  -d 'invalid json' \
+  -w "\nHTTP Status: %{http_code}\n"
+# Expected: HTTP Status: 400
+
+# Test 4: Error handling - Missing field
+curl -X POST http://localhost:8040/validate/selective \
+  -H "Content-Type: application/json" \
+  -d '{}' \
+  -w "\nHTTP Status: %{http_code}\n"
+# Expected: HTTP Status: 422
+```
 
 #### **Zadanie 1.2**: Circuit Breaker Implementation ⏱️ 60min
 **Cel**: Resilience pattern dla high availability z ChromaDB-only cache
@@ -222,13 +367,70 @@
 - **KRYTYCZNE**: Caching layer populated EXCLUSIVELY from ChromaDB responses
 - Cache warmup strategy using real ChromaDB rules
 - Zero hardcoded cache seeds
-**Metryka sukcesu**: <200ms per query, cache populated only from ChromaDB
-**Test**: 
-- Performance benchmarks meet targets for both workflows
-- Assert: Cache initialization queries ChromaDB for seed data
-- Assert: `grep -r "cache_seed|default_rules" cache/` returns empty
-- Assert: All cached rules have ChromaDB query timestamps
-**Walidacja**: Same performance regardless of validation mode, cache transparency
+
+**Konkretne kryteria sukcesu**:
+✅ **Query performance** = P95 <200ms, P99 <500ms across 10,000 queries
+✅ **Cache source verification** = 100% rules have ChromaDB origin metadata
+✅ **Cache warmup** = Populates 355+ rules from ChromaDB in <10s at startup
+✅ **Zero hardcoded seeds** = grep returns 0 matches for hardcoded patterns
+
+**Executable testy**:
+```bash
+# Test 1: Cache warmup from ChromaDB
+docker-compose restart editorial-service
+sleep 10
+curl http://localhost:8040/cache/stats | jq '.'
+# Expected output:
+# {
+#   "total_rules": 355,
+#   "source": "chromadb",
+#   "warmup_time_ms": 8500,
+#   "all_have_origin": true
+# }
+
+# Test 2: Verify ChromaDB origin metadata
+curl http://localhost:8040/cache/dump | jq '.[0]'
+# Expected output (example):
+# {
+#   "rule_id": "style_001",
+#   "content": "Avoid jargon...",
+#   "chromadb_metadata": {
+#     "collection": "style_editorial_rules",
+#     "query_timestamp": "2024-01-15T10:30:00Z",
+#     "similarity_score": 0.95,
+#     "embedding_id": "emb_abc123"
+#   }
+# }
+
+# Test 3: Zero hardcoded cache seeds
+docker exec editorial-service sh -c "grep -r 'cache_seed\|default_rules\|fallback_rules\|hardcoded' /app/cache/" | wc -l
+# Expected output: 0
+
+# Test 4: Performance benchmark with cache
+python -c "
+import time, requests, statistics
+# Warmup cache
+for _ in range(100):
+    requests.post('http://localhost:8040/validate/comprehensive', json={'content': 'test'})
+
+# Measure performance
+times = []
+for _ in range(10000):
+    start = time.perf_counter()
+    requests.post('http://localhost:8040/validate/selective', json={'content': 'test article'})
+    times.append((time.perf_counter() - start) * 1000)
+
+p95 = statistics.quantiles(times, n=100)[94]
+p99 = statistics.quantiles(times, n=100)[98]
+assert p95 < 200, f'P95 {p95:.1f}ms exceeds 200ms'
+assert p99 < 500, f'P99 {p99:.1f}ms exceeds 500ms'
+print(f'✅ P95: {p95:.1f}ms, P99: {p99:.1f}ms')
+"
+
+# Test 5: Verify cache entries have timestamps
+curl http://localhost:8040/cache/dump | jq '[.[] | select(.chromadb_metadata.query_timestamp == null)] | length'
+# Expected output: 0
+```
 
 ### **BLOK 4: Workflow-Specific Features**
 
@@ -266,18 +468,66 @@
 - **KRYTYCZNE**: Cached rule fallbacks sourced EXCLUSIVELY from ChromaDB
 - Graceful degradation strategies without hardcoded rules
 - Cache invalidation strategy ensuring freshness
-**Metryka sukcesu**: Service remains functional przy ChromaDB issues using ONLY ChromaDB-sourced cache
-**Test**: 
-- System warmup: Cache populated from ChromaDB (355+ rules)
-- `docker stop chromadb-container`
-- `curl http://localhost:8040/validate/selective` returns 200 (from ChromaDB-sourced cache)
-- `curl http://localhost:8040/validate/comprehensive` returns 200 (from ChromaDB-sourced cache)
-- Assert: `grep -r "emergency_rules|hardcoded" fallback/` returns empty
-- Assert: All cache entries have ChromaDB origin metadata
-- Verify: Response times <500ms with cached fallback
-- `docker start chromadb-container`
-- Verify: Service switches back to ChromaDB within 60s
-**Walidacja**: Both workflows maintain functionality during outages using ONLY ChromaDB-derived data
+
+**Konkretne kryteria sukcesu**:
+✅ **Service availability** = Returns 200 (not 503) during ChromaDB outage
+✅ **Fallback response time** = <500ms when using cached data
+✅ **Recovery time** = Reconnects to ChromaDB within 30s of availability
+✅ **Cache purity** = 0 hardcoded rules in fallback responses
+
+**Executable testy**:
+```bash
+# Test 1: Populate cache from ChromaDB
+docker-compose restart editorial-service
+sleep 10
+curl http://localhost:8040/cache/stats | jq '.total_rules'
+# Expected output: 355 (or more)
+
+# Test 2: Simulate ChromaDB outage
+docker stop chromadb-container
+
+# Test 3: Service remains available with cache
+response=$(curl -s -w "\n%{http_code}" http://localhost:8040/validate/selective -d '{"content":"test"}')
+echo "$response" | tail -1
+# Expected output: 200 (not 503)
+
+# Test 4: Verify cached response metadata
+curl -s http://localhost:8040/validate/comprehensive -d '{"content":"test"}' | jq '.cache_metadata'
+# Expected output:
+# {
+#   "source": "cache",
+#   "cached_at": "2024-01-15T10:30:00Z",
+#   "chromadb_origin": "style_editorial_rules",
+#   "fallback_mode": true
+# }
+
+# Test 5: Response time during outage
+time curl -s http://localhost:8040/validate/selective -d '{"content":"test"}' > /dev/null
+# Expected: real time <0.500s
+
+# Test 6: Verify no hardcoded rules in response
+curl -s http://localhost:8040/validate/comprehensive -d '{"content":"test"}' | \
+  jq '.rules[] | select(.chromadb_metadata == null)' | wc -l
+# Expected output: 0
+
+# Test 7: Restart ChromaDB
+docker start chromadb-container
+
+# Test 8: Verify automatic recovery
+for i in {1..30}; do
+  status=$(curl -s http://localhost:8040/health | jq -r '.chromadb_status')
+  if [ "$status" = "connected" ]; then
+    echo "✅ Recovered in ${i}s"
+    break
+  fi
+  sleep 1
+done
+# Expected: "✅ Recovered in X" where X <= 30
+
+# Test 9: Verify back to live ChromaDB queries
+curl -s http://localhost:8040/validate/selective -d '{"content":"test"}' | jq '.cache_metadata.source'
+# Expected output: "chromadb" (not "cache")
+```
 
 ### **BLOK 5: Testing & Security**
 
@@ -311,14 +561,79 @@
 - API authentication (JWT tokens)
 - Rate limiting dla endpoints
 - Input validation i sanitization
-**Metryka sukcesu**: Security measures protect both workflows
-**Test**: 
-- `curl http://localhost:8040/validate/comprehensive` returns 401 Unauthorized
-- `curl -H "Authorization: Bearer invalid_token" http://localhost:8040/validate/comprehensive` returns 401
-- `curl -H "Authorization: Bearer $(generate_test_jwt)" http://localhost:8040/validate/comprehensive` returns 200
-- Rate limit test: 100 requests in 1min, assert 429 after limit
-- Input validation: malformed JSON returns 400 with sanitized error
-**Walidacja**: Security measures don't impact performance (<200ms)
+
+**Konkretne kryteria sukcesu**:
+✅ **JWT authentication** = Valid token required for all validation endpoints
+✅ **Rate limiting** = 100 req/min per IP, returns 429 when exceeded
+✅ **Performance overhead** = Authentication adds <50ms to response time
+✅ **Input sanitization** = Prevents XSS/SQL injection attempts
+
+**Executable testy**:
+```bash
+# Test 1: No auth returns 401
+curl -s -w "\nHTTP Status: %{http_code}\n" http://localhost:8040/validate/comprehensive \
+  -d '{"content":"test"}'
+# Expected output: HTTP Status: 401
+
+# Test 2: Invalid token returns 401
+curl -s -w "\nHTTP Status: %{http_code}\n" \
+  -H "Authorization: Bearer invalid_token_12345" \
+  http://localhost:8040/validate/comprehensive \
+  -d '{"content":"test"}'
+# Expected output: HTTP Status: 401
+
+# Test 3: Valid token returns 200
+export JWT=$(python -c "
+import jwt, datetime
+secret = 'test_secret_key'
+payload = {'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1), 'sub': 'test_user'}
+token = jwt.encode(payload, secret, algorithm='HS256')
+print(token)
+")
+curl -s -w "\nHTTP Status: %{http_code}\n" \
+  -H "Authorization: Bearer $JWT" \
+  http://localhost:8040/validate/selective \
+  -d '{"content":"test"}'
+# Expected output: HTTP Status: 200
+
+# Test 4: Rate limiting enforcement
+for i in {1..105}; do
+  curl -s -H "Authorization: Bearer $JWT" \
+    http://localhost:8040/validate/selective \
+    -d '{"content":"test"}' \
+    -w "%{http_code}\n" -o /dev/null
+done | tail -5
+# Expected output (last 5 responses):
+# 200
+# 200
+# 429
+# 429
+# 429
+
+# Test 5: Performance overhead measurement
+# Without auth (baseline)
+time curl -s http://localhost:8040/health > /dev/null
+# Expected: real <0.050s
+
+# With auth
+time curl -s -H "Authorization: Bearer $JWT" \
+  http://localhost:8040/validate/selective \
+  -d '{"content":"test"}' > /dev/null
+# Expected: real <0.250s (baseline + <50ms overhead)
+
+# Test 6: Input sanitization - XSS attempt
+curl -s -H "Authorization: Bearer $JWT" \
+  http://localhost:8040/validate/selective \
+  -d '{"content":"<script>alert(\"XSS\")</script>"}' | jq '.content'
+# Expected output: "&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;" (escaped)
+
+# Test 7: Input validation - SQL injection attempt  
+curl -s -w "\nHTTP Status: %{http_code}\n" \
+  -H "Authorization: Bearer $JWT" \
+  http://localhost:8040/validate/selective \
+  -d '{"content":"test\" OR \"1\"=\"1"}' 
+# Expected: HTTP Status: 200 (handled safely, no SQL execution)
+```
 
 
 ## 🎯 DEPLOYMENT STRATEGY

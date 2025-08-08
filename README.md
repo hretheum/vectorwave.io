@@ -6,6 +6,8 @@ AI-powered content generation platform with comprehensive automated auditing
 
 Vector Wave is an advanced content generation platform that uses AI agents to automatically create, optimize, and publish content across multiple channels. The platform includes a comprehensive audit framework for continuous monitoring and quality assurance.
 
+🚢 **Port Management**: All services use coordinated port allocation. See [PORT_ALLOCATION.md](./PORT_ALLOCATION.md) for current port assignments and conflict resolution.
+
 ### 🏆 Production-Ready AI Kolegium System (2025-08-06)
 
 Vector Wave AI Kolegium has achieved **complete production readiness** with all phases implemented:
