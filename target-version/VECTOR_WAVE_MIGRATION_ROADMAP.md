@@ -77,7 +77,7 @@ assert (end-start) < 0.010, f'Too slow: {(end-start)*1000:.1f}ms > 10ms'
 ### Transformation Scope
 - **From**: 355+ hardcoded rules scattered across 25+ files
 - **To**: Unified ChromaDB vector database with 5 specialized collections
-- **Timeline**: 12 weeks (3 phases)
+- **Timeline**: 13 weeks (3 phases + CrewAI Orchestrator)
 - **Approach**: Incremental migration with zero downtime
 - **Risk Level**: Medium (comprehensive rollback strategies in place)
 
@@ -91,7 +91,7 @@ assert (end-start) < 0.010, f'Too slow: {(end-start)*1000:.1f}ms > 10ms'
 ---
 
 ## 🎯 Phase 1: ChromaDB Infrastructure & Editorial Service
-**Duration**: 4 weeks | **Objective**: Foundation layer with zero hardcoded rules
+**Duration**: 5 weeks | **Objective**: Foundation layer with zero hardcoded rules + CrewAI Orchestrator
 
 ### 📋 Phase 1 Task Breakdown
 
@@ -711,6 +711,536 @@ class ChromaDBCache:
         }
 ```
 
+#### **WEEK 5: CrewAI Orchestrator Service** 🆕 **CRITICAL ADDITION**
+
+##### Task 1.5.1: FastAPI CrewAI Service Foundation (1 day) ⏱️ 8h
+```yaml
+objective: "Create dedicated CrewAI Orchestrator Service foundation"
+deliverable: "Working FastAPI service on port 8042"
+acceptance_criteria:
+  - FastAPI service starts successfully on port 8042
+  - Health endpoint returns 200 OK with service metadata
+  - Docker containerization ready with health checks
+  - Basic agent registration system implemented
+
+validation_commands:
+  - "curl http://localhost:8042/health"
+  - "docker ps | grep crewai-orchestrator"
+  - "curl http://localhost:8042/agents/registered | jq '. | length'"
+
+test_requirements:
+  unit_tests:
+    - test_service_initialization()
+    - test_health_endpoint_response()
+    - test_port_8042_binding()
+    - test_agent_registration_endpoint()
+  integration_tests:
+    - test_service_docker_startup()
+    - test_health_dependencies()
+    - test_concurrent_agent_registration()
+```
+
+**Implementation Steps:**
+```bash
+# 1. Create service structure
+mkdir -p crewai-orchestrator/{src,tests,docker,config}
+
+# 2. Setup FastAPI foundation
+cat > crewai-orchestrator/src/main.py << 'EOF'
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import logging
+from typing import Dict, Any, List
+
+app = FastAPI(
+    title="CrewAI Orchestrator Service",
+    version="1.0.0",
+    description="Orchestrates CrewAI agents with ChromaDB validation"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Agent registry
+registered_agents = {}
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "service": "crewai-orchestrator", 
+        "version": "1.0.0",
+        "port": 8042,
+        "registered_agents": len(registered_agents)
+    }
+
+@app.get("/agents/registered")
+async def get_registered_agents():
+    return list(registered_agents.keys())
+
+@app.post("/agents/register")
+async def register_agent(agent_info: Dict[str, Any]):
+    agent_id = agent_info.get("agent_id")
+    registered_agents[agent_id] = agent_info
+    return {"status": "registered", "agent_id": agent_id}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8042)
+EOF
+
+# 3. Create requirements
+cat > crewai-orchestrator/requirements.txt << 'EOF'
+fastapi==0.104.1
+uvicorn==0.24.0
+pydantic==2.5.0
+httpx==0.25.2
+crewai==0.28.8
+python-multipart==0.0.6
+EOF
+
+# 4. Docker setup with health check
+cat > crewai-orchestrator/Dockerfile << 'EOF'
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src/ ./src/
+EXPOSE 8042
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:8042/health || exit 1
+
+CMD ["python", "src/main.py"]
+EOF
+```
+
+##### Task 1.5.2: Agent HTTP Clients Implementation (1 day) ⏱️ 8h
+```yaml
+objective: "Implement HTTP clients for 5 CrewAI agents with Editorial Service integration"
+deliverable: "HTTP clients with circuit breaker protection"
+acceptance_criteria:
+  - All 5 agents (Research, Audience, Writer, Style, Quality) have HTTP clients
+  - Circuit breaker prevents cascade failures to Editorial Service
+  - Agent responses include ChromaDB metadata verification
+  - Timeout and retry logic implemented
+
+validation_commands:
+  - "curl -X POST http://localhost:8042/agents/research/validate -d '{\"content\":\"test\"}'"
+  - "curl -X POST http://localhost:8042/agents/style/validate -d '{\"content\":\"test\"}'"
+  - "curl http://localhost:8042/circuit-breaker/status"
+
+test_requirements:
+  unit_tests:
+    - test_agent_http_client_creation()
+    - test_editorial_service_integration()
+    - test_circuit_breaker_behavior()
+    - test_timeout_handling()
+  integration_tests:
+    - test_agent_to_editorial_service_flow()
+    - test_circuit_breaker_recovery()
+    - test_concurrent_agent_requests()
+```
+
+**Implementation:**
+```python
+# crewai-orchestrator/src/agent_clients.py
+import httpx
+from typing import Dict, Any, Optional
+import asyncio
+from enum import Enum
+import time
+import logging
+
+class CircuitBreakerState(Enum):
+    CLOSED = "closed"
+    OPEN = "open" 
+    HALF_OPEN = "half_open"
+
+class CircuitBreaker:
+    def __init__(self, failure_threshold: int = 5, recovery_timeout: int = 60):
+        self.failure_threshold = failure_threshold
+        self.recovery_timeout = recovery_timeout
+        self.failure_count = 0
+        self.last_failure_time = None
+        self.state = CircuitBreakerState.CLOSED
+
+    async def call(self, func, *args, **kwargs):
+        if self.state == CircuitBreakerState.OPEN:
+            if self._should_attempt_reset():
+                self.state = CircuitBreakerState.HALF_OPEN
+            else:
+                raise Exception(f"Circuit breaker OPEN - Editorial Service unavailable")
+
+        try:
+            result = await func(*args, **kwargs)
+            self._on_success()
+            return result
+        except Exception as e:
+            self._on_failure()
+            raise e
+
+    def _should_attempt_reset(self) -> bool:
+        return (time.time() - self.last_failure_time) >= self.recovery_timeout
+
+    def _on_success(self):
+        self.failure_count = 0
+        self.state = CircuitBreakerState.CLOSED
+
+    def _on_failure(self):
+        self.failure_count += 1
+        self.last_failure_time = time.time()
+        if self.failure_count >= self.failure_threshold:
+            self.state = CircuitBreakerState.OPEN
+
+class AgentHTTPClient:
+    def __init__(self, agent_type: str, editorial_service_url: str = "http://localhost:8040"):
+        self.agent_type = agent_type
+        self.editorial_url = editorial_service_url
+        self.client = httpx.AsyncClient(timeout=30.0)
+        self.circuit_breaker = CircuitBreaker()
+
+    async def validate_content(self, content: str, platform: str, validation_mode: str = "comprehensive") -> Dict[str, Any]:
+        """Validate content via Editorial Service with circuit breaker protection"""
+        
+        payload = {
+            "content": content,
+            "platform": platform,
+            "agent_type": self.agent_type,
+            "validation_context": {
+                "agent": self.agent_type,
+                "timestamp": time.time()
+            }
+        }
+
+        async def _make_request():
+            endpoint = f"{self.editorial_url}/validate/{validation_mode}"
+            response = await self.client.post(endpoint, json=payload)
+            response.raise_for_status()
+            return response.json()
+
+        try:
+            result = await self.circuit_breaker.call(_make_request)
+            
+            # Verify ChromaDB metadata in response
+            if not self._verify_chromadb_sourcing(result):
+                raise ValueError(f"Editorial Service returned non-ChromaDB sourced rules for agent {self.agent_type}")
+            
+            return result
+            
+        except Exception as e:
+            logging.error(f"Agent {self.agent_type} validation failed: {e}")
+            raise
+
+    def _verify_chromadb_sourcing(self, validation_result: Dict[str, Any]) -> bool:
+        """Verify all rules in result are ChromaDB-sourced"""
+        rules_applied = validation_result.get("rules_applied", [])
+        for rule in rules_applied:
+            if not rule.get("chromadb_metadata"):
+                return False
+        return True
+
+class CrewAIAgentClients:
+    def __init__(self, editorial_service_url: str = "http://localhost:8040"):
+        self.agents = {
+            "research": AgentHTTPClient("research", editorial_service_url),
+            "audience": AgentHTTPClient("audience", editorial_service_url), 
+            "writer": AgentHTTPClient("writer", editorial_service_url),
+            "style": AgentHTTPClient("style", editorial_service_url),
+            "quality": AgentHTTPClient("quality", editorial_service_url)
+        }
+
+    async def get_agent_client(self, agent_type: str) -> AgentHTTPClient:
+        if agent_type not in self.agents:
+            raise ValueError(f"Unknown agent type: {agent_type}")
+        return self.agents[agent_type]
+
+    async def get_circuit_breaker_status(self) -> Dict[str, Any]:
+        """Get circuit breaker status for all agents"""
+        status = {}
+        for agent_type, client in self.agents.items():
+            status[agent_type] = {
+                "state": client.circuit_breaker.state.value,
+                "failure_count": client.circuit_breaker.failure_count,
+                "last_failure_time": client.circuit_breaker.last_failure_time
+            }
+        return status
+```
+
+##### Task 1.5.3: Linear Flow Execution Engine (1 day) ⏱️ 8h
+```yaml
+objective: "Implement Process.sequential execution with @router/@listen elimination"
+deliverable: "Linear flow execution engine with state tracking"
+acceptance_criteria:
+  - No @router/@listen patterns in codebase (zero infinite loop risk)
+  - Agents execute sequentially with proper state management
+  - Flow state tracking and recovery implemented
+  - Agent coordination logic with proper error handling
+
+validation_commands:
+  - "grep -r '@router\\|@listen' crewai-orchestrator/ | wc -l" # Expected: 0
+  - "curl -X POST http://localhost:8042/flows/execute -d '{\"content\":\"test\",\"platform\":\"linkedin\"}'"
+  - "curl http://localhost:8042/flows/status/{flow_id}"
+
+test_requirements:
+  unit_tests:
+    - test_sequential_execution_order()
+    - test_no_router_listen_patterns()
+    - test_flow_state_management()
+    - test_agent_coordination_logic()
+  integration_tests:
+    - test_complete_agent_chain_execution()
+    - test_flow_failure_recovery()
+    - test_state_persistence_between_agents()
+```
+
+**Implementation:**
+```python
+# crewai-orchestrator/src/linear_flow_engine.py
+import uuid
+import asyncio
+from typing import Dict, Any, List, Optional
+from enum import Enum
+from dataclasses import dataclass
+import time
+import logging
+from crewai import Crew, Process
+from .agent_clients import CrewAIAgentClients
+
+class FlowState(Enum):
+    PENDING = "pending"
+    RUNNING = "running" 
+    COMPLETED = "completed"
+    FAILED = "failed"
+    PAUSED = "paused"
+
+@dataclass
+class FlowExecution:
+    flow_id: str
+    content: str
+    platform: str
+    state: FlowState
+    current_agent: Optional[str]
+    agent_results: Dict[str, Any]
+    created_at: float
+    updated_at: float
+    error_message: Optional[str] = None
+
+class LinearFlowEngine:
+    def __init__(self, agent_clients: CrewAIAgentClients):
+        self.agent_clients = agent_clients
+        self.active_flows = {}
+        
+        # Define sequential agent execution order
+        self.agent_sequence = [
+            "research",
+            "audience", 
+            "writer",
+            "style",
+            "quality"
+        ]
+
+    async def execute_flow(self, content: str, platform: str, flow_options: Dict[str, Any] = None) -> str:
+        """Execute linear sequential flow (NO @router/@listen patterns)"""
+        
+        flow_id = f"flow_{uuid.uuid4().hex[:8]}"
+        flow_execution = FlowExecution(
+            flow_id=flow_id,
+            content=content,
+            platform=platform,
+            state=FlowState.RUNNING,
+            current_agent=None,
+            agent_results={},
+            created_at=time.time(),
+            updated_at=time.time()
+        )
+        
+        self.active_flows[flow_id] = flow_execution
+        
+        try:
+            # Execute agents in strict sequential order
+            current_content = content
+            
+            for agent_type in self.agent_sequence:
+                flow_execution.current_agent = agent_type
+                flow_execution.updated_at = time.time()
+                
+                logging.info(f"Flow {flow_id}: Executing agent {agent_type}")
+                
+                # Get agent client and validate content
+                agent_client = await self.agent_clients.get_agent_client(agent_type)
+                
+                # Each agent validates and potentially modifies content
+                validation_result = await agent_client.validate_content(
+                    current_content, 
+                    platform,
+                    validation_mode=self._get_validation_mode_for_agent(agent_type)
+                )
+                
+                # Store agent result
+                flow_execution.agent_results[agent_type] = validation_result
+                
+                # Update content based on agent suggestions (if any)
+                if validation_result.get("suggestions"):
+                    current_content = await self._apply_agent_suggestions(
+                        current_content, validation_result["suggestions"]
+                    )
+                
+                # Check if agent found critical issues
+                if validation_result.get("violations") and self._has_critical_violations(validation_result["violations"]):
+                    flow_execution.state = FlowState.FAILED
+                    flow_execution.error_message = f"Critical violations found by {agent_type}"
+                    return flow_id
+            
+            # All agents completed successfully
+            flow_execution.state = FlowState.COMPLETED
+            flow_execution.current_agent = None
+            flow_execution.updated_at = time.time()
+            
+            logging.info(f"Flow {flow_id}: Completed successfully")
+            return flow_id
+            
+        except Exception as e:
+            flow_execution.state = FlowState.FAILED
+            flow_execution.error_message = str(e)
+            flow_execution.updated_at = time.time()
+            logging.error(f"Flow {flow_id} failed: {e}")
+            return flow_id
+
+    def _get_validation_mode_for_agent(self, agent_type: str) -> str:
+        """Get appropriate validation mode for each agent type"""
+        agent_validation_modes = {
+            "research": "selective",
+            "audience": "selective", 
+            "writer": "selective",
+            "style": "comprehensive",
+            "quality": "comprehensive"
+        }
+        return agent_validation_modes.get(agent_type, "selective")
+
+    async def _apply_agent_suggestions(self, content: str, suggestions: List[Dict[str, Any]]) -> str:
+        """Apply agent suggestions to content"""
+        # Simple implementation - in practice this would be more sophisticated
+        modified_content = content
+        for suggestion in suggestions:
+            if suggestion.get("type") == "replacement" and suggestion.get("apply_automatically"):
+                old_text = suggestion.get("old_text", "")
+                new_text = suggestion.get("new_text", "")
+                if old_text in modified_content:
+                    modified_content = modified_content.replace(old_text, new_text)
+        
+        return modified_content
+
+    def _has_critical_violations(self, violations: List[Dict[str, Any]]) -> bool:
+        """Check if violations are critical enough to stop the flow"""
+        for violation in violations:
+            if violation.get("severity") == "critical":
+                return True
+        return False
+
+    async def get_flow_status(self, flow_id: str) -> Optional[Dict[str, Any]]:
+        """Get current status of a flow execution"""
+        if flow_id not in self.active_flows:
+            return None
+            
+        flow = self.active_flows[flow_id]
+        
+        return {
+            "flow_id": flow.flow_id,
+            "state": flow.state.value,
+            "current_agent": flow.current_agent,
+            "progress": len(flow.agent_results) / len(self.agent_sequence) * 100,
+            "agent_results": flow.agent_results,
+            "created_at": flow.created_at,
+            "updated_at": flow.updated_at,
+            "error_message": flow.error_message,
+            "sequential_execution": True,  # Guarantee: NO @router/@listen patterns
+            "chromadb_sourced": self._verify_all_chromadb_sourced(flow.agent_results)
+        }
+
+    def _verify_all_chromadb_sourced(self, agent_results: Dict[str, Any]) -> bool:
+        """Verify all agent results used ChromaDB-sourced rules only"""
+        for agent_type, result in agent_results.items():
+            rules_applied = result.get("rules_applied", [])
+            for rule in rules_applied:
+                if not rule.get("chromadb_metadata"):
+                    return False
+        return True
+
+    async def list_active_flows(self) -> List[Dict[str, Any]]:
+        """List all active flow executions"""
+        return [
+            {
+                "flow_id": flow.flow_id,
+                "state": flow.state.value,
+                "current_agent": flow.current_agent,
+                "created_at": flow.created_at
+            }
+            for flow in self.active_flows.values()
+        ]
+```
+
+##### Task 1.5.4: Checkpoint Management System (1 day) ⏱️ 8h
+```yaml
+objective: "Implement 3-checkpoint validation system with user intervention points"
+deliverable: "Checkpoint system with state persistence"
+acceptance_criteria:
+  - 3 checkpoints (pre-writing, mid-writing, post-writing) implemented
+  - Users can intervene at any checkpoint to modify content
+  - State persisted between checkpoints with recovery capability
+  - User feedback integration and checkpoint history tracking
+
+validation_commands:
+  - "curl -X POST http://localhost:8042/checkpoints/create -d '{\"content\":\"test\",\"checkpoint\":\"pre_writing\"}'"
+  - "curl http://localhost:8042/checkpoints/{checkpoint_id}/status"
+  - "curl -X POST http://localhost:8042/checkpoints/{checkpoint_id}/intervene -d '{\"user_input\":\"modification\"}'"
+
+test_requirements:
+  unit_tests:
+    - test_checkpoint_creation()
+    - test_checkpoint_state_persistence()
+    - test_user_intervention_handling()
+    - test_checkpoint_history_tracking()
+  integration_tests:
+    - test_full_checkpoint_workflow()
+    - test_checkpoint_failure_recovery()
+    - test_user_modification_integration()
+```
+
+##### Task 1.5.5: Agent Performance Monitoring (1 day) ⏱️ 8h
+```yaml
+objective: "Implement comprehensive agent performance monitoring"
+deliverable: "Performance monitoring with alerts and dashboards"
+acceptance_criteria:
+  - Individual agent execution metrics collected
+  - Prometheus metrics exposed for Grafana dashboards
+  - Alert system triggers on agent failures or performance degradation
+  - Historical performance data retention and analysis
+
+validation_commands:
+  - "curl http://localhost:8042/metrics" # Prometheus format
+  - "curl http://localhost:8042/monitoring/agents/performance"
+  - "curl http://localhost:8042/monitoring/alerts/active"
+
+test_requirements:
+  unit_tests:
+    - test_agent_performance_tracking()
+    - test_metrics_collection()
+    - test_alert_generation()
+    - test_performance_data_retention()
+  integration_tests:
+    - test_monitoring_dashboard_integration()
+    - test_alert_notification_flow()
+    - test_performance_analytics()
+```
+
 ### 🎯 Phase 1 Success Criteria
 
 ```yaml
@@ -748,6 +1278,22 @@ phase_1_completion_checklist:
     - name: "ChromaDB Query Time"  
       command: "time curl -s http://localhost:8000/api/v1/collections/style_editorial_rules/query -d '{\"query_texts\":[\"test\"]}'"
       expected: "< 0.100"
+      
+    - name: "CrewAI Orchestrator Health" 🆕
+      command: "curl http://localhost:8042/health"
+      expected: '{"status": "healthy", "service": "crewai-orchestrator"}'
+      
+    - name: "Agent Registration System" 🆕
+      command: "curl http://localhost:8042/agents/registered | jq '. | length'"
+      expected: ">= 5"
+      
+    - name: "Linear Flow Execution" 🆕
+      command: "curl -X POST http://localhost:8042/flows/execute -d '{\"content\":\"test\",\"platform\":\"linkedin\"}'"
+      expected: '{"flow_id": "flow_*", "state": "completed"}'
+      
+    - name: "Zero Router/Listen Patterns" 🆕
+      command: "grep -r '@router\\|@listen' crewai-orchestrator/ | wc -l"
+      expected: "0"
 ```
 
 ---
