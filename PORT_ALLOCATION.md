@@ -24,7 +24,8 @@
 - **8081**: Nginx Proxy (Publisher)
 - **8082**: Knowledge Base
 - **8083**: Twitter Adapter
-- **8084**: Beehiiv Adapter - **⚠️ KONFLIKT Z PLANEM EDITORIAL SERVICE**
+- **8040**: Editorial Service
+- **8084**: Beehiiv Adapter
 - **8085**: Publisher Orchestrator
 - **8086**: Ghost Adapter
 - **8088**: LinkedIn Adapter
@@ -38,13 +39,13 @@
 
 ---
 
-## ⚠️ PORT CONFLICTS DETECTED
+## ✅ PORT CONFLICTS RESOLVED
 
-### **Critical Conflict**:
-- **8084**: Currently used by **Beehiiv Adapter** (Publisher)
-- **8084**: Planned for **Editorial Service** (StyleGuide Migration Plan)
+### **Previously Resolved**:
+- **Editorial Service**: Moved from planned 8084 to **8040** ✅
+- **Beehiiv Adapter**: Remains on **8084** ✅
 
-**Resolution Required**: Editorial Service must use different port
+**Status**: All conflicts resolved through port reallocation
 
 ---
 
@@ -78,7 +79,7 @@
 - 8010-8019: Content APIs  
 - 8020-8029: Publishing APIs
 - 8030-8039: AI Services
-- 8040-8049: Editorial Services (**8084 CONFLICT**)
+- 8040-8049: Editorial Services (**8040 ALLOCATED**)
 - 8050-8059: Integration APIs
 - 8060-8069: Analytics APIs
 - 8070-8079: **AVAILABLE**

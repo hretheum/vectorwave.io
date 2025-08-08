@@ -57,7 +57,7 @@
 
 #### 7. Port conflicts across multiple files 🔄 UPDATE
 **Files affected**:
-- `/PORT_ALLOCATION.md` - update Editorial Service 8084 → 8040  
+- `/PORT_ALLOCATION.md` - update Editorial Service 8084 → 8040 (RESOLVED)  
 - `/publisher/README.md` - update port references
 - `/kolegium/PROJECT_CONTEXT.md` - align port allocation
 
@@ -148,7 +148,7 @@ rm quick-start.md
 # Then delete STYLEGUIDE_CHROMADB_MIGRATION_PLAN.md
 
 # 4. Fix port conflicts across all files
-# Update Editorial Service 8084 → 8040 in all references
+# Update Editorial Service 8084 → 8040 (RESOLVED) in all references
 ```
 
 ### **Phase 3: Historical Preservation** (2 hours)  

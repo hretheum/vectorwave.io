@@ -149,8 +149,8 @@ rm STYLEGUIDE_CHROMADB_MIGRATION_PLAN.md
 #### **B3: Fix Port Allocation Conflicts**  
 ```bash
 # Update Editorial Service port across all files
-find . -name "*.md" -not -path "./target-version/*" -exec sed -i '' 's/8084.*editorial/8040 editorial/g' {} \;
-find . -name "*.md" -not -path "./target-version/*" -exec sed -i '' 's/editorial.*8084/editorial 8040/g' {} \;
+find . -name "*.md" -not -path "./target-version/*" -exec sed -i '' 's/8040 editorial/8040 editorial/g' {} \;
+find . -name "*.md" -not -path "./target-version/*" -exec sed -i '' 's/editorial 8040/editorial 8040/g' {} \;
 
 # Update PORT_ALLOCATION.md with resolved conflicts
 sed -i '' 's/Status: CONFLICT/Status: RESOLVED/g' PORT_ALLOCATION.md
@@ -256,7 +256,7 @@ grep -r "target-version" . --exclude-dir=target-version | wc -l
 # Expected: >=8 (proper cross-references)
 
 # Test 3: Port conflicts resolved
-grep -r "8084.*editorial" . | wc -l
+grep -r "8040 editorial" . | wc -l
 # Expected: 0 (all should reference 8040)
 
 # Test 4: Developer guidance clarity
