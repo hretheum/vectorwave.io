@@ -25,6 +25,7 @@
 - **8082**: Knowledge Base
 - **8083**: Twitter Adapter
 - **8040**: Editorial Service
+- **8042**: CrewAI Orchestrator Service 🆕
 - **8084**: Beehiiv Adapter
 - **8085**: Publisher Orchestrator
 - **8086**: Ghost Adapter
@@ -195,15 +196,15 @@ nc -zv localhost [PORT_NUMBER]
 
 ## 📊 PORT UTILIZATION SUMMARY
 
-- **Total Ports Allocated**: 23 ports
+- **Total Ports Allocated**: 24 ports
 - **Port Range Usage**:
   - 3000-3999: 3 ports (7.5% utilized)
   - 5000-5999: 2 ports (2% utilized) 
   - 6000-6999: 3 ports (3% utilized)
-  - 8000-8099: 13 ports (13% utilized)
+  - 8000-8099: 14 ports (14% utilized)
   - 9000-9999: 2 ports (2% utilized)
 - **Available Ranges**: 4000-4999 (100% available), 7000-7999 (100% available)
-- **Critical Conflicts**: 1 (Editorial Service vs Beehiiv Adapter)
+- **Critical Conflicts**: 0 (All resolved ✅)
 
 ---
 
