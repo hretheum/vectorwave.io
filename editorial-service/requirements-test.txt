@@ -1,0 +1,11 @@
+# Test dependencies for Editorial Service
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0.0
+structlog>=23.1.0
+
+# Production dependencies for testing
+fastapi>=0.100.0
+pydantic>=2.0.0
+chromadb>=0.4.0
+uvicorn>=0.23.0

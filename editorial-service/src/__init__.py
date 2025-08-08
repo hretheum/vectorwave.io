@@ -1,0 +1,1 @@
+# Editorial Service - Clean Architecture Implementation
