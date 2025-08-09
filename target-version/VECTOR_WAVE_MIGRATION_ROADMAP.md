@@ -267,7 +267,7 @@ test_requirements:
 ```
 
 
-**Container-First Implementation Steps:**
+**Container-First Implementation Steps (Updated – centralized compose):**
 ```yaml
 # 1. Docker Compose Setup (Development Environment)
 editorial-service:
@@ -361,31 +361,26 @@ EXPOSE 8040
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8040", "--workers", "1"]
 ```
 
-**Development Workflow Commands:**
+**Development Workflow Commands (Updated – root compose):**
 ```bash
-# 1. Container-first development start
-docker-compose -f docker-compose.dev.yml up --build editorial-service
+# 1) Core stack (ChromaDB, Redis, Editorial Service, CrewAI Orchestrator)
+docker compose up --build -d
 
-# 2. Hot-reload development (volumes mounted)
-docker-compose -f docker-compose.dev.yml up --build -d
-docker-compose logs -f editorial-service
+# 2) Z profilami (opcjonalne usługi)
+docker compose --profile publishing up -d
+docker compose --profile analytics up -d
 
-# 3. Run tests in container
-docker-compose exec editorial-service python -m pytest tests/ -v --cov=src --cov-report=html
+# 3) Sprawdzenie zdrowia
+curl -s http://localhost:8000/api/v1/heartbeat
+curl -s http://localhost:8040/health
+curl -s http://localhost:8042/health
 
-# 4. Production-like testing
-docker-compose -f docker-compose.prod.yml up --build editorial-service
+# 4) Logi
+docker compose logs -f editorial-service
+docker compose logs -f crewai-orchestrator
 
-# 5. Health verification (container networking)
-docker-compose exec editorial-service curl http://editorial-service:8040/health
-docker-compose exec chromadb curl http://chromadb:8000/api/v1/heartbeat
-
-# 6. Container resource monitoring
-docker stats editorial-service chromadb
-
-# 7. Network inspection
-docker network ls
-docker network inspect vector-wave_vector-wave-dev
+# 5) Restart core po zmianach
+docker compose up -d --build editorial-service crewai-orchestrator
 ```
 
 **Production Configuration:**

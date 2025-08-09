@@ -1,0 +1,89 @@
+version: "3.9"
+
+name: vector-wave
+
+networks:
+  vector-wave:
+    driver: bridge
+
+volumes:
+  chroma_data:
+
+services:
+  chromadb:
+    image: chromadb/chroma:latest
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_HTTP_PORT=8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks: [vector-wave]
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks: [vector-wave]
+
+  editorial-service:
+    build: ./editorial-service
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=debug
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      - REDIS_URL=redis://redis:6379
+      - SERVICE_PORT=8040
+    depends_on:
+      chromadb:
+        condition: service_healthy
+    ports:
+      - "8040:8040"
+    networks: [vector-wave]
+
+  crewai-orchestrator:
+    build: ./crewai-orchestrator
+    environment:
+      - EDITORIAL_SERVICE_URL=http://editorial-service:8040
+    depends_on:
+      editorial-service:
+        condition: service_started
+    ports:
+      - "8042:8042"
+    networks: [vector-wave]
+
+  publishing-orchestrator:
+    profiles: ["publishing"]
+    build: ./kolegium/publishing-orchestrator
+    depends_on:
+      editorial-service:
+        condition: service_started
+    networks: [vector-wave]
+
+  linkedin-ppt:
+    profiles: ["publishing"]
+    build: ./kolegium/linkedin_ppt_generator
+    networks: [vector-wave]
+
+  analytics-service:
+    profiles: ["analytics"]
+    build: ./kolegium/analytics-service
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=debug
+      - CHROMADB_URL=http://chromadb:8000
+      - SERVICE_PORT=8081
+    depends_on:
+      chromadb:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    networks: [vector-wave]
