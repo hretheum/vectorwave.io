@@ -1,0 +1,14 @@
+# Analytics Blackbox Service
+# Task 3.3.1: Analytics API Placeholders
+
+services:
+  analytics-blackbox:
+    build: .
+    container_name: analytics-blackbox
+    ports:
+      - "8081:8081"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8081
+      - DEBUG=false
+    restart: unless-stopped
