@@ -1590,7 +1590,10 @@ test_requirements:
       - test_all_rule_types_transformable()
       - test_transformation_accuracy_validation()
 ```
-##### Task 1.3.4C: Rule Transformation Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.4C: Rule Transformation Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED** [DONE]
+Status: DONE
+- Commit-ID: 9647498
+- LLM-NOTE: Dodano testy transformacji: walidacja schematu, deduplikacja, klasyfikacja platform, metryki silnika. Plik: `editorial-service/tests/test_rule_transformation_pipeline.py`.
 ```yaml
 objective: "Comprehensive testing of rule transformation implementation"
 deliverable: "Validated transformation system with test coverage >95%"
@@ -1599,6 +1602,9 @@ acceptance_criteria:
   - Edge cases covered
   - Performance benchmarks met
   - Error scenarios validated
+
+validation_commands:
+  - "pytest editorial-service/tests/test_rule_transformation_pipeline.py -q"
 
 test_requirements:
   unit_tests:
