@@ -36,18 +36,18 @@ services:
     restart: unless-stopped
     
   chromadb:
-    image: chromadb/chroma:latest
+    image: chromadb/chroma:0.4.15
     environment:
       - CHROMA_SERVER_HOST=0.0.0.0
       - CHROMA_SERVER_HTTP_PORT=8000
     ports:
       - "8000:8000"
     volumes:
-      - chromadb_data:/data
+      - chromadb_data:/chroma/chroma
     networks:
       - vector-wave-dev
     healthcheck:
-      test: ["CMD", "bash", "-lc", "exec 3<>/dev/tcp/localhost/8000; printf 'GET /api/v2/heartbeat\r\n\r\n' >&3; timeout 2 cat <&3 | grep -q '200 OK'"]
+      test: ["CMD", "bash", "-lc", "exec 3<>/dev/tcp/localhost/8000; printf 'GET /api/v1/heartbeat\r\n\r\n' >&3; timeout 2 cat <&3 | grep -q '200 OK'"]
       interval: 30s
       timeout: 10s
       retries: 3
