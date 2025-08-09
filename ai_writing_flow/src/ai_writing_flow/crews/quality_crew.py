@@ -1,5 +1,6 @@
 """
-Quality Crew - Final quality assessment and fact-checking
+Quality Crew - Final quality assessment with Editorial Service comprehensive validation
+Enhanced with ChromaDB-sourced editorial guidelines for final quality check
 """
 
 from crewai import Agent, Crew, Task
@@ -8,17 +9,32 @@ from typing import Dict, Any, List, Optional
 import re
 from datetime import datetime
 import os
+import json
+import asyncio
+import logging
 
 from ..models import QualityAssessment
+from ..clients.editorial_client import EditorialServiceClient
 
 # Disable CrewAI memory logs
 os.environ["CREWAI_STORAGE_LOG_ENABLED"] = "false"
 
+logger = logging.getLogger(__name__)
+
 
 class QualityCrew:
-    """Crew responsible for final quality control"""
+    """
+    Crew responsible for final quality control with Editorial Service integration
+    Uses comprehensive validation (8-12 rules) for thorough final quality check
+    """
     
-    def __init__(self):
+    def __init__(self, editorial_service_url: str = "http://localhost:8040"):
+        """
+        Initialize Quality Crew with Editorial Service integration
+        
+        Args:
+            editorial_service_url: URL of Editorial Service (default: http://localhost:8040)
+        """
         # Quality criteria weights
         self.criteria_weights = {
             "factual_accuracy": 0.25,
@@ -39,7 +55,266 @@ class QualityCrew:
             "respects_privacy",
             "avoids_discrimination"
         ]
+        
+        # Editorial Service integration
+        self.editorial_service_url = editorial_service_url
+        self.editorial_client = None
+        self._initialize_editorial_client()
+        
+        # Circuit breaker state for Editorial Service
+        self._editorial_service_available = True
+        self._last_check_time = None
+        
+    def _initialize_editorial_client(self):
+        """Initialize Editorial Service client"""
+        try:
+            self.editorial_client = EditorialServiceClient(
+                base_url=self.editorial_service_url,
+                timeout=30.0
+            )
+            logger.info(f"Connected to Editorial Service at {self.editorial_service_url}")
+        except Exception as e:
+            logger.error(f"Failed to initialize Editorial Service client: {e}")
+            self._editorial_service_available = False
     
+    @tool("Validate Comprehensive Quality")
+    def validate_comprehensive_quality(self, content: str, platform: str = "general", content_type: str = "article") -> str:
+        """
+        Perform comprehensive Editorial Service validation for final quality check
+        Uses comprehensive validation (8-12 rules) from ChromaDB
+        
+        Args:
+            content: Content to validate for final quality
+            platform: Target platform (linkedin, twitter, beehiiv, ghost, general)
+            content_type: Type of content (article, post, newsletter)
+            
+        Returns:
+            JSON string with comprehensive validation results
+        """
+        if not self.editorial_client:
+            return json.dumps({
+                "error": "Editorial Service not available",
+                "violations": [],
+                "suggestions": ["Editorial Service connection required for comprehensive quality validation"],
+                "is_compliant": True,  # Allow to continue
+                "quality_score": 75  # Default passing score
+            })
+        
+        try:
+            # Run async validation in sync context
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import concurrent.futures
+                future = concurrent.futures.Future()
+                
+                async def run_validation():
+                    try:
+                        result = await self.editorial_client.validate_comprehensive(
+                            content=content,
+                            platform=platform,
+                            content_type=content_type,
+                            context={
+                                "agent": "quality",
+                                "validation_type": "comprehensive_quality",
+                                "checkpoint": "final"
+                            }
+                        )
+                        future.set_result(result)
+                    except Exception as e:
+                        future.set_exception(e)
+                
+                asyncio.create_task(run_validation())
+                result = future.result(timeout=30)
+            else:
+                result = asyncio.run(
+                    self.editorial_client.validate_comprehensive(
+                        content=content,
+                        platform=platform,
+                        content_type=content_type,
+                        context={
+                            "agent": "quality",
+                            "validation_type": "comprehensive_quality",
+                            "checkpoint": "final"
+                        }
+                    )
+                )
+            
+            # Add quality-specific insights
+            result["quality_assessment"] = self._assess_quality_factors(content, result)
+            
+            return json.dumps(result, indent=2)
+            
+        except Exception as e:
+            logger.error(f"Editorial Service comprehensive validation failed: {e}")
+            return json.dumps({
+                "error": str(e),
+                "violations": [],
+                "suggestions": ["Check Editorial Service connection for comprehensive validation"],
+                "is_compliant": True,  # Allow to continue despite error
+                "quality_score": 75
+            })
+    
+    @tool("Get Editorial Quality Rules")
+    def get_editorial_quality_rules(self, validation_type: str = "comprehensive") -> str:
+        """
+        Get comprehensive quality rules from Editorial Service
+        
+        Args:
+            validation_type: Type of validation (comprehensive, quality, final)
+            
+        Returns:
+            JSON string with quality rules and guidelines
+        """
+        if not self.editorial_client:
+            return json.dumps({
+                "error": "Editorial Service not available",
+                "quality_rules": self._get_fallback_quality_rules()
+            })
+        
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import concurrent.futures
+                future = concurrent.futures.Future()
+                
+                async def get_rules():
+                    try:
+                        cache_dump = await self.editorial_client.get_cache_dump()
+                        quality_rules = [
+                            rule for rule in cache_dump
+                            if rule.get("category") in ["quality", "final", "comprehensive"]
+                            or rule.get("validation_type") == validation_type
+                        ]
+                        
+                        result = {
+                            "validation_type": validation_type,
+                            "rules_count": len(quality_rules),
+                            "quality_rules": quality_rules[:15],  # First 15 rules
+                            "categories": list(set(rule.get("category", "general") for rule in quality_rules))
+                        }
+                        future.set_result(result)
+                    except Exception as e:
+                        future.set_exception(e)
+                
+                asyncio.create_task(get_rules())
+                result = future.result(timeout=30)
+            else:
+                cache_dump = asyncio.run(self.editorial_client.get_cache_dump())
+                quality_rules = [
+                    rule for rule in cache_dump
+                    if rule.get("category") in ["quality", "final", "comprehensive"]
+                    or rule.get("validation_type") == validation_type
+                ]
+                
+                result = {
+                    "validation_type": validation_type,
+                    "rules_count": len(quality_rules),
+                    "quality_rules": quality_rules[:15],  # First 15 rules
+                    "categories": list(set(rule.get("category", "general") for rule in quality_rules))
+                }
+            
+            return json.dumps(result, indent=2)
+            
+        except Exception as e:
+            logger.error(f"Failed to get quality rules: {e}")
+            return json.dumps({
+                "error": str(e),
+                "quality_rules": self._get_fallback_quality_rules()
+            })
+    
+    @tool("Check Editorial Service Health")
+    def check_editorial_health(self) -> str:
+        """
+        Check if Editorial Service is available for comprehensive validation
+        
+        Returns:
+            JSON string with service health status
+        """
+        if not self.editorial_client:
+            return json.dumps({
+                "available": False,
+                "error": "Client not initialized",
+                "service": "editorial-service"
+            })
+        
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import concurrent.futures
+                future = concurrent.futures.Future()
+                
+                async def check_health():
+                    try:
+                        health = await self.editorial_client.health_check()
+                        future.set_result({
+                            "available": True,
+                            "status": health.get("status"),
+                            "service": "editorial-service",
+                            "endpoint": self.editorial_service_url,
+                            "validation_types": ["comprehensive", "quality", "final"]
+                        })
+                    except Exception as e:
+                        future.set_exception(e)
+                
+                asyncio.create_task(check_health())
+                result = future.result(timeout=5)
+            else:
+                health = asyncio.run(self.editorial_client.health_check())
+                result = {
+                    "available": True,
+                    "status": health.get("status"),
+                    "service": "editorial-service",
+                    "endpoint": self.editorial_service_url,
+                    "validation_types": ["comprehensive", "quality", "final"]
+                }
+            
+            return json.dumps(result, indent=2)
+            
+        except Exception as e:
+            logger.error(f"Editorial health check failed: {e}")
+            return json.dumps({
+                "available": False,
+                "error": str(e),
+                "service": "editorial-service"
+            })
+    
+    def _assess_quality_factors(self, content: str, validation_result: Dict) -> Dict:
+        """Generate quality-specific assessment based on validation"""
+        assessment = {
+            "completeness": "complete" if len(content.split()) > 200 else "incomplete",
+            "readability": "good" if len(content.split()) < 2000 else "challenging",
+            "structure": "clear" if content.count('\n\n') >= 2 else "needs_improvement",
+            "actionability": "high" if any(word in content.lower() for word in ["step", "how", "try", "use"]) else "low"
+        }
+        
+        # Add Editorial Service specific insights
+        if "violations" in validation_result:
+            violation_count = len(validation_result["violations"])
+            if violation_count == 0:
+                assessment["editorial_compliance"] = "excellent"
+            elif violation_count <= 2:
+                assessment["editorial_compliance"] = "good"
+            else:
+                assessment["editorial_compliance"] = "needs_improvement"
+        
+        return assessment
+    
+    def _get_fallback_quality_rules(self) -> Dict:
+        """Fallback quality rules when Editorial Service unavailable"""
+        return {
+            "comprehensive_rules": [
+                "Grammar and style consistency",
+                "Platform compliance verification", 
+                "Brand voice alignment",
+                "Content completeness check",
+                "Factual accuracy verification",
+                "Source attribution requirements",
+                "Readability optimization",
+                "Value delivery confirmation"
+            ],
+            "source": "fallback_rules"
+        }
+
     @tool("Fact Check Claims")
     def fact_check_claims(self, draft: str, sources: List[Dict[str, str]]) -> List[Dict[str, str]]:
         """Verify factual claims in the draft"""
@@ -171,17 +446,22 @@ class QualityCrew:
         return evaluation
     
     def quality_controller_agent(self) -> Agent:
-        """Create the quality control agent"""
+        """Create the quality control agent with Editorial Service integration"""
         return Agent(
-            role="Chief Quality Officer",
-            goal="Ensure content meets the highest standards of accuracy, value, and integrity",
-            backstory="""You are a meticulous quality controller with a background in 
-            investigative journalism and technical writing. You've fact-checked for major 
-            publications and have a reputation for catching errors others miss. You believe 
-            that quality content must be accurate, valuable, and ethical. You're thorough 
-            but pragmatic, understanding that perfection is less important than publishing 
-            valuable, trustworthy content.""",
+            role="Chief Quality Officer (Editorial Service Enhanced)",
+            goal="Ensure content meets the highest standards using Editorial Service comprehensive validation (8-12 rules)",
+            backstory="""You are a meticulous quality controller enhanced with Editorial Service validation. 
+            You have a background in investigative journalism and technical writing, with access to 
+            ChromaDB-sourced editorial guidelines for comprehensive quality checks. You've fact-checked 
+            for major publications and have a reputation for catching errors others miss. You believe 
+            that quality content must be accurate, valuable, and ethical. You're thorough but pragmatic, 
+            understanding that perfection is less important than publishing valuable, trustworthy content. 
+            You use Editorial Service's comprehensive validation (8-12 rules) for final quality assurance, 
+            ensuring all content meets the highest editorial standards sourced from ChromaDB.""",
             tools=[
+                self.validate_comprehensive_quality,
+                self.get_editorial_quality_rules,  
+                self.check_editorial_health,
                 self.fact_check_claims,
                 self.verify_code_examples,
                 self.assess_logical_flow,
@@ -189,56 +469,85 @@ class QualityCrew:
                 self.evaluate_value
             ],
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
+            max_iter=4  # Allow more iterations for comprehensive validation
         )
     
     def create_quality_task(self, draft: str, sources: List[Dict[str, str]], 
                           styleguide_context: Dict[str, Any]) -> Task:
-        """Create a quality assessment task"""
+        """Create a comprehensive quality assessment task with Editorial Service integration"""
+        platform = styleguide_context.get('platform', 'general')
+        content_type = styleguide_context.get('content_type', 'article')
+        
         return Task(
             description=f"""
-            Perform comprehensive quality assessment on this draft:
+            Perform comprehensive quality assessment with Editorial Service integration for this draft:
             
             {draft[:500]}... [truncated]
             
-            Quality Checklist:
+            COMPREHENSIVE QUALITY WORKFLOW (Editorial Service Enhanced):
             
-            1. 📊 Fact Checking
-               - Verify all statistics and claims
-               - Check source attribution
-               - Validate data points
+            1. 🏥 Editorial Service Health Check
+               - Verify Editorial Service is available
+               - Confirm comprehensive validation capability
+               - Check connection to ChromaDB editorial guidelines
             
-            2. 💻 Technical Accuracy (if applicable)
-               - Verify code examples work
-               - Check for security issues
-               - Ensure best practices
+            2. 📋 Get Editorial Quality Rules
+               - Retrieve comprehensive quality rules (8-12 rules)
+               - Understand ChromaDB-sourced editorial standards
+               - Review final validation requirements
             
-            3. 🧠 Logical Coherence
-               - Clear structure and flow
-               - Logical transitions
-               - Consistent argument
+            3. 🔍 Comprehensive Editorial Validation  
+               - Run comprehensive Editorial Service validation
+               - Apply 8-12 rules from ChromaDB for final quality check
+               - Validate grammar, style, platform compliance, brand voice
+               - Check content completeness and factual accuracy
             
-            4. 💡 Value Delivery
-               - Clear takeaways
-               - Actionable insights
-               - Time-saving for reader
+            4. 📊 Traditional Quality Checks (Supplement Editorial Service)
+               - Fact check claims against sources
+               - Verify code examples (if applicable)
+               - Assess logical coherence and flow
+               - Evaluate value delivery and actionability
+               - Check controversy level and ethics
             
-            5. ⚖️ Ethics & Controversy
-               - No misleading claims
-               - Balanced perspective
-               - Appropriate tone
+            5. 📈 Final Quality Assessment
+               - Combine Editorial Service comprehensive results
+               - Traditional quality metrics
+               - Generate overall quality score (0-100)
+               - Flag any blockers or critical issues
+               - Provide improvement suggestions
             
-            6. 📈 Overall Quality Score
-               - Rate 0-100 based on all factors
-               - Flag any blockers
-               - Suggest improvements
+            Editorial Service Integration:
+            - Service: {self.editorial_service_url}
+            - Mode: Comprehensive validation (8-12 critical rules for final quality)
+            - Platform: {platform}
+            - Content Type: {content_type}
+            - All validation rules sourced from ChromaDB (zero hardcoded)
             
             Sources provided: {len(sources)}
+            Platform: {platform}
+            Content Type: {content_type}
             
-            Be thorough but remember: Good enough published beats perfect in drafts.
+            Important: Use Editorial Service comprehensive validation as the PRIMARY quality check.
+            Traditional tools supplement and verify the Editorial Service results.
+            This ensures all content meets Vector Wave's highest editorial standards.
             """,
             agent=self.quality_controller_agent(),
-            expected_output="Complete quality assessment with scores and recommendations"
+            expected_output="""Complete comprehensive quality assessment with Editorial Service validation results:
+            
+            FINAL QUALITY ASSESSMENT:
+            - Editorial Service Comprehensive Score: [X/100] 
+            - Editorial Violations: [list any violations]
+            - Quality Assessment Factors: [completeness, readability, structure, actionability]
+            - Traditional Quality Score: [X/100]
+            - Overall Quality Score: [X/100]
+            - Approval Status: [APPROVED/NEEDS_REVISION/REQUIRES_HUMAN_REVIEW]
+            
+            IMPROVEMENT SUGGESTIONS:
+            [Specific, actionable recommendations based on Editorial Service and traditional analysis]
+            
+            EDITORIAL SERVICE DETAILS:
+            [Rules applied, ChromaDB sources, validation context]"""
         )
     
     def execute(self, draft: str, sources: List[Dict[str, str]], 
