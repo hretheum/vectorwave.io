@@ -4,5 +4,6 @@ HTTP clients for inter-service communication
 """
 
 from .editorial_client import EditorialServiceClient
+from .topic_manager_client import TopicManagerClient
 
-__all__ = ["EditorialServiceClient"]
+__all__ = ["EditorialServiceClient", "TopicManagerClient"]
