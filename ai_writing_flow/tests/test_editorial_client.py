@@ -39,13 +39,23 @@ class TestEditorialServiceClient:
         """Test client initialization with custom parameters"""
         client = EditorialServiceClient(
             base_url="http://custom:9000",
-            timeout=60.0
+            timeout=60.0,
+            max_keepalive_connections=20,
+            max_connections=100,
+            max_retries=4,
+            retry_backoff_factor=0.01,
         )
         
         assert client.base_url == "http://custom:9000"
         assert client.timeout == 60.0
         assert client._failure_threshold == 5
         assert client._recovery_timeout == 60
+        # Pooling configuration
+        assert client._limits.max_keepalive_connections == 20
+        assert client._limits.max_connections == 100
+        # Retry configuration
+        assert client._max_retries == 4
+        assert client._retry_backoff_factor == 0.01
         
         await client.close()
     
@@ -104,6 +114,25 @@ class TestEditorialServiceClient:
             assert payload["platform"] == "linkedin"
             assert payload["context"]["checkpoint"] == "style"
             assert payload["context"]["user_id"] == "user_123"
+
+    @pytest.mark.asyncio
+    async def test_retry_logic_implementation(self, client, mock_response):
+        """Test retry logic with backoff on retryable statuses"""
+        # First two attempts: 503, then success 200
+        response_503 = MagicMock()
+        response_503.status_code = 503
+        response_503.raise_for_status.side_effect = httpx.HTTPStatusError("503", request=None, response=None)
+
+        mock_response.status_code = 200
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.return_value = {"status": "healthy"}
+
+        with patch.object(client, '_max_retries', 3):
+            with patch.object(client.client, 'request', side_effect=[response_503, response_503, mock_response]) as mock_req:
+                result = await client.health_check()
+                assert result["status"] == "healthy"
+                # Ensure multiple attempts happened
+                assert mock_req.call_count == 3
     
     @pytest.mark.asyncio
     async def test_validate_comprehensive(self, client, mock_response):
@@ -198,6 +227,13 @@ class TestEditorialServiceClient:
             
             assert len(results) == 3
             assert all(r["success"] for r in results)
+
+    @pytest.mark.asyncio
+    async def test_timeout_configuration(self):
+        """Test that timeout setting is stored and configurable"""
+        client = EditorialServiceClient(timeout=15.5)
+        assert client.timeout == 15.5
+        await client.close()
     
     @pytest.mark.asyncio
     async def test_cache_operations(self, client, mock_response):
