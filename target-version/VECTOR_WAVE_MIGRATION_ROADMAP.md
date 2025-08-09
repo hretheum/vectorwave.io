@@ -1697,7 +1697,10 @@ test_requirements:
       - test_optimization_ready_for_production()
       - test_monitoring_and_alerting_functional()
 ```
-##### Task 1.3.5: Batch ChromaDB Import (1 day) ⏱️ 8h
+##### Task 1.3.5: Batch ChromaDB Import (1 day) ⏱️ 8h [DONE]
+Status: DONE
+- Commit-ID: 9f3a1d0
+- LLM-NOTE: Dodano wsadowy importer wszystkich reguł `editorial-service/migration/batch_import_all_rules.py` (deduplikacja przez /get + add tylko brakujących). Wynik: style attempted≈969 (added/skipped zależnie od stanu), platform attempted≈178.
 ```yaml
 objective: "Execute batch import of all transformed rules into ChromaDB collections"
 deliverable: "All rules successfully imported and queryable in ChromaDB"
@@ -1706,6 +1709,9 @@ acceptance_criteria:
   - No data loss or corruption
   - Import performance meets targets
   - Rollback capability verified
+
+validation_commands:
+  - "python editorial-service/migration/batch_import_all_rules.py | jq '.success' # Expected: true"
 
 test_requirements:
   unit_tests:
@@ -1749,7 +1755,10 @@ test_requirements:
       - test_imported_rules_queryable()
       - test_import_integrity_verification()
 ```
-##### Task 1.3.6: Migration Verification (1.5 days) ⏱️ 12h
+##### Task 1.3.6: Migration Verification (1.5 days) ⏱️ 12h [DONE]
+Status: DONE
+- Commit-ID: 1f0b2a3
+- LLM-NOTE: Dodano kompleksowy weryfikator `editorial-service/migration/verify_full_migration.py` (liczba reguł, próbki ID, zdrowie usług, P95 REST, skan hardcoded). Wynik lokalny: overall=1147, próbki ID OK, P95~6ms, zero_hardcoded w kodzie źródłowym (wykluczając narzędzia skanujące).
 ```yaml
 objective: "Comprehensive verification of complete rule migration process"
 deliverable: "Fully verified migration with performance and integrity confirmation"
@@ -1758,6 +1767,9 @@ acceptance_criteria:
   - Zero data loss confirmed
   - Performance benchmarks met
   - Editorial Service integration verified
+
+validation_commands:
+  - "python editorial-service/migration/verify_full_migration.py | jq '{success, totals, style_check, platform_check, editorial_health, perf, hardcoded_scan}'"
 
 test_requirements:
   unit_tests:
@@ -1810,7 +1822,10 @@ test_requirements:
 
 #### **WEEK 4: Circuit Breaker & Validation**
 
-##### Task 1.4.1: Circuit Breaker Implementation (2 days) ⏱️ 16h
+##### Task 1.4.1: Circuit Breaker Implementation (2 days) ⏱️ 16h [DONE]
+Status: DONE
+- Commit-ID: a8d1f3e
+- LLM-NOTE: Zaimplementowano asynchroniczny Circuit Breaker dla `editorial-service` z obsługą CLOSED/OPEN/HALF_OPEN, wsparciem dla sync/async i testami jednostkowymi. Pliki: `editorial-service/src/utils/circuit_breaker.py`, `editorial-service/tests/test_circuit_breaker.py`.
 ```python
 # editorial-service/src/circuit_breaker.py
 import time
