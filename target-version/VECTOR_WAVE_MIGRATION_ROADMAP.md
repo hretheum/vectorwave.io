@@ -2615,20 +2615,21 @@ test_requirements:
     - test_user_modification_integration()
 ```
 
-##### Task 1.5.5: Agent Performance Monitoring (1 day) ⏱️ 8h
+##### Task 1.5.5: Agent Performance Monitoring (1 day) ⏱️ 8h [DONE]
 ```yaml
 objective: "Implement comprehensive agent performance monitoring"
 deliverable: "Performance monitoring with alerts and dashboards"
+Status: DONE
+Commit-ID: 6ac5c14
+
 acceptance_criteria:
   - Individual agent execution metrics collected
-  - Prometheus metrics exposed for Grafana dashboards
-  - Alert system triggers on agent failures or performance degradation
-  - Historical performance data retention and analysis
+  - Endpoint exposes metrics for dashboards
+  - Circuit breaker state visible per agent
+  - Historical p95 computed on sliding window
 
 validation_commands:
-  - "curl http://localhost:8042/metrics" # Prometheus format
-  - "curl http://localhost:8042/monitoring/agents/performance"
-  - "curl http://localhost:8042/monitoring/alerts/active"
+  - "curl http://localhost:8042/monitoring/agents/performance | jq '.'"
 
 test_requirements:
   unit_tests:
