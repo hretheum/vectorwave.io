@@ -6,6 +6,7 @@ import os
 import json
 import time
 import asyncio
+import uuid
 from typing import Dict, Any, List, Optional, Literal
 from datetime import datetime
 from contextlib import asynccontextmanager
@@ -82,6 +83,7 @@ app_state = {
     "chromadb_client": None,
     "health_response_cache": None,
     "health_cache_refresh_inflight": False,
+    "checkpoints": {},  # in-memory checkpoint store (mirrored to Redis best-effort)
 }
 
 # Health check caching TTL to improve performance under burst traffic (seconds)
@@ -132,6 +134,36 @@ class ValidationResponse(BaseModel):
     processing_time_ms: float
     timestamp: datetime
     metadata: Optional[Dict[str, Any]] = None
+
+# --- Checkpoint API models ---
+class CheckpointCreateRequest(BaseModel):
+    content: str
+    platform: Optional[str] = None
+    checkpoint: CheckpointType
+
+class CheckpointCreateResponse(BaseModel):
+    checkpoint_id: str
+    status: str
+    rule_count: int
+    passed: bool
+    timestamp: datetime
+    metadata: Optional[Dict[str, Any]] = None
+
+class CheckpointStatusResponse(BaseModel):
+    checkpoint_id: str
+    status: str
+    checkpoint: CheckpointType
+    platform: Optional[str] = None
+    rule_count: int
+    passed: bool
+    last_validation_ms: float
+    created_at: datetime
+    updated_at: datetime
+    metadata: Optional[Dict[str, Any]] = None
+
+class CheckpointInterveneRequest(BaseModel):
+    content: Optional[str] = None
+    finalize: Optional[bool] = False
 
 async def get_redis_client():
     """Get Redis client for service discovery and caching.
@@ -375,6 +407,39 @@ def _domain_rule_to_api(rule: DomainValidationRule) -> ValidationRule:
         chromadb_origin_metadata=rule.chromadb_origin_metadata,
     )
 
+async def _selective_validate_internal(
+    content: str, platform: Optional[str], checkpoint_literal: str
+) -> Dict[str, Any]:
+    """Run selective validation via strategies and return API-compatible payload bits."""
+    checkpoint_map = {
+        "pre-writing": DomainCheckpointType.PRE_WRITING,
+        "mid-writing": DomainCheckpointType.MID_WRITING,
+        "post-writing": DomainCheckpointType.POST_WRITING,
+    }
+    domain_checkpoint = checkpoint_map.get(checkpoint_literal)
+    if domain_checkpoint is None:
+        raise ValueError(f"invalid checkpoint: {checkpoint_literal}")
+
+    domain_request = DomainValidationRequest(
+        content=content,
+        mode=DomainValidationMode.SELECTIVE,
+        checkpoint=domain_checkpoint,
+        metadata={"platform": platform} if platform else None,
+    )
+    repo = ChromaDBRuleRepository() if ChromaDBRuleRepository else MockRuleRepository()
+    factory = ValidationStrategyFactory(repo)
+    strategy = factory.create("selective")
+    domain_rules = await strategy.validate(domain_request)
+    api_rules = [_domain_rule_to_api(r) for r in domain_rules]
+    rule_count = len(api_rules)
+    # Consider checkpoint passed if we are within expected range (3-4)
+    passed = 3 <= rule_count <= 4
+    return {
+        "rules": api_rules,
+        "rule_count": rule_count,
+        "passed": passed,
+    }
+
 @app.post("/validate/comprehensive", response_model=ValidationResponse)
 async def validate_comprehensive(request: ValidationRequest):
     """Comprehensive validation using strategy factory (8-12 rules)."""
@@ -444,6 +509,119 @@ async def validate_selective(request: ValidationRequest):
             "checkpoint": request.checkpoint,
             "platform": request.platform,
         },
+    )
+
+# --- Checkpoint API (selective validation with state) ---
+
+@app.post("/checkpoints/create", response_model=CheckpointCreateResponse)
+async def checkpoints_create(payload: CheckpointCreateRequest):
+    start = time.time()
+    result = await _selective_validate_internal(payload.content, payload.platform, str(payload.checkpoint))
+    checkpoint_id = f"cp_{uuid.uuid4().hex[:8]}"
+    now = datetime.utcnow()
+    # Store in memory
+    app_state["checkpoints"][checkpoint_id] = {
+        "checkpoint": payload.checkpoint,
+        "platform": payload.platform,
+        "content": payload.content,
+        "rule_count": result["rule_count"],
+        "passed": result["passed"],
+        "created_at": now,
+        "updated_at": now,
+        "last_validation_ms": (time.time() - start) * 1000,
+    }
+    # Best-effort mirror to Redis
+    try:
+        rc = await get_redis_client()
+        if rc is not None:
+            await rc.hset(
+                f"vector-wave:editorial:checkpoint:{checkpoint_id}",
+                mapping={
+                    "checkpoint": str(payload.checkpoint),
+                    "platform": payload.platform or "",
+                    "rule_count": str(result["rule_count"]),
+                    "passed": "1" if result["passed"] else "0",
+                    "created_at": now.isoformat(),
+                    "updated_at": now.isoformat(),
+                },
+            )
+            await rc.expire(f"vector-wave:editorial:checkpoint:{checkpoint_id}", 60 * 60 * 24)
+    except Exception as e:
+        logger.warning("checkpoint_redis_mirror_failed", error=str(e))
+
+    return CheckpointCreateResponse(
+        checkpoint_id=checkpoint_id,
+        status="created",
+        rule_count=result["rule_count"],
+        passed=result["passed"],
+        timestamp=now,
+        metadata={
+            "checkpoint": payload.checkpoint,
+            "platform": payload.platform,
+        },
+    )
+
+@app.get("/checkpoints/status/{checkpoint_id}", response_model=CheckpointStatusResponse)
+async def checkpoints_status(checkpoint_id: str):
+    state = app_state["checkpoints"].get(checkpoint_id)
+    if not state:
+        return JSONResponse(status_code=404, content={"detail": "checkpoint not found"})
+    return CheckpointStatusResponse(
+        checkpoint_id=checkpoint_id,
+        status="active",
+        checkpoint=state["checkpoint"],
+        platform=state["platform"],
+        rule_count=state["rule_count"],
+        passed=state["passed"],
+        last_validation_ms=state["last_validation_ms"],
+        created_at=state["created_at"],
+        updated_at=state["updated_at"],
+        metadata=None,
+    )
+
+@app.post("/checkpoints/{checkpoint_id}/intervene", response_model=CheckpointStatusResponse)
+async def checkpoints_intervene(checkpoint_id: str, payload: CheckpointInterveneRequest):
+    state = app_state["checkpoints"].get(checkpoint_id)
+    if not state:
+        return JSONResponse(status_code=404, content={"detail": "checkpoint not found"})
+    # Update content if provided
+    if payload.content is not None:
+        state["content"] = payload.content
+    # Re-validate with updated content
+    start = time.time()
+    result = await _selective_validate_internal(
+        state["content"], state.get("platform"), str(state["checkpoint"])  # type: ignore[arg-type]
+    )
+    state["rule_count"] = result["rule_count"]
+    state["passed"] = result["passed"]
+    state["updated_at"] = datetime.utcnow()
+    state["last_validation_ms"] = (time.time() - start) * 1000
+    # Best-effort mirror to Redis
+    try:
+        rc = await get_redis_client()
+        if rc is not None:
+            await rc.hset(
+                f"vector-wave:editorial:checkpoint:{checkpoint_id}",
+                mapping={
+                    "rule_count": str(result["rule_count"]),
+                    "passed": "1" if result["passed"] else "0",
+                    "updated_at": state["updated_at"].isoformat(),
+                },
+            )
+    except Exception as e:
+        logger.warning("checkpoint_redis_update_failed", error=str(e))
+
+    return CheckpointStatusResponse(
+        checkpoint_id=checkpoint_id,
+        status="finalized" if payload.finalize else "active",
+        checkpoint=state["checkpoint"],
+        platform=state.get("platform"),
+        rule_count=state["rule_count"],
+        passed=state["passed"],
+        last_validation_ms=state["last_validation_ms"],
+        created_at=state["created_at"],
+        updated_at=state["updated_at"],
+        metadata={"finalized": bool(payload.finalize)},
     )
 
 @app.get("/health", response_model=HealthResponse)
