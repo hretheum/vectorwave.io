@@ -2203,7 +2203,10 @@ CMD ["python", "src/main.py"]
 EOF
 ```
 
-##### Task 1.5.2: Agent HTTP Clients Implementation (1 day) ⏱️ 8h
+##### Task 1.5.2: Agent HTTP Clients Implementation (1 day) ⏱️ 8h [DONE]
+Status: DONE
+- Commit-ID: 3f5a0c9
+- LLM-NOTE: Zaimplementowano HTTP klientów agentów z Circuit Breakerem i endpoint statusem CB w Orchestratorze. Pliki: `crewai-orchestrator/src/agent_clients.py`, `crewai-orchestrator/src/api.py`, integracja w `src/main.py`.
 ```yaml
 objective: "Implement HTTP clients for 5 CrewAI agents with Editorial Service integration"
 deliverable: "HTTP clients with circuit breaker protection"

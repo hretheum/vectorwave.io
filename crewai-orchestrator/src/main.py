@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any
 import time
+from .api import router as api_router
 
 app = FastAPI(
     title="CrewAI Orchestrator Service",
@@ -17,6 +18,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(api_router)
 
 class AgentInfo(BaseModel):
     agent_id: str
