@@ -20,7 +20,7 @@ Pomyślnie ukończono **równoległą implementację 9 kluczowych zadań z Phase
 | 2.6C | Writer Crew Editorial Integration | ✅ DONE | `a455b64` | `kolegium/ai_writing_flow/src/ai_writing_flow/crews/writer_crew.py` | Sprawdź selective validation + editorial_client integration |
 | 2.6D | Audience Crew Platform Optimization | ✅ DONE | `16bb1ca` | `kolegium/ai_writing_flow/src/ai_writing_flow/crews/audience_crew.py` | Sprawdź validate_platform_optimization + get_platform_rules tools |
 | 2.6E | Quality Crew Final Validation | ✅ DONE | `3bee1bb` | `kolegium/ai_writing_flow/src/ai_writing_flow/crews/quality_crew.py` | Sprawdź comprehensive validation + 39 Editorial Service refs |
-| 3.1.1 | Enhanced Orchestrator API Design | ✅ DONE | `0862b77` | `kolegium/publishing-orchestrator/` | Sprawdź FastAPI + multi-platform support + port 8050 |
+| 3.1.1 | Enhanced Orchestrator API Design | ✅ DONE | `0862b77` | `kolegium/publishing-orchestrator/` | Sprawdź FastAPI + multi-platform support + port 8080 |
 | 3.2.1 | LinkedIn PPT Generator Service | ✅ DONE | `e53ddb5` | `kolegium/linkedin_ppt_generator/` | Sprawdź Presenton proxy + port 8002 + circuit breaker |
 | 3.3.1 | Analytics Blackbox Interface | ✅ DONE | `a154ed6` | `kolegium/analytics-service/` | Sprawdź placeholder API + port 8081 + future-ready structure |
 
@@ -31,7 +31,7 @@ Pomyślnie ukończono **równoległą implementację 9 kluczowych zadań z Phase
 Editorial Service (8040) ──┐
 Topic Manager (8041) ──────┼─→ CrewAI Agents (HTTP clients)
                            │
-LinkedIn PPT Gen (8002) ───┼─→ Publishing Orchestrator (8050)
+LinkedIn PPT Gen (8002) ───┼─→ Publishing Orchestrator (8080)
 Analytics Blackbox (8081) ─┤
 Presenton Service (8089) ───┘
 ```
@@ -40,7 +40,7 @@ Presenton Service (8089) ───┘
 - **8040**: Editorial Service (ChromaDB-centric validation)
 - **8041**: Topic Manager (AI-powered topic intelligence)
 - **8002**: LinkedIn PPT Generator (Presenton proxy + LinkedIn optimization)
-- **8050**: Publishing Orchestrator (multi-platform orchestration)
+- **8080**: Publishing Orchestrator (multi-platform orchestration)
 - **8081**: Analytics Blackbox (future-ready analytics API)
 - **8089**: Presenton Service (PowerPoint/PDF generation)
 
@@ -50,7 +50,7 @@ Presenton Service (8089) ───┘
 ```bash
 # 1. Sprawdź czy wszystkie services są aktywne
 curl -s http://localhost:8040/health | jq '.status'  # Editorial
-curl -s http://localhost:8050/health | jq '.status'  # Orchestrator  
+curl -s http://localhost:8080/health | jq '.status'  # Orchestrator  
 curl -s http://localhost:8002/health | jq '.status'  # LinkedIn PPT
 curl -s http://localhost:8081/health | jq '.status'  # Analytics
 
@@ -75,7 +75,7 @@ git log --oneline | grep -E "(dc3655b|0135f67|6023dd5|a455b64|16bb1ca|3bee1bb|08
 - [ ] **Quality Crew**: Comprehensive validation + 39 Editorial Service references
 
 #### Service Architecture (Tasks 3.1.1-3.3.1)
-- [ ] **Publishing Orchestrator**: FastAPI + multi-platform support + port 8050
+- [ ] **Publishing Orchestrator**: FastAPI + multi-platform support + port 8080
 - [ ] **LinkedIn PPT Generator**: Presenton proxy + circuit breaker + port 8002
 - [ ] **Analytics Blackbox**: Placeholder API + future-ready structure + port 8081
 

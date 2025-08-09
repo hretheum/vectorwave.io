@@ -79,7 +79,7 @@ Realizacja zadań z Phase 2 i Phase 3 które nie są blokowane przez Phase 1, ab
 - **Lokalizacja**: `kolegium/publishing-orchestrator/`
 - **Opis**: Kompletny Publishing Orchestrator API z multi-platform support
 - **Funkcjonalności**:
-  - FastAPI async orchestrator service (port 8050)
+  - FastAPI async orchestrator service (port 8080)
   - Multi-platform: LinkedIn, Twitter, BeehiIV, Ghost support
   - Editorial Service comprehensive validation integration
   - AI Writing Flow dynamic content generation integration
@@ -174,7 +174,7 @@ grep -c 'validate_comprehensive_quality\|get_editorial_quality_rules' quality_cr
 - Selective + Comprehensive validation workflows zaimplementowane
 - Platform optimization dla linkedin, twitter, beehiiv, ghost
 - Comprehensive quality validation jako finalna kontrola (8-12 reguł)
-- **Enhanced Publishing Orchestrator API** (port 8050) 🚀
+- **Enhanced Publishing Orchestrator API** (port 8080) 🚀
 - Multi-platform orchestration z analytics i status tracking
 - **LinkedIn PPT Generator Service** (port 8002) z Presenton proxy 🎯
 - **Analytics Blackbox Interface** (port 8081) z future-ready API 📊
@@ -211,7 +211,7 @@ grep -c 'validate_comprehensive_quality\|get_editorial_quality_rules' quality_cr
 - Editorial Service (port 8040): ChromaDB-centric validation
 - Topic Manager (port 8041): AI-powered topic intelligence  
 - LinkedIn PPT Generator (port 8002): Presenton proxy z LinkedIn optimization
-- **Publishing Orchestrator (port 8050): Multi-platform publishing orchestration**
+- **Publishing Orchestrator (port 8080): Multi-platform publishing orchestration**
 - **Analytics Blackbox (port 8081): Future-ready analytics API**
 - Presenton Service (port 8089): PowerPoint/PDF generation
 - CrewAI agents: Zintegrowane z services przez HTTP clients
