@@ -47,7 +47,7 @@ services:
     networks:
       - vector-wave-dev
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/v2/heartbeat"]
+      test: ["CMD", "bash", "-lc", "exec 3<>/dev/tcp/localhost/8000; printf 'GET /api/v2/heartbeat\r\n\r\n' >&3; timeout 2 cat <&3 | grep -q '200 OK'"]
       interval: 30s
       timeout: 10s
       retries: 3
