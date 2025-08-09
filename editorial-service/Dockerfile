@@ -48,5 +48,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 
 EXPOSE 8040
 
-# Use uvicorn for production
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8040", "--workers", "1"]
+# Use uvicorn for production (workers configurable via WORKERS env)
+ENV WORKERS=2
+CMD ["/bin/sh", "-lc", "/home/editorial/.local/bin/uvicorn src.main:app --host 0.0.0.0 --port 8040 --workers ${WORKERS}"]
