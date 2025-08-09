@@ -4511,7 +4511,599 @@ echo "System is ready for production deployment."
 
 ---
 
-**Migration Roadmap Status**: ✅ **COMPLETE SPECIFICATION READY**  
-**Total Estimated Effort**: 12 weeks, 47 atomic tasks, 3 phases  
+## 🎯 Phase 4: External Service Integration (Gamma.app)
+**Duration**: 1 week | **Objective**: Gamma.app integration for enhanced AI-powered presentations
+
+### 📋 Phase 4 Task Breakdown
+
+#### **WEEK 13: Gamma.app Integration**
+
+##### Task 4.1.1: Gamma PPT Generator Service Foundation (1 day) ⏱️ 8h
+```yaml
+objective: "Create Gamma.app API wrapper service with circuit breaker"
+deliverable: "Working Gamma PPT Generator service on port 8003"
+
+acceptance_criteria:
+  - FastAPI service starts successfully on port 8003
+  - Gamma.app API client with authentication configured
+  - Circuit breaker pattern for external API reliability
+  - Health endpoint validates Gamma API connectivity
+  - Rate limiting protection implemented
+
+validation_commands:
+  - "curl http://localhost:8003/health # Expected: healthy with gamma_api_status"
+  - "docker ps | grep gamma-ppt-generator"
+  - "curl -X POST http://localhost:8003/test-gamma-connectivity"
+
+test_requirements:
+  unit_tests:
+    coverage_target: ">85% line coverage"
+    tests:
+      - test_gamma_client_initialization()
+      - test_gamma_api_authentication()
+      - test_circuit_breaker_functionality()
+      - test_rate_limiting_behavior()
+      - test_health_check_gamma_connectivity()
+      - test_error_handling_api_failures()
+
+  integration_tests:
+    coverage_target: ">80% service integration coverage"
+    tests:
+      - test_gamma_api_real_connection()
+      - test_service_docker_container_startup()
+      - test_publishing_orchestrator_discovery()
+      - test_circuit_breaker_recovery_cycles()
+
+  performance_tests:
+    targets:
+      - "Service startup time <30 seconds"
+      - "Health check response time <5 seconds"
+      - "Circuit breaker decision time <10ms"
+    tests:
+      - test_service_startup_performance()
+      - test_health_check_performance()
+      - test_circuit_breaker_performance()
+
+  error_handling_tests:
+    coverage_target: "100% error paths"
+    tests:
+      - test_gamma_api_unavailable_handling()
+      - test_authentication_failure_recovery()
+      - test_rate_limit_exceeded_handling()
+      - test_malformed_response_handling()
+
+  security_tests:
+    tests:
+      - test_api_key_security_storage()
+      - test_request_input_sanitization()
+      - test_response_data_validation()
+      - test_environment_variable_protection()
+
+  deployment_tests:
+    tests:
+      - test_docker_container_health_checks()
+      - test_service_graceful_shutdown()
+      - test_docker_compose_integration()
+```
+
+##### Task 4.1.2: Gamma API Client with Rate Limiting (1 day) ⏱️ 8h
+```yaml
+objective: "Implement robust Gamma.app API client with comprehensive rate limiting"
+deliverable: "Production-ready Gamma API client with monitoring"
+
+acceptance_criteria:
+  - Complete Gamma.app API integration (generations endpoint)
+  - Advanced rate limiting with burst handling
+  - Cost tracking per API call with budget alerts
+  - Async processing support for long-running generations
+  - Comprehensive API response validation
+
+validation_commands:
+  - "python -c 'from gamma_client import GammaClient; client = GammaClient(); print(client.test_connection())' # Expected: True"
+  - "curl -X POST http://localhost:8003/validate-gamma-limits # Expected: current usage stats"
+  - "curl http://localhost:8003/gamma/cost-tracking # Expected: cost metrics"
+
+test_requirements:
+  unit_tests:
+    coverage_target: ">90% line coverage"
+    tests:
+      - test_gamma_api_client_initialization()
+      - test_rate_limiting_algorithm()
+      - test_cost_tracking_calculations()
+      - test_async_generation_polling()
+      - test_api_response_validation()
+      - test_retry_logic_with_backoff()
+
+  integration_tests:
+    coverage_target: ">85% API integration coverage"
+    tests:
+      - test_gamma_api_real_generation_request()
+      - test_rate_limit_enforcement()
+      - test_cost_tracking_accuracy()
+      - test_async_generation_workflow()
+      - test_api_error_response_handling()
+
+  performance_tests:
+    targets:
+      - "API request preparation <50ms"
+      - "Rate limit checking <5ms"
+      - "Cost calculation <10ms"
+      - "Support 100 concurrent rate limit checks"
+    tests:
+      - test_api_request_performance()
+      - test_rate_limit_checking_performance()
+      - test_cost_calculation_performance()
+      - test_concurrent_rate_limit_handling()
+
+  error_handling_tests:
+    coverage_target: "100% error paths"
+    tests:
+      - test_gamma_api_timeout_handling()
+      - test_rate_limit_exceeded_response()
+      - test_api_authentication_errors()
+      - test_malformed_generation_requests()
+      - test_async_polling_timeout_handling()
+
+  business_logic_tests:
+    tests:
+      - test_cost_budget_limit_enforcement()
+      - test_generation_queue_management()
+      - test_presentation_format_validation()
+      - test_content_length_optimization()
+
+  monitoring_tests:
+    tests:
+      - test_api_usage_metrics_collection()
+      - test_cost_alert_triggering()
+      - test_rate_limit_violation_logging()
+      - test_performance_metrics_tracking()
+```
+
+##### Task 4.1.3: Publishing Orchestrator Integration (1 day) ⏱️ 8h
+```yaml
+objective: "Integrate Gamma service with Publishing Orchestrator for presentation choice"
+deliverable: "Enhanced orchestrator supporting both Presenton and Gamma options"
+
+acceptance_criteria:
+  - User can choose between Presenton (local) and Gamma (cloud)
+  - Intelligent service recommendation based on content analysis
+  - Graceful fallback from Gamma to Presenton on failures
+  - Cost-aware decision making with budget consideration
+  - LinkedIn workflow enhanced with dual presentation options
+
+validation_commands:
+  - "curl -X POST http://localhost:8080/publish -d @test_gamma_request.json # Expected: gamma generation"
+  - "curl -X POST http://localhost:8080/publish -d @test_presenton_request.json # Expected: presenton generation"
+  - "curl http://localhost:8080/presentation-options # Expected: both services listed"
+
+test_requirements:
+  unit_tests:
+    coverage_target: ">85% line coverage"
+    tests:
+      - test_presentation_service_selector()
+      - test_content_analysis_for_service_choice()
+      - test_gamma_presenton_fallback_logic()
+      - test_cost_aware_decision_making()
+      - test_user_preference_handling()
+      - test_service_availability_checking()
+
+  integration_tests:
+    coverage_target: ">80% orchestrator integration coverage"
+    tests:
+      - test_end_to_end_gamma_presentation_workflow()
+      - test_end_to_end_presenton_presentation_workflow()
+      - test_automatic_fallback_scenarios()
+      - test_linkedin_dual_option_workflow()
+      - test_service_coordination_under_load()
+
+  performance_tests:
+    targets:
+      - "Service selection decision <100ms"
+      - "Content analysis for recommendation <500ms"
+      - "Fallback switching <2 seconds"
+    tests:
+      - test_service_selection_performance()
+      - test_content_analysis_performance()
+      - test_fallback_switching_performance()
+
+  error_handling_tests:
+    coverage_target: "100% error paths"
+    tests:
+      - test_gamma_service_unavailable_fallback()
+      - test_presenton_service_unavailable_handling()
+      - test_both_services_unavailable_response()
+      - test_partial_failure_recovery()
+      - test_cost_budget_exceeded_fallback()
+
+  business_workflow_tests:
+    tests:
+      - test_linkedin_presentation_choice_ux()
+      - test_cost_optimization_recommendations()
+      - test_quality_vs_speed_tradeoff_logic()
+      - test_user_preference_learning()
+
+  acceptance_tests:
+    tests:
+      - test_improved_linkedin_publishing_workflow()
+      - test_user_satisfaction_with_dual_options()
+      - test_cost_effectiveness_vs_quality_balance()
+```
+
+##### Task 4.1.4: User Choice Interface Implementation (1 day) ⏱️ 8h
+```yaml
+objective: "Create intuitive user interface for presentation service selection"
+deliverable: "User-friendly presentation options selection with recommendations"
+
+acceptance_criteria:
+  - Clear presentation service comparison interface
+  - AI-powered service recommendations with reasoning
+  - Cost transparency with budget tracking
+  - Real-time service availability indicators
+  - User preference learning and persistence
+
+validation_commands:
+  - "curl http://localhost:8080/presentation-services/comparison # Expected: detailed service comparison"
+  - "curl http://localhost:8080/presentation-services/recommend -d @content_sample.json # Expected: recommendation with reasoning"
+  - "curl http://localhost:8080/user/presentation-preferences # Expected: learned preferences"
+
+test_requirements:
+  unit_tests:
+    coverage_target: ">85% line coverage"
+    tests:
+      - test_service_comparison_generation()
+      - test_ai_recommendation_logic()
+      - test_cost_transparency_calculations()
+      - test_availability_indicator_updates()
+      - test_user_preference_persistence()
+      - test_recommendation_reasoning_generation()
+
+  integration_tests:
+    coverage_target: ">80% UI integration coverage"
+    tests:
+      - test_real_time_service_status_updates()
+      - test_user_choice_workflow_integration()
+      - test_preference_learning_feedback_loop()
+      - test_cost_tracking_ui_integration()
+
+  performance_tests:
+    targets:
+      - "Service comparison generation <200ms"
+      - "AI recommendation calculation <500ms"
+      - "User interface responsiveness <100ms"
+    tests:
+      - test_service_comparison_performance()
+      - test_ai_recommendation_performance()
+      - test_ui_responsiveness_performance()
+
+  usability_tests:
+    tests:
+      - test_service_selection_user_journey()
+      - test_recommendation_clarity_and_usefulness()
+      - test_cost_information_comprehensibility()
+      - test_preference_learning_transparency()
+
+  error_handling_tests:
+    coverage_target: "100% error paths"
+    tests:
+      - test_service_unavailable_ui_handling()
+      - test_recommendation_failure_fallback()
+      - test_cost_calculation_error_handling()
+      - test_preference_save_failure_recovery()
+
+  accessibility_tests:
+    tests:
+      - test_screen_reader_compatibility()
+      - test_keyboard_navigation_support()
+      - test_color_contrast_compliance()
+      - test_mobile_responsiveness()
+```
+
+##### Task 4.1.5: Cost Tracking and Error Handling (1 day) ⏱️ 8h
+```yaml
+objective: "Implement comprehensive cost tracking and robust error handling"
+deliverable: "Production-ready cost management and error recovery system"
+
+acceptance_criteria:
+  - Real-time cost tracking with detailed breakdowns
+  - Budget alerts and automatic spending limits
+  - Comprehensive error classification and recovery strategies
+  - Cost optimization recommendations
+  - Historical cost analysis and reporting
+
+validation_commands:
+  - "curl http://localhost:8003/cost-tracking/current # Expected: real-time cost data"
+  - "curl http://localhost:8003/cost-tracking/budget-status # Expected: budget utilization"
+  - "curl http://localhost:8003/error-handling/health # Expected: error recovery status"
+
+test_requirements:
+  unit_tests:
+    coverage_target: ">90% line coverage"
+    tests:
+      - test_cost_calculation_accuracy()
+      - test_budget_limit_enforcement()
+      - test_cost_alert_triggering()
+      - test_error_classification_logic()
+      - test_recovery_strategy_selection()
+      - test_cost_optimization_algorithms()
+
+  integration_tests:
+    coverage_target: ">85% cost system integration coverage"
+    tests:
+      - test_real_time_cost_tracking_accuracy()
+      - test_budget_alert_notification_system()
+      - test_error_recovery_workflow_integration()
+      - test_cost_analytics_data_pipeline()
+
+  performance_tests:
+    targets:
+      - "Cost calculation <20ms per request"
+      - "Budget checking <10ms per request"
+      - "Error recovery initiation <500ms"
+    tests:
+      - test_cost_calculation_performance()
+      - test_budget_checking_performance()
+      - test_error_recovery_performance()
+
+  error_handling_tests:
+    coverage_target: "100% error scenarios"
+    tests:
+      - test_gamma_api_rate_limit_recovery()
+      - test_gamma_api_authentication_error_recovery()
+      - test_gamma_service_timeout_handling()
+      - test_cost_tracking_service_failure_fallback()
+      - test_budget_exceeded_automatic_actions()
+
+  financial_accuracy_tests:
+    tests:
+      - test_cost_calculation_precision()
+      - test_budget_tracking_consistency()
+      - test_cost_reporting_accuracy()
+      - test_financial_audit_trail_completeness()
+
+  monitoring_tests:
+    tests:
+      - test_cost_metrics_collection()
+      - test_error_rate_monitoring()
+      - test_recovery_success_rate_tracking()
+      - test_cost_optimization_effectiveness_measurement()
+```
+
+##### Task 4.1.6: Testing with Gamma API Beta (2 days) ⏱️ 16h
+```yaml
+objective: "Comprehensive testing against real Gamma.app API in beta environment"
+deliverable: "Production-ready integration validated against live Gamma API"
+
+acceptance_criteria:
+  - Successful integration with live Gamma.app beta API
+  - All API endpoints tested with real authentication
+  - Beta limitations and constraints documented
+  - Performance benchmarks against real API established
+  - Error scenarios tested with actual API responses
+
+validation_commands:
+  - "python test_gamma_integration.py --live-api --comprehensive # Expected: all tests pass"
+  - "curl -X POST http://localhost:8003/generate-gamma-presentation -d @live_test.json # Expected: real presentation"
+  - "python validate_gamma_responses.py --sample-size=100 # Expected: >95% success rate"
+
+test_requirements:
+  live_api_tests:
+    coverage_target: "100% API endpoint coverage"
+    tests:
+      - test_gamma_generations_endpoint_comprehensive()
+      - test_gamma_api_authentication_real()
+      - test_gamma_rate_limiting_behavior_actual()
+      - test_gamma_presentation_generation_quality()
+      - test_gamma_export_format_validation()
+      - test_gamma_api_response_time_benchmarks()
+
+  beta_constraint_tests:
+    tests:
+      - test_beta_api_rate_limits_discovery()
+      - test_beta_feature_availability_validation()
+      - test_beta_api_stability_assessment()
+      - test_beta_error_response_patterns()
+      - test_beta_performance_characteristics()
+
+  integration_validation_tests:
+    coverage_target: ">90% end-to-end workflow coverage"
+    tests:
+      - test_end_to_end_linkedin_gamma_workflow()
+      - test_publishing_orchestrator_gamma_integration()
+      - test_cost_tracking_with_real_api_costs()
+      - test_error_recovery_with_real_failures()
+
+  performance_benchmark_tests:
+    targets:
+      - "Establish baseline response times for different content types"
+      - "Measure real cost per generation for budgeting"
+      - "Benchmark quality scores vs processing time"
+    tests:
+      - test_gamma_api_response_time_distribution()
+      - test_real_cost_per_generation_measurement()
+      - test_quality_vs_processing_time_analysis()
+
+  reliability_tests:
+    duration: "48 hours continuous testing"
+    tests:
+      - test_gamma_api_long_term_stability()
+      - test_error_rate_over_extended_period()
+      - test_rate_limiting_behavior_over_time()
+      - test_cost_tracking_accuracy_over_volume()
+
+  acceptance_criteria_validation:
+    tests:
+      - test_production_readiness_checklist()
+      - test_gamma_integration_meets_business_requirements()
+      - test_fallback_to_presenton_reliability()
+      - test_user_experience_with_dual_options()
+
+  documentation_validation:
+    tests:
+      - test_api_documentation_accuracy()
+      - test_error_handling_guide_completeness()
+      - test_cost_optimization_recommendations_validity()
+      - test_troubleshooting_guide_effectiveness()
+```
+
+### 📊 Phase 4 Success Metrics
+
+#### **Technical Success Metrics**
+```yaml
+gamma_integration_metrics:
+  service_reliability:
+    target: ">99% uptime for Gamma PPT Generator service"
+    measurement: "24/7 health check monitoring"
+    
+  api_performance:
+    target: "P95 < 15 seconds for presentation generation"
+    measurement: "Real Gamma API response time benchmarks"
+    
+  fallback_reliability:
+    target: ">99.9% successful fallback to Presenton on Gamma failures"
+    measurement: "Automated fallback scenario testing"
+    
+  cost_accuracy:
+    target: "Cost tracking accuracy >99.5%"
+    measurement: "Financial reconciliation with Gamma billing"
+
+validation_commands:
+  service_health:
+    - "curl http://localhost:8003/health # Expected: healthy"
+    - "curl http://localhost:8003/gamma/connectivity # Expected: connected"
+    
+  integration_health:
+    - "curl http://localhost:8080/presentation-options # Expected: both gamma and presenton available"
+    - "curl -X POST http://localhost:8080/publish -d @gamma_test.json # Expected: successful gamma generation"
+    
+  cost_tracking_accuracy:
+    - "python validate_cost_tracking.py --period=1month # Expected: <0.5% variance"
+    
+  fallback_reliability:
+    - "python test_gamma_fallback.py --scenarios=all # Expected: 100% fallback success"
+```
+
+#### **Business Success Metrics**
+```yaml
+user_experience_metrics:
+  presentation_quality_improvement:
+    target: ">20% improvement in presentation quality scores using Gamma"
+    measurement: "User quality ratings comparison"
+    
+  user_choice_satisfaction:
+    target: ">85% user satisfaction with dual presentation options"
+    measurement: "User feedback surveys and usage analytics"
+    
+  cost_efficiency:
+    target: "<$2 average cost per Gamma presentation with clear ROI"
+    measurement: "Cost tracking and quality benefit analysis"
+
+operational_metrics:
+  deployment_success:
+    target: "Zero-downtime deployment of Gamma integration"
+    measurement: "Service availability monitoring during deployment"
+    
+  maintenance_efficiency:
+    target: "<2 hours/month maintenance overhead for Gamma integration"
+    measurement: "Time tracking for Gamma-related maintenance tasks"
+```
+
+### 🔄 Phase 4 Risk Mitigation
+
+#### **Risk Assessment & Mitigation Strategies**
+```yaml
+risk_mitigation:
+  gamma_api_instability:
+    risk_level: "HIGH"
+    probability: "Medium (beta service)"
+    impact: "Medium (fallback available)"
+    mitigation:
+      - "Implement robust circuit breaker with 5-second recovery"
+      - "Graceful fallback to Presenton with user notification"
+      - "Monitor Gamma API status page integration"
+      - "Establish SLA monitoring with automated alerts"
+    
+  cost_escalation:
+    risk_level: "MEDIUM"
+    probability: "Low (strict budget controls)"
+    impact: "High (budget impact)"
+    mitigation:
+      - "Hard budget limits with automatic service suspension"
+      - "Daily cost monitoring with email alerts at 80% budget"
+      - "Cost per generation tracking with optimization recommendations"
+      - "Monthly budget reviews and adjustment procedures"
+    
+  external_dependency_failure:
+    risk_level: "MEDIUM"
+    probability: "Low (redundant options)"
+    impact: "Low (Presenton backup)"
+    mitigation:
+      - "Always maintain Presenton as primary backup"
+      - "Service availability SLA monitoring"
+      - "Automated health checks every 30 seconds"
+      - "Multi-layered fallback strategy documentation"
+
+rollback_strategy:
+  triggers:
+    - "Gamma service reliability <95% over 24 hours"
+    - "Cost exceeds budget by >20%"
+    - "User satisfaction drops <70%"
+    - "Fallback failures >1% rate"
+  
+  rollback_steps:
+    1. "Disable Gamma service in Publishing Orchestrator"
+    2. "Route all presentation requests to Presenton"
+    3. "Notify users of temporary service change"
+    4. "Investigate and resolve Gamma integration issues"
+    5. "Re-enable Gamma after validation testing"
+```
+
+### 📋 Phase 4 Acceptance Criteria
+
+#### **Definition of Done**
+```yaml
+acceptance_criteria:
+  
+  technical_requirements:
+    - "✅ Gamma PPT Generator service operational on port 8003"
+    - "✅ Complete Gamma.app API integration with authentication"
+    - "✅ Circuit breaker and rate limiting functional"
+    - "✅ Cost tracking accuracy >99.5%"
+    - "✅ Publishing Orchestrator dual-service integration"
+    - "✅ User choice interface with AI recommendations"
+    - "✅ Graceful fallback to Presenton on all failure scenarios"
+    - "✅ Comprehensive error handling and recovery"
+  
+  business_requirements:
+    - "✅ Users can choose between Presenton (fast/free) and Gamma (AI-enhanced/paid)"
+    - "✅ Cost transparency with budget tracking and alerts"
+    - "✅ Quality improvement demonstrable through user feedback"
+    - "✅ LinkedIn workflow enhanced with dual presentation options"
+    - "✅ User preference learning and intelligent recommendations"
+  
+  operational_requirements:
+    - "✅ Zero-downtime deployment capability"
+    - "✅ 24/7 monitoring and alerting configured"
+    - "✅ Rollback procedures documented and tested"
+    - "✅ Cost budget management operational"
+    - "✅ Production-ready error handling and recovery"
+
+final_validation:
+  end_to_end_tests:
+    - "Complete LinkedIn publishing workflow with Gamma option"
+    - "Cost tracking accuracy over 1000 test generations"
+    - "Fallback reliability under various failure scenarios"
+    - "User interface usability and satisfaction testing"
+  
+  performance_validation:
+    - "Service availability >99% over 1-week testing period"
+    - "Cost per generation within expected ranges"
+    - "User satisfaction >85% in pilot testing"
+    - "Error recovery time <30 seconds average"
+```
+
+---
+
+**Migration Roadmap Status**: ✅ **COMPLETE SPECIFICATION WITH GAMMA INTEGRATION**  
+**Total Estimated Effort**: 13 weeks, 53 atomic tasks, 4 phases  
 **Risk Level**: Medium (comprehensive rollback strategies in place)  
-**Success Criteria**: Zero hardcoded rules, complete ChromaDB-centric architecture
+**Success Criteria**: Zero hardcoded rules, complete ChromaDB-centric architecture, enhanced AI presentation capabilities
