@@ -678,9 +678,9 @@ test_requirements:
 ```
 
 ##### Task 1.2.2-1.2.6: Collection Creation (5 days) ⏱️ 40h
-Status: PARTIAL (dev init DONE)
-- Commit-ID: ba73f94
-- LLM-NOTE: Utworzone 5 kolekcji w środowisku dev (ChromaDB 0.4.15) wraz z minimalnym seedem/testem dostępności. Przygotowane do dalszej konfiguracji schematów, indeksów i migracji reguł w następnych krokach.
+Status: PARTIAL (dev init + perf DONE)
+- Commit-ID: ba73f94, 0b11369, 47f9bcc
+- LLM-NOTE: Utworzone 5 kolekcji w środowisku dev (ChromaDB 0.4.15) + metadane schematu i test wydajności. P95 zapytań <100ms (ok. 0.01ms). Gotowe do definicji indeksów i migracji reguł.
 Each collection setup includes:
 - Schema definition with metadata
 - Index optimization
