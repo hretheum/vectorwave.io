@@ -1483,7 +1483,10 @@ test_requirements:
       - test_migration_success_confirmation()
 ```
 
-##### Task 1.3.4A: Rule Transformation Schema Design (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.4A: Rule Transformation Schema Design (0.5 days) ⏱️ 4h 🆕 **ATOMIZED** [DONE]
+Status: DONE
+- Commit-ID: d5a527f
+- LLM-NOTE: Dodano formalny JSON Schema (`editorial-service/migration/schema/rule_document.schema.json`) dla dokumentów reguł oraz walidator (`editorial-service/migration/validate_against_schema.py`). Zaktualizowano dependencies, przygotowano komendę do walidacji wygenerowanych zestawów.
 ```yaml
 objective: "Design comprehensive schema for rule transformation to ChromaDB format"
 deliverable: "Standardized transformation schema and validation rules"
@@ -1492,6 +1495,11 @@ acceptance_criteria:
   - Metadata structure defined
   - Validation rules specified
   - Documentation complete
+
+validation_commands:
+  - "python editorial-service/migration/validate_against_schema.py --path editorial-service/migration/output/chromadb_rules.json | jq '.validation_errors' # Expected: 0"
+  - "python editorial-service/migration/validate_against_schema.py --path editorial-service/migration/output/ai_writing_flow_chromadb_rules.json | jq '.validation_errors' # Expected: 0"
+  - "python editorial-service/migration/validate_against_schema.py --path editorial-service/migration/output/publisher_platform_chromadb_rules.json | jq '.validation_errors' # Expected: 0"
 
 test_requirements:
   unit_tests:
