@@ -34,6 +34,7 @@ class ChromaDBRuleRepository(IRuleRepository):
         self.host: str = host or os.getenv("CHROMADB_HOST", "localhost")
         self.port: int = int(port or os.getenv("CHROMADB_PORT", "8000"))
         self.base_v1: str = f"http://{self.host}:{self.port}/api/v1"
+        self.base_v2: str = f"http://{self.host}:{self.port}/api/v2"
 
         # Collections used by editorial validation
         self.style_collection: str = "style_editorial_rules"
@@ -122,15 +123,15 @@ class ChromaDBRuleRepository(IRuleRepository):
         return None
 
     async def get_collection_stats(self) -> Dict[str, Any]:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"{self.base_v1}/collections")
-            collections = resp.json() if resp.status_code == 200 else []
-        return {"collections": [c.get("name", "unknown") for c in collections], "count": len(collections)}
+        # v2 doesn't expose the same endpoint set; return heartbeat only
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            hb = await client.get(f"{self.base_v2}/heartbeat")
+        return {"v2_heartbeat": hb.status_code == 200}
 
     async def health_check(self) -> bool:
         try:
             async with httpx.AsyncClient(timeout=3.0) as client:
-                hb = await client.get(f"{self.base_v1}/heartbeat")
+                hb = await client.get(f"{self.base_v2}/heartbeat")
                 return hb.status_code == 200
         except Exception:
             return False
