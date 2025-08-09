@@ -1537,7 +1537,10 @@ test_requirements:
       - test_schema_supports_all_discovered_rules()
       - test_schema_documentation_completeness()
 ```
-##### Task 1.3.4B: Rule Transformation Implementation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.4B: Rule Transformation Implementation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED** [DONE]
+Status: DONE
+- Commit-ID: 3c1a9c2
+- LLM-NOTE: Dodano zunifikowany silnik transformacji z walidacją schematu: `editorial-service/migration/rule_transformation_engine.py`. Obsługuje źródła: styleguides/AIWF/platform; wykonuje transformację i walidację JSON Schema. Uwaga: na hoście wymaga `jsonschema`; w kontenerze jest dostępne.
 ```yaml
 objective: "Implement rule transformation logic using designed schema"
 deliverable: "Working rule transformation engine with validation"
@@ -1546,6 +1549,9 @@ acceptance_criteria:
   - Schema validation implemented
   - Error handling and logging included
   - Performance optimization applied
+
+validation_commands:
+  - "python editorial-service/migration/rule_transformation_engine.py --source aiwf --input editorial-service/migration/output/ai_writing_flow_rules_catalog.json | jq '.schema_errors' # Expected: 0"
 
 test_requirements:
   unit_tests:
