@@ -784,7 +784,10 @@ test_requirements:
     - "Zero uncategorized rules"
 ```
 
-##### Task 1.3.1B: Rule Validation & Transformation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.1B: Rule Validation & Transformation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED** [DONE]
+Status: DONE
+- Commit-ID: a026eb5
+- LLM-NOTE: Wygenerowano i zwalidowano 359 reguł z `styleguides` do formatu ChromaDB (0 duplikatów, 0 błędów). Dodano skrypty: `editorial-service/migration/transform_styleguides_to_rules.py` oraz `editorial-service/migration/validate_rules.py`. Wynik: `editorial-service/migration/output/chromadb_rules.json`.
 ```yaml
 objective: "Validate extracted rules and transform to ChromaDB format"
 dependencies: ["Task 1.3.1A"]
@@ -797,8 +800,8 @@ acceptance_criteria:
   - Quality score assigned to each rule
 
 validation_commands:
-  - "python migration/validate_rules.py --check-format | jq '.validation_errors' # Expected: 0"
-  - "python migration/validate_rules.py --check-duplicates | jq '.duplicate_count' # Expected: 0"
+  - "python editorial-service/migration/validate_rules.py --path editorial-service/migration/output/chromadb_rules.json --check-format | jq '.validation_errors' # Expected: 0"
+  - "python editorial-service/migration/validate_rules.py --path editorial-service/migration/output/chromadb_rules.json --check-duplicates | jq '.duplicate_count' # Expected: 0"
 
 test_requirements:
   unit_tests:
