@@ -5,6 +5,7 @@ from typing import Dict, Any
 import time
 from api import router as api_router
 from flows_api import router as flows_router
+from checkpoints_api import router as checkpoints_router
 
 app = FastAPI(
     title="CrewAI Orchestrator Service",
@@ -22,6 +23,7 @@ app.add_middleware(
 
 app.include_router(api_router)
 app.include_router(flows_router)
+app.include_router(checkpoints_router)
 
 class AgentInfo(BaseModel):
     agent_id: str
