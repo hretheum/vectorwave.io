@@ -37,9 +37,9 @@ services:
     purpose: "PPT/PDF generation for LinkedIn manual uploads"
     type: "Content Generation"
     
-  analytics-blackbox:
-    port: 8090
-    purpose: "Performance tracking and user learning (placeholder)"
+  analytics-service:
+    port: 8081
+    purpose: "Multi-platform analytics with realistic API capabilities"
     type: "Business Intelligence"
 ```
 
@@ -1986,230 +1986,757 @@ class AgentExecutionResponse(BaseModel):
 
 ---
 
-## 📊 6. Analytics Blackbox API (Port 8090)
-**Performance tracking and user learning (placeholder implementation)**
+## 📊 6. Analytics Service API (Port 8081)
+**Production-ready multi-platform analytics with realistic platform capabilities**
 
-### 5.1 Publication Performance Tracking
+### 6.1 Platform Analytics Management
 
-#### POST /track-publication
-**Purpose**: Track publication performance for learning system
+#### POST /analytics/platforms/{platform}/configure
+**Purpose**: Configure platform-specific data collection
 ```python
-class PublicationMetrics(BaseModel):
+class PlatformConfig(BaseModel):
     platform: str
-    publication_id: str
-    platform_post_id: str
-    metrics: Dict[str, Union[int, float]]
-    engagement_data: Optional[Dict] = None
-    timestamp: datetime
+    collection_method: str  # api, proxy, manual, csv
+    api_credentials: Optional[Dict] = None
+    proxy_config: Optional[Dict] = None
+    collection_frequency: str = "daily"  # hourly, daily, weekly
+    enabled_metrics: List[str] = []
 
-class TrackingResponse(BaseModel):
+class ConfigurationResponse(BaseModel):
+    platform: str
     status: str
-    publication_id: str
-    metrics_stored: bool
-    learning_updated: bool
-    insights_generated: bool
-    note: str
+    collection_method: str
+    available_metrics: List[str]
+    limitations: List[str]
+    next_collection: Optional[datetime]
 
-@app.post("/track-publication", response_model=TrackingResponse)
-async def track_publication_performance(
-    metrics: PublicationMetrics,
+@app.post("/analytics/platforms/{platform}/configure", response_model=ConfigurationResponse)
+async def configure_platform_analytics(
+    platform: str,
+    config: PlatformConfig,
     current_user: str = Depends(get_current_user)
 ):
     """
-    Track publication performance metrics for future analytics integration
-    Currently a placeholder that stores data for future AI learning systems
+    Configure analytics collection for specific platform based on realistic API capabilities
     """
     
     try:
-        # Store publication performance data
-        # This is a placeholder implementation
-        performance_record = {
-            "publication_id": metrics.publication_id,
-            "platform": metrics.platform,
-            "platform_post_id": metrics.platform_post_id,
-            "metrics": metrics.metrics,
-            "engagement_data": metrics.engagement_data,
-            "tracked_at": datetime.now().isoformat(),
-            "tracked_by": current_user
+        # Validate platform and method compatibility
+        platform_capabilities = {
+            "ghost": {
+                "methods": ["api"],
+                "metrics": ["views", "likes", "comments", "subscribers", "email_opens"],
+                "limitations": []
+            },
+            "twitter": {
+                "methods": ["proxy"],
+                "metrics": ["views", "likes", "retweets", "replies", "bookmarks"],
+                "limitations": ["Requires Typefully Pro subscription", "Limited to scheduled posts only"]
+            },
+            "linkedin": {
+                "methods": ["manual"],
+                "metrics": ["views", "reactions", "comments", "shares"],
+                "limitations": ["No API access", "Manual data entry required", "Limited to public metrics"]
+            },
+            "beehiiv": {
+                "methods": ["csv"],
+                "metrics": ["subscribers", "opens", "clicks", "unsubscribes"],
+                "limitations": ["CSV export only", "Weekly data updates maximum"]
+            }
         }
         
-        # Future: Store in analytics database
-        # Future: Update user preference learning
-        # Future: Feed into recommendation algorithms
-        # Future: Update topic performance predictions
+        if platform not in platform_capabilities:
+            raise HTTPException(status_code=400, detail=f"Unsupported platform: {platform}")
         
-        await placeholder_store_performance_data(performance_record)
+        capabilities = platform_capabilities[platform]
         
-        response = TrackingResponse(
-            status="tracked_placeholder",
-            publication_id=metrics.publication_id,
-            metrics_stored=True,
-            learning_updated=False,  # Future implementation
-            insights_generated=False,  # Future implementation
-            note="Analytics integration coming in future release. Data stored for when analytics system is implemented."
+        if config.collection_method not in capabilities["methods"]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Method '{config.collection_method}' not available for {platform}. Available: {capabilities['methods']}"
+            )
+        
+        # Configure collector based on method
+        collector_manager = AnalyticsCollectorManager(chromadb_client)
+        
+        collector_result = await collector_manager.configure_platform_collector(
+            platform=platform,
+            method=config.collection_method,
+            config=config.dict(),
+            user_id=current_user
         )
+        
+        # Determine next collection time
+        next_collection = None
+        if config.collection_frequency == "hourly":
+            next_collection = datetime.now() + timedelta(hours=1)
+        elif config.collection_frequency == "daily":
+            next_collection = datetime.now() + timedelta(days=1)
+        elif config.collection_frequency == "weekly":
+            next_collection = datetime.now() + timedelta(weeks=1)
+        
+        response = ConfigurationResponse(
+            platform=platform,
+            status="configured",
+            collection_method=config.collection_method,
+            available_metrics=capabilities["metrics"],
+            limitations=capabilities["limitations"],
+            next_collection=next_collection
+        )
+        
+        # Store configuration in ChromaDB
+        await store_platform_configuration(platform, config, response, current_user)
+        
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Platform configuration failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "configuration_failed",
+                "message": "Platform analytics configuration failed",
+                "platform": platform
+            }
+        )
+
+# Example Request - Twitter via Typefully proxy
+POST /analytics/platforms/twitter/configure
+{
+    "platform": "twitter",
+    "collection_method": "proxy",
+    "proxy_config": {
+        "typefully_api_key": "tf_your_api_key",
+        "account_id": "main_twitter_account"
+    },
+    "collection_frequency": "daily",
+    "enabled_metrics": ["views", "likes", "retweets", "replies"]
+}
+
+# Example Response - Twitter
+{
+    "platform": "twitter",
+    "status": "configured",
+    "collection_method": "proxy", 
+    "available_metrics": ["views", "likes", "retweets", "replies", "bookmarks"],
+    "limitations": ["Requires Typefully Pro subscription", "Limited to scheduled posts only"],
+    "next_collection": "2025-01-31T10:30:00Z"
+}
+
+# Example Request - LinkedIn manual configuration
+POST /analytics/platforms/linkedin/configure
+{
+    "platform": "linkedin",
+    "collection_method": "manual",
+    "collection_frequency": "weekly",
+    "enabled_metrics": ["views", "reactions", "comments", "shares"]
+}
+
+# Example Response - LinkedIn
+{
+    "platform": "linkedin",
+    "status": "configured",
+    "collection_method": "manual",
+    "available_metrics": ["views", "reactions", "comments", "shares"],
+    "limitations": ["No API access", "Manual data entry required", "Limited to public metrics"],
+    "next_collection": null
+}
+```
+
+#### POST /analytics/data/manual-entry
+**Purpose**: Manual data entry for platforms without API access
+```python
+class ManualMetricsEntry(BaseModel):
+    publication_id: str
+    platform: str
+    platform_post_id: str
+    metrics: Dict[str, Union[int, float]]
+    screenshot_urls: Optional[List[str]] = []
+    entry_date: datetime
+    notes: Optional[str] = None
+
+class ManualEntryResponse(BaseModel):
+    entry_id: str
+    publication_id: str
+    platform: str
+    metrics_accepted: Dict[str, bool]
+    data_quality_score: float
+    stored_at: datetime
+
+@app.post("/analytics/data/manual-entry", response_model=ManualEntryResponse)
+async def submit_manual_metrics(
+    entry: ManualMetricsEntry,
+    current_user: str = Depends(get_current_user)
+):
+    """
+    Submit manual metrics data for platforms like LinkedIn that lack API access
+    """
+    
+    entry_id = f"manual_{uuid.uuid4().hex[:12]}"
+    start_time = time.time()
+    
+    try:
+        # Validate metrics for platform
+        platform_validator = PlatformMetricsValidator()
+        validation_result = await platform_validator.validate_metrics(
+            platform=entry.platform,
+            metrics=entry.metrics
+        )
+        
+        # Calculate data quality score
+        quality_assessor = ManualDataQualityAssessor()
+        quality_score = await quality_assessor.assess_entry_quality(
+            entry=entry,
+            validation_result=validation_result,
+            user_history=await get_user_entry_history(current_user)
+        )
+        
+        # Store in ChromaDB analytics collection
+        analytics_collection = chromadb_client.get_collection("platform_analytics")
+        
+        analytics_document = {
+            "content": f"{entry.platform} metrics for {entry.publication_id}",
+            "metadata": {
+                "entry_id": entry_id,
+                "publication_id": entry.publication_id,
+                "platform": entry.platform,
+                "platform_post_id": entry.platform_post_id,
+                "collection_method": "manual",
+                "metrics": entry.metrics,
+                "quality_score": quality_score,
+                "validation_status": validation_result.status,
+                "screenshot_urls": entry.screenshot_urls,
+                "entry_date": entry.entry_date.isoformat(),
+                "submitted_by": current_user,
+                "submitted_at": datetime.now().isoformat(),
+                "notes": entry.notes,
+                "processed": False
+            }
+        }
+        
+        analytics_collection.add(
+            documents=[analytics_document["content"]],
+            metadatas=[analytics_document["metadata"]], 
+            ids=[entry_id]
+        )
+        
+        response = ManualEntryResponse(
+            entry_id=entry_id,
+            publication_id=entry.publication_id,
+            platform=entry.platform,
+            metrics_accepted=validation_result.accepted_metrics,
+            data_quality_score=quality_score,
+            stored_at=datetime.now()
+        )
+        
+        # Trigger data processing workflow
+        await trigger_manual_data_processing(entry_id, response)
         
         return response
         
     except Exception as e:
-        logger.error(f"Performance tracking failed: {e}")
+        logger.error(f"Manual entry submission failed: {e}")
         raise HTTPException(
             status_code=500,
             detail={
-                "error": "tracking_failed",
-                "message": "Performance tracking encountered an error",
-                "publication_id": metrics.publication_id
+                "error": "manual_entry_failed",
+                "message": "Manual metrics submission failed",
+                "entry_id": entry_id
             }
         )
 
-# Example Request
-POST /track-publication
+# Example Request - LinkedIn manual entry
+POST /analytics/data/manual-entry
 {
-    "platform": "linkedin",
     "publication_id": "pub_a1b2c3d4e5f6g7h8",
-    "platform_post_id": "linkedin_post_abc123",
+    "platform": "linkedin", 
+    "platform_post_id": "linkedin_activity_123456",
     "metrics": {
-        "views": 1247,
-        "likes": 89,
+        "views": 2847,
+        "reactions": 156,
         "comments": 23,
-        "shares": 15,
-        "clicks": 156,
-        "engagement_rate": 0.103
+        "shares": 31,
+        "profile_visits": 12,
+        "engagement_rate": 0.074
     },
-    "engagement_data": {
-        "top_performing_time": "2025-01-30T14:30:00Z",
-        "audience_demographics": {
-            "industries": ["Technology", "Marketing", "Consulting"],
-            "seniority_levels": ["Manager", "Director", "VP"]
-        }
-    },
-    "timestamp": "2025-01-30T15:00:00Z"
+    "screenshot_urls": [
+        "https://storage.com/analytics/linkedin_metrics_screenshot_1.png"
+    ],
+    "entry_date": "2025-01-30T09:00:00Z",
+    "notes": "Peak engagement occurred Tuesday morning. High comment quality."
 }
 
 # Example Response
 {
-    "status": "tracked_placeholder",
+    "entry_id": "manual_a1b2c3d4e5f6",
     "publication_id": "pub_a1b2c3d4e5f6g7h8",
-    "metrics_stored": true,
-    "learning_updated": false,
-    "insights_generated": false,
-    "note": "Analytics integration coming in future release. Data stored for when analytics system is implemented."
+    "platform": "linkedin",
+    "metrics_accepted": {
+        "views": true,
+        "reactions": true,
+        "comments": true,
+        "shares": true,
+        "profile_visits": true,
+        "engagement_rate": true
+    },
+    "data_quality_score": 0.92,
+    "stored_at": "2025-01-30T10:45:00Z"
 }
 ```
 
-#### GET /insights/{user_id}
-**Purpose**: Get personalized publishing insights (placeholder)
-```python
-class UserInsights(BaseModel):
-    user_id: str
-    insights: Dict[str, Any]
-    recommendations: List[str]
-    performance_summary: Dict[str, float]
-    prediction_accuracy: Optional[float]
-    last_updated: datetime
+### 6.2 CSV Data Import & Processing
 
-@app.get("/insights/{user_id}", response_model=UserInsights)
-async def get_user_insights(
-    user_id: str,
-    time_period: str = "30d",  # 7d, 30d, 90d, 1y
-    platforms: Optional[List[str]] = None,
+#### POST /analytics/data/csv-import
+**Purpose**: Import CSV analytics data from platforms like Beehiiv
+```python
+class CSVImportRequest(BaseModel):
+    platform: str
+    file_url: str
+    date_range: Dict[str, str]
+    column_mapping: Dict[str, str]
+    import_settings: Optional[Dict] = {}
+
+class CSVImportResponse(BaseModel):
+    import_id: str
+    platform: str
+    status: str
+    records_processed: int
+    records_imported: int
+    records_skipped: int
+    validation_errors: List[str]
+    processing_time_ms: float
+
+@app.post("/analytics/data/csv-import", response_model=CSVImportResponse)
+async def import_csv_analytics(
+    request: CSVImportRequest,
     current_user: str = Depends(get_current_user)
 ):
     """
-    Get personalized publishing insights and recommendations
-    Currently returns placeholder data for future analytics implementation
+    Import analytics data from CSV files for platforms like Beehiiv
     """
     
+    import_id = f"csv_import_{uuid.uuid4().hex[:8]}"
+    start_time = time.time()
+    
     try:
-        # Future: Generate AI-powered insights
-        # Future: Performance analysis and recommendations
-        # Future: Predictive analytics for optimal timing
-        # Future: Content performance patterns
+        # Download and validate CSV file
+        csv_processor = CSVAnalyticsProcessor(chromadb_client)
         
-        # Placeholder implementation
-        placeholder_insights = {
-            "user_id": user_id,
-            "insights": {
-                "message": "Advanced analytics insights coming soon",
-                "data_collected": "Performance data is being collected for future analysis",
-                "estimated_launch": "Q2 2025",
-                "placeholder_data": {
-                    "best_performing_platforms": ["linkedin", "twitter"],
-                    "optimal_posting_times": {
-                        "linkedin": "Tuesday 9:00 AM EST",
-                        "twitter": "Wednesday 2:00 PM EST"
-                    },
-                    "content_type_performance": {
-                        "tutorial": "High engagement (avg 0.12 rate)",
-                        "thought_leadership": "Medium engagement (avg 0.08 rate)",
-                        "industry_update": "Variable engagement (0.05-0.15 rate)"
-                    }
+        download_result = await csv_processor.download_and_validate_csv(
+            file_url=request.file_url,
+            platform=request.platform,
+            expected_columns=list(request.column_mapping.values())
+        )
+        
+        if not download_result.valid:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "invalid_csv",
+                    "message": "CSV validation failed",
+                    "issues": download_result.issues
                 }
-            },
-            "recommendations": [
-                "Post more tutorial content on LinkedIn for higher engagement",
-                "Schedule Twitter posts for Wednesday afternoons",
-                "Consider adding more data-driven insights to thought leadership pieces",
-                "Experiment with video content for better reach"
-            ],
-            "performance_summary": {
-                "avg_engagement_rate": 0.089,
-                "total_publications": 42,
-                "best_performing_platform": "linkedin",
-                "content_improvement_trend": 0.15
-            },
-            "prediction_accuracy": None,  # Will be available when AI system is implemented
-            "last_updated": datetime.now()
-        }
+            )
         
-        return UserInsights(**placeholder_insights)
+        # Process CSV data
+        processing_result = await csv_processor.process_csv_data(
+            csv_data=download_result.data,
+            platform=request.platform,
+            column_mapping=request.column_mapping,
+            date_range=request.date_range,
+            import_settings=request.import_settings
+        )
         
+        # Store processed data in ChromaDB
+        imported_count = await store_csv_analytics_data(
+            import_id=import_id,
+            platform=request.platform,
+            processed_data=processing_result.processed_records,
+            user_id=current_user
+        )
+        
+        processing_time = (time.time() - start_time) * 1000
+        
+        response = CSVImportResponse(
+            import_id=import_id,
+            platform=request.platform,
+            status="completed",
+            records_processed=processing_result.total_records,
+            records_imported=imported_count,
+            records_skipped=processing_result.total_records - imported_count,
+            validation_errors=processing_result.validation_errors,
+            processing_time_ms=processing_time
+        )
+        
+        return response
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Insights generation failed: {e}")
+        logger.error(f"CSV import failed: {e}")
         raise HTTPException(
             status_code=500,
             detail={
-                "error": "insights_failed",
-                "message": "Insights generation encountered an error",
-                "user_id": user_id,
-                "note": "This is a placeholder implementation"
+                "error": "csv_import_failed",
+                "message": "CSV analytics import failed",
+                "import_id": import_id
+            }
+        )
+
+# Example Request - Beehiiv newsletter analytics
+POST /analytics/data/csv-import
+{
+    "platform": "beehiiv",
+    "file_url": "https://storage.com/beehiiv_analytics_jan2025.csv",
+    "date_range": {
+        "start_date": "2025-01-01",
+        "end_date": "2025-01-31"
+    },
+    "column_mapping": {
+        "publication_date": "Date",
+        "publication_title": "Email Subject",
+        "subscribers_sent": "Total Sent",
+        "opens": "Total Opens", 
+        "clicks": "Total Clicks",
+        "unsubscribes": "Unsubscribes",
+        "open_rate": "Open Rate %",
+        "click_rate": "Click Rate %"
+    },
+    "import_settings": {
+        "skip_duplicates": true,
+        "validate_dates": true,
+        "normalize_percentages": true
+    }
+}
+
+# Example Response
+{
+    "import_id": "csv_import_b2e4f6g8",
+    "platform": "beehiiv",
+    "status": "completed",
+    "records_processed": 24,
+    "records_imported": 22,
+    "records_skipped": 2,
+    "validation_errors": [
+        "Row 15: Invalid date format '2025/13/01'",
+        "Row 18: Missing required field 'Total Sent'"
+    ],
+    "processing_time_ms": 1847.2
+}
+```
+
+### 6.3 Analytics Insights & Reporting
+
+#### GET /analytics/insights/{user_id}
+**Purpose**: Generate data-driven insights from collected analytics
+```python
+class AnalyticsInsights(BaseModel):
+    user_id: str
+    time_period: str
+    total_publications: int
+    platforms_analyzed: List[str]
+    
+    # Performance metrics
+    overall_performance: Dict[str, float]
+    platform_comparison: Dict[str, Dict[str, float]]
+    content_type_performance: Dict[str, Dict[str, float]]
+    trending_topics: List[Dict]
+    
+    # Insights and recommendations  
+    key_insights: List[str]
+    recommendations: List[str]
+    optimal_posting_schedule: Dict[str, str]
+    
+    # Data quality and coverage
+    data_coverage: Dict[str, float]
+    data_quality_score: float
+    
+    generated_at: datetime
+
+@app.get("/analytics/insights/{user_id}", response_model=AnalyticsInsights)
+async def get_analytics_insights(
+    user_id: str,
+    time_period: str = "30d",
+    platforms: Optional[List[str]] = None,
+    content_types: Optional[List[str]] = None,
+    current_user: str = Depends(get_current_user)
+):
+    """
+    Generate comprehensive analytics insights based on collected data
+    """
+    
+    try:
+        # Query analytics data from ChromaDB
+        insights_generator = AnalyticsInsightsGenerator(chromadb_client)
+        
+        analytics_data = await insights_generator.query_user_analytics(
+            user_id=user_id,
+            time_period=time_period,
+            platforms=platforms,
+            content_types=content_types
+        )
+        
+        if not analytics_data.sufficient_data:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "insufficient_data", 
+                    "message": "Not enough analytics data available for insights generation",
+                    "data_points": analytics_data.total_data_points,
+                    "minimum_required": 10
+                }
+            )
+        
+        # Generate performance analysis
+        performance_analyzer = PerformanceAnalyzer()
+        performance_results = await performance_analyzer.analyze_performance(
+            analytics_data=analytics_data,
+            time_period=time_period
+        )
+        
+        # Generate insights and recommendations
+        insight_engine = InsightGenerationEngine(chromadb_client)
+        insights_result = await insight_engine.generate_insights(
+            performance_data=performance_results,
+            user_history=analytics_data,
+            time_period=time_period
+        )
+        
+        # Calculate data quality and coverage
+        data_assessor = DataQualityAssessor()
+        quality_assessment = await data_assessor.assess_data_quality(
+            analytics_data=analytics_data,
+            platforms=platforms
+        )
+        
+        response = AnalyticsInsights(
+            user_id=user_id,
+            time_period=time_period,
+            total_publications=analytics_data.total_publications,
+            platforms_analyzed=list(analytics_data.platforms_data.keys()),
+            overall_performance=performance_results.overall_metrics,
+            platform_comparison=performance_results.platform_comparison,
+            content_type_performance=performance_results.content_type_analysis,
+            trending_topics=insights_result.trending_topics,
+            key_insights=insights_result.key_insights,
+            recommendations=insights_result.recommendations,
+            optimal_posting_schedule=insights_result.optimal_schedule,
+            data_coverage=quality_assessment.coverage_by_platform,
+            data_quality_score=quality_assessment.overall_quality_score,
+            generated_at=datetime.now()
+        )
+        
+        # Store insights for future reference
+        await store_generated_insights(user_id, response)
+        
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Analytics insights generation failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "insights_generation_failed",
+                "message": "Analytics insights generation failed",
+                "user_id": user_id
             }
         )
 
 # Example Response
 {
     "user_id": "user_123",
-    "insights": {
-        "message": "Advanced analytics insights coming soon",
-        "data_collected": "Performance data is being collected for future analysis",
-        "estimated_launch": "Q2 2025",
-        "placeholder_data": {
-            "best_performing_platforms": ["linkedin", "twitter"],
-            "optimal_posting_times": {
-                "linkedin": "Tuesday 9:00 AM EST",
-                "twitter": "Wednesday 2:00 PM EST"
-            },
-            "content_type_performance": {
-                "tutorial": "High engagement (avg 0.12 rate)",
-                "thought_leadership": "Medium engagement (avg 0.08 rate)",
-                "industry_update": "Variable engagement (0.05-0.15 rate)"
-            }
+    "time_period": "30d",
+    "total_publications": 18,
+    "platforms_analyzed": ["ghost", "twitter", "linkedin"],
+    "overall_performance": {
+        "avg_engagement_rate": 0.087,
+        "total_reach": 15647,
+        "total_interactions": 1361,
+        "growth_rate": 0.23
+    },
+    "platform_comparison": {
+        "ghost": {
+            "avg_views": 1247,
+            "avg_engagement_rate": 0.043,
+            "best_performing_type": "tutorial"
+        },
+        "twitter": {
+            "avg_views": 3892,
+            "avg_engagement_rate": 0.078,
+            "best_performing_type": "industry_update"
+        },
+        "linkedin": {
+            "avg_views": 2156,
+            "avg_engagement_rate": 0.134,
+            "best_performing_type": "thought_leadership"
         }
     },
-    "recommendations": [
-        "Post more tutorial content on LinkedIn for higher engagement",
-        "Schedule Twitter posts for Wednesday afternoons",
-        "Consider adding more data-driven insights to thought leadership pieces",
-        "Experiment with video content for better reach"
-    ],
-    "performance_summary": {
-        "avg_engagement_rate": 0.089,
-        "total_publications": 42,
-        "best_performing_platform": "linkedin",
-        "content_improvement_trend": 0.15
+    "content_type_performance": {
+        "thought_leadership": {
+            "total_posts": 6,
+            "avg_engagement": 0.112,
+            "best_platform": "linkedin"
+        },
+        "tutorial": {
+            "total_posts": 8,
+            "avg_engagement": 0.089,
+            "best_platform": "ghost"
+        },
+        "industry_update": {
+            "total_posts": 4,
+            "avg_engagement": 0.063,
+            "best_platform": "twitter"
+        }
     },
-    "prediction_accuracy": null,
-    "last_updated": "2025-01-30T10:50:22.123Z"
+    "trending_topics": [
+        {
+            "topic": "AI in software development",
+            "mentions": 3,
+            "avg_performance": 0.145,
+            "trend_score": 0.89
+        }
+    ],
+    "key_insights": [
+        "LinkedIn content performs 54% better than other platforms for thought leadership",
+        "Tutorial content on Ghost has 67% higher completion rates",
+        "Tuesday morning posts get 32% more engagement than weekend posts",
+        "AI-related topics show 23% higher engagement than general tech content"
+    ],
+    "recommendations": [
+        "Focus more thought leadership content on LinkedIn",
+        "Schedule Twitter posts for Tuesday-Thursday 2-4 PM EST",
+        "Expand AI/ML tutorial content on Ghost blog",
+        "Cross-promote LinkedIn posts on Twitter within 2 hours"
+    ],
+    "optimal_posting_schedule": {
+        "linkedin": "Tuesday 9:00 AM EST",
+        "twitter": "Wednesday 2:30 PM EST", 
+        "ghost": "Thursday 8:00 AM EST"
+    },
+    "data_coverage": {
+        "ghost": 0.95,
+        "twitter": 0.78,
+        "linkedin": 0.61
+    },
+    "data_quality_score": 0.84,
+    "generated_at": "2025-01-30T11:15:22Z"
+}
+```
+
+### 6.4 Analytics Data Export & Visualization
+
+#### GET /analytics/export/{user_id}
+**Purpose**: Export analytics data for external analysis
+```python
+class AnalyticsExportRequest(BaseModel):
+    format: str  # json, csv, xlsx
+    time_period: str = "30d"
+    platforms: Optional[List[str]] = None
+    include_raw_data: bool = True
+    include_insights: bool = False
+
+class ExportResponse(BaseModel):
+    export_id: str
+    format: str
+    file_url: str
+    file_size_mb: float
+    records_exported: int
+    expires_at: datetime
+    generated_at: datetime
+
+@app.get("/analytics/export/{user_id}", response_model=ExportResponse)
+async def export_analytics_data(
+    user_id: str,
+    format: str = "json",
+    time_period: str = "30d",
+    platforms: Optional[List[str]] = None,
+    include_raw_data: bool = True,
+    include_insights: bool = False,
+    current_user: str = Depends(get_current_user)
+):
+    """
+    Export analytics data in various formats for external analysis
+    """
+    
+    export_id = f"export_{uuid.uuid4().hex[:8]}"
+    start_time = time.time()
+    
+    try:
+        # Query and aggregate data
+        data_exporter = AnalyticsDataExporter(chromadb_client)
+        
+        export_data = await data_exporter.prepare_export_data(
+            user_id=user_id,
+            time_period=time_period,
+            platforms=platforms,
+            include_raw_data=include_raw_data,
+            include_insights=include_insights
+        )
+        
+        # Generate export file
+        file_generator = ExportFileGenerator()
+        
+        export_file = await file_generator.generate_export_file(
+            export_id=export_id,
+            format=format,
+            data=export_data,
+            metadata={
+                "user_id": user_id,
+                "time_period": time_period,
+                "platforms": platforms,
+                "generated_by": current_user,
+                "generated_at": datetime.now().isoformat()
+            }
+        )
+        
+        # Upload to storage and generate download URL
+        file_storage = AnalyticsFileStorage()
+        upload_result = await file_storage.upload_export_file(
+            export_id=export_id,
+            format=format,
+            file_data=export_file.data,
+            user_id=user_id
+        )
+        
+        response = ExportResponse(
+            export_id=export_id,
+            format=format,
+            file_url=upload_result.download_url,
+            file_size_mb=export_file.size_mb,
+            records_exported=export_data.total_records,
+            expires_at=datetime.now() + timedelta(days=7),
+            generated_at=datetime.now()
+        )
+        
+        # Log export activity
+        await log_export_activity(user_id, export_id, response)
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Analytics export failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "export_failed",
+                "message": "Analytics data export failed",
+                "export_id": export_id
+            }
+        )
+
+# Example Response
+{
+    "export_id": "export_x1y2z3a4",
+    "format": "xlsx",
+    "file_url": "https://analytics-exports.com/user_123/export_x1y2z3a4.xlsx?expires=1706616000",
+    "file_size_mb": 2.7,
+    "records_exported": 847,
+    "expires_at": "2025-02-06T11:15:00Z",
+    "generated_at": "2025-01-30T11:15:00Z"
 }
 ```
 
@@ -2539,8 +3066,8 @@ servers:
     description: Publishing Orchestrator
   - url: http://localhost:8089
     description: Presentor Service
-  - url: http://localhost:8090
-    description: Analytics Blackbox
+  - url: http://localhost:8081
+    description: Analytics Service
 
 security:
   - bearerAuth: []
@@ -2791,8 +3318,8 @@ tags:
     description: Multi-platform publishing coordination
   - name: Presentor Service
     description: PPT/PDF generation for LinkedIn manual uploads
-  - name: Analytics Blackbox
-    description: Performance tracking and user learning (placeholder)
+  - name: Analytics Service
+    description: Multi-platform analytics with realistic capabilities
   - name: System
     description: System health and monitoring endpoints
 ```
