@@ -27,8 +27,31 @@ docker compose --profile analytics up -d
 ```
 
 ## Health checks
+We use container health checks to ensure dependencies are ready:
+
+- ChromaDB v2 heartbeat:
+```yaml
+healthcheck:
+  test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8000/api/v2/heartbeat"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 20s
+```
+
+- CrewAI Orchestrator health:
+```yaml
+healthcheck:
+  test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8042/health"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 20s
+```
+
+Quick manual checks:
 ```bash
-curl -s http://localhost:8000/api/v1/heartbeat
+curl -s http://localhost:8000/api/v2/heartbeat
 curl -s http://localhost:8040/health
 curl -s http://localhost:8042/health
 ```
