@@ -1107,7 +1107,10 @@ test_requirements:
       - test_complete_ai_writing_flow_coverage()
       - test_rule_catalog_completeness()
 ```
-##### Task 1.3.2B: AI Writing Flow Rule Validation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.2B: AI Writing Flow Rule Validation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED** [DONE]
+Status: DONE
+- Commit-ID: 12c4fad
+- LLM-NOTE: Ztransformowano i zwalidowano reguły AI Writing Flow do formatu ChromaDB. Wygenerowano `editorial-service/migration/output/ai_writing_flow_chromadb_rules.json` (610 reguł, 0 duplikatów, 0 błędów). Skrypty: `editorial-service/migration/transform_ai_writing_flow_rules.py`, `editorial-service/migration/validate_ai_writing_flow_rules.py`.
 ```yaml
 objective: "Validate discovered AI Writing Flow rules for ChromaDB migration"
 deliverable: "Validated and transformed rule set ready for ChromaDB import"
@@ -1116,6 +1119,11 @@ acceptance_criteria:
   - Duplicate rules identified and merged
   - ChromaDB format transformation complete
   - Metadata enrichment applied
+
+validation_commands:
+  - "python editorial-service/migration/transform_ai_writing_flow_rules.py | jq '.count' # Expected: > 300"
+  - "python editorial-service/migration/validate_ai_writing_flow_rules.py --check-format --check-duplicates | jq '[.validation_errors,.duplicate_count]'
+    # Expected: [0,0]"
 
 test_requirements:
   unit_tests:
