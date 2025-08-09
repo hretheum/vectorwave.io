@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vectorwave.io/schemas/rule_document.schema.json",
+  "title": "Vector Wave Rule Document",
+  "type": "object",
+  "required": ["content", "metadata"],
+  "properties": {
+    "content": {"type": "string", "minLength": 5},
+    "metadata": {
+      "type": "object",
+      "required": [
+        "rule_id", "rule_type", "platform", "workflow",
+        "priority", "rule_action", "created_at", "source"
+      ],
+      "properties": {
+        "rule_id": {"type": "string", "minLength": 1},
+        "rule_type": {
+          "type": "string",
+          "enum": ["style", "structure", "quality", "editorial", "grammar", "tone", "engagement"]
+        },
+        "platform": {
+          "type": "string",
+          "enum": ["universal", "linkedin", "twitter", "substack", "beehiiv", "ghost", "youtube"]
+        },
+        "platform_specific": {"type": "boolean"},
+        "workflow": {"type": "string", "enum": ["comprehensive", "selective", "both"]},
+        "priority": {"type": "string", "enum": ["critical", "high", "medium", "low"]},
+        "checkpoint": {
+          "anyOf": [
+            {"type": "null"},
+            {"type": "string", "enum": ["pre_writing", "mid_writing", "post_writing"]}
+          ]
+        },
+        "rule_action": {"type": "string", "enum": ["forbid", "require", "suggest", "optimize"]},
+        "confidence_threshold": {"type": "number", "minimum": 0, "maximum": 1},
+        "auto_fix": {"type": "boolean"},
+        "applies_to": {"type": "array", "items": {"type": "string"}},
+        "content_length_range": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {"type": "integer", "minimum": 0}
+        },
+        "audience_type": {
+          "type": "string",
+          "enum": ["professional", "casual", "technical", "general"]
+        },
+        "created_at": {"type": "string"},
+        "updated_at": {"type": "string"},
+        "source": {
+          "type": "string",
+          "enum": [
+            "kolegium_migration",
+            "ai_writing_flow_migration",
+            "publisher_migration",
+            "styleguides",
+            "manual",
+            "auto_generated"
+          ]
+        },
+        "migrated_from": {"type": "string"},
+        "version": {"type": "integer", "minimum": 0},
+        "usage_count": {"type": "integer", "minimum": 0},
+        "success_rate": {"type": "number", "minimum": 0, "maximum": 1},
+        "last_used": {"type": ["string", "null"]},
+        "related_rules": {"type": "array", "items": {"type": "string"}},
+        "conflicts_with": {"type": "array", "items": {"type": "string"}},
+        "supersedes": {"type": "array", "items": {"type": "string"}},
+        "quality_score": {"type": "number", "minimum": 0, "maximum": 1},
+        "platform_constraints": {"type": ["object", "array", "null"]},
+        "discovery": {"type": ["object", "null"]}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
