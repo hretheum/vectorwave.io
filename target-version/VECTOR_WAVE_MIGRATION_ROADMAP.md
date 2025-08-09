@@ -1935,7 +1935,10 @@ test_requirements:
       - test_circuit_breaker_long_term_stability()
 ```
 
-##### Task 1.4.2: ChromaDB-Only Cache (1.5 days) ⏱️ 12h
+##### Task 1.4.2: ChromaDB-Only Cache (1.5 days) ⏱️ 12h [DONE]
+Status: DONE
+- Commit-ID: f2e4c10
+- LLM-NOTE: Dodano cache „tylko ChromaDB” dla wyników reguł: `editorial-service/src/cache/chromadb_cache.py` + testy `editorial-service/tests/test_chromadb_cache.py`. Cache przyjmuje wyłącznie reguły z poprawnym `chromadb_metadata`, dodaje `cache_metadata`, posiada `stats()` i `clear()`.
 ```python
 # editorial-service/src/chromadb_cache.py
 import json
