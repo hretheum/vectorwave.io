@@ -2569,6 +2569,25 @@ class LinearFlowEngine:
         ]
 ```
 
+##### Task 1.5.4: Checkpoint Management System (1 day) ⏱️ 8h [DONE]
+```yaml
+objective: "Implement 3-checkpoint validation system with user intervention points"
+deliverable: "Checkpoint system with state persistence"
+Status: DONE
+Commit-ID: 213e47b
+
+acceptance_criteria:
+  - 3 checkpoints (pre-writing, mid-writing, post-writing) implemented
+  - Users can intervene at any checkpoint to modify content
+  - State persisted between checkpoints with recovery capability
+  - Checkpoint-specific validation (selective) via Editorial Service
+
+validation_commands:
+  - "curl -X POST http://localhost:8042/checkpoints/create -H 'Content-Type: application/json' -d '{\"content\":\"test\",\"platform\":\"linkedin\",\"checkpoint\":\"pre_writing\"}'"
+  - "curl http://localhost:8042/checkpoints/status/{checkpoint_id}"
+  - "curl -X POST http://localhost:8042/checkpoints/{checkpoint_id}/intervene -H 'Content-Type: application/json' -d '{\"user_input\":\"replace::foo::bar\",\"finalize\":false}'"
+```
+
 ##### Task 1.5.4: Checkpoint Management System (1 day) ⏱️ 8h
 ```yaml
 objective: "Implement 3-checkpoint validation system with user intervention points"
