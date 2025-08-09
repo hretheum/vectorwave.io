@@ -5,8 +5,7 @@ import asyncio
 from pathlib import Path
 import pytest
 
-# Ensure pytest-asyncio plugin is loaded
-pytest_plugins = ("pytest_asyncio",)
+# Note: do not declare pytest_plugins here to avoid deprecation warning
 
 # Ensure /app and /app/src are available during pytest collection (docker image)
 app_path = Path('/app')
