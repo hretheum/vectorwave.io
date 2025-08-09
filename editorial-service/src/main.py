@@ -426,8 +426,10 @@ async def _selective_validate_internal(
         checkpoint=domain_checkpoint,
         metadata={"platform": platform} if platform else None,
     )
-    use_mock = os.getenv("EDITORIAL_USE_MOCK_RULES", "true").lower() == "true"
-    repo = MockRuleRepository() if use_mock or not ChromaDBRuleRepository else ChromaDBRuleRepository()
+    # CRITICAL: No mock fallback per target-version rules
+    if not ChromaDBRuleRepository:
+        raise RuntimeError("ChromaDB repository not available")
+    repo = ChromaDBRuleRepository()
     factory = ValidationStrategyFactory(repo)
     strategy = factory.create("selective")
     domain_rules = await strategy.validate(domain_request)
@@ -453,8 +455,10 @@ async def validate_comprehensive(request: ValidationRequest):
         metadata={"platform": request.platform} if request.platform else None,
     )
     # Resolve strategy and repository
-    use_mock = os.getenv("EDITORIAL_USE_MOCK_RULES", "true").lower() == "true"
-    repo = MockRuleRepository() if use_mock or not ChromaDBRuleRepository else ChromaDBRuleRepository()
+    # CRITICAL: No mock fallback per target-version rules
+    if not ChromaDBRuleRepository:
+        raise RuntimeError("ChromaDB repository not available")
+    repo = ChromaDBRuleRepository()
     factory = ValidationStrategyFactory(repo)
     strategy = factory.create("comprehensive")
     domain_rules = await strategy.validate(domain_request)
