@@ -150,3 +150,14 @@ class ValidationStrategyFactory:
             'expected_rule_range': temp_strategy.get_expected_rule_count_range(),
             'class_name': strategy_class.__name__
         }
+
+    def list_strategies(self) -> list[dict]:
+        """List all available strategies with their metadata.
+
+        Returns:
+            List of dictionaries describing each strategy.
+        """
+        infos: list[dict] = []
+        for mode in self.get_available_modes():
+            infos.append(self.get_strategy_info(mode))
+        return infos
