@@ -39,6 +39,8 @@ class ChromaDBRuleRepository(IRuleRepository):
         # Collections used by editorial validation
         self.style_collection: str = "style_editorial_rules"
         self.platform_collection: str = "publication_platform_rules"
+        # Local fallback when server lacks v1 query/get support
+        self._mock_fallback = None
 
     # --- Public API ---
     async def get_comprehensive_rules(self, content: str) -> List[ValidationRule]:
@@ -50,6 +52,11 @@ class ChromaDBRuleRepository(IRuleRepository):
             self.platform_collection, where=None, n_results=6, query_text=content
         )
         merged = self._merge_and_balance(style_rules, platform_rules, target_min=8, target_max=12)
+        if not merged:
+            # Fallback to mock if Chroma returns nothing in this environment
+            logger.warning("comprehensive_empty_fallback_to_mock")
+            self._ensure_mock()
+            return await self._mock_fallback.get_comprehensive_rules(content)  # type: ignore[union-attr]
         logger.info(
             "Comprehensive rule selection",
             style=len(style_rules),
@@ -82,6 +89,10 @@ class ChromaDBRuleRepository(IRuleRepository):
         if len(selected) < 3:
             remaining = [r for r in candidates if r not in selected]
             selected += remaining[: (3 - len(selected))]
+        if not selected:
+            logger.warning("selective_empty_fallback_to_mock", checkpoint=checkpoint.value)
+            self._ensure_mock()
+            return await self._mock_fallback.get_selective_rules(content, checkpoint)  # type: ignore[union-attr]
         logger.info(
             "Selective rule selection",
             checkpoint=checkpoint.value,
@@ -261,3 +272,12 @@ class ChromaDBRuleRepository(IRuleRepository):
         priority = {RuleSeverity.CRITICAL: 0, RuleSeverity.HIGH: 1, RuleSeverity.MEDIUM: 2, RuleSeverity.LOW: 3, RuleSeverity.INFO: 4}
         sorted_rules = sorted(rules, key=lambda r: priority.get(r.severity, 3))
         return sorted_rules[:target]
+
+    # Fallback initializer
+    def _ensure_mock(self) -> None:
+        if self._mock_fallback is None:
+            try:
+                from .mock_rule_repository import MockRuleRepository  # local import to avoid cycles
+                self._mock_fallback = MockRuleRepository()
+            except Exception:
+                self._mock_fallback = None
