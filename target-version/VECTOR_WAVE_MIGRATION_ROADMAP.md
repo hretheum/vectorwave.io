@@ -2091,7 +2091,10 @@ test_requirements:
 
 #### **WEEK 6: CrewAI Orchestrator Service** 🆕 **CRITICAL ADDITION**
 
-##### Task 1.5.1: FastAPI CrewAI Service Foundation (1 day) ⏱️ 8h
+##### Task 1.5.1: FastAPI CrewAI Service Foundation (1 day) ⏱️ 8h [DONE]
+Status: DONE
+- Commit-ID: e7b6a21
+- LLM-NOTE: Utworzono fundament serwisu CrewAI Orchestrator (port 8042) z endpointami `/health`, `/agents/registered`, `/agents/register`, konfiguracją CORS i Dockerfile. Pliki: `crewai-orchestrator/src/main.py`, `crewai-orchestrator/requirements.txt`, `crewai-orchestrator/Dockerfile`.
 ```yaml
 objective: "Create dedicated CrewAI Orchestrator Service foundation"
 deliverable: "Working FastAPI service on port 8042"
