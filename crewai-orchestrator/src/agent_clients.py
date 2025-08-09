@@ -42,12 +42,13 @@ class CircuitBreaker:
 
 
 class AgentHTTPClient:
-    def __init__(self, agent_type: str, editorial_service_url: str = "http://localhost:8040") -> None:
+    def __init__(self, agent_type: str, editorial_service_url: str = "http://localhost:8040", monitor=None) -> None:
         self.agent_type = agent_type
         self.editorial_url = editorial_service_url.rstrip("/")
         self.client = httpx.AsyncClient(timeout=30.0)
         self.circuit_breaker = CircuitBreaker()
         self._supports_validation: Optional[bool] = None
+        self._monitor = monitor
 
     async def validate_content(self, content: str, platform: str, validation_mode: str = "comprehensive") -> Dict[str, Any]:
         # Ensure Editorial Service exposes validation endpoints
@@ -63,11 +64,20 @@ class AgentHTTPClient:
 
         async def _make_request():
             endpoint = f"{self.editorial_url}/validate/{validation_mode}"
+            start = time.time()
             resp = await self.client.post(endpoint, json=payload)
             resp.raise_for_status()
-            return resp.json()
+            data = resp.json()
+            if self._monitor:
+                await self._monitor.record_call(self.agent_type, (time.time() - start) * 1000, success=True)
+            return data
 
-        return await self.circuit_breaker.call(_make_request)
+        try:
+            return await self.circuit_breaker.call(_make_request)
+        except Exception as e:
+            if self._monitor:
+                await self._monitor.record_call(self.agent_type, 0.0, success=False, error=str(e))
+            raise
 
     async def _ensure_validation_supported(self) -> None:
         if self._supports_validation is not None:
@@ -101,13 +111,19 @@ class AgentHTTPClient:
 
 class CrewAIAgentClients:
     def __init__(self, editorial_service_url: str = "http://localhost:8040") -> None:
+        # Build agents first
         self.agents: Dict[str, AgentHTTPClient] = {
-            "research": AgentHTTPClient("research", editorial_service_url),
-            "audience": AgentHTTPClient("audience", editorial_service_url),
-            "writer": AgentHTTPClient("writer", editorial_service_url),
-            "style": AgentHTTPClient("style", editorial_service_url),
-            "quality": AgentHTTPClient("quality", editorial_service_url),
+            "research": AgentHTTPClient("research", editorial_service_url, None),
+            "audience": AgentHTTPClient("audience", editorial_service_url, None),
+            "writer": AgentHTTPClient("writer", editorial_service_url, None),
+            "style": AgentHTTPClient("style", editorial_service_url, None),
+            "quality": AgentHTTPClient("quality", editorial_service_url, None),
         }
+        # Then create monitor (needs agents list) and attach to each client
+        from monitoring import AgentPerformanceMonitor  # type: ignore
+        self.monitor = AgentPerformanceMonitor(self)
+        for client in self.agents.values():
+            client._monitor = self.monitor
 
     def get_agent(self, agent_type: str) -> AgentHTTPClient:
         if agent_type not in self.agents:
@@ -123,3 +139,6 @@ class CrewAIAgentClients:
                 "last_failure_time": client.circuit_breaker.last_failure_time,
             }
         return status
+
+    async def perf_metrics(self) -> Dict[str, Any]:
+        return await self.monitor.snapshot()
