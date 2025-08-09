@@ -1271,7 +1271,10 @@ test_requirements:
       - test_performance_requirements_met()
 ```
 
-##### Task 1.3.3A: Publisher Platform Rule Discovery (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.3A: Publisher Platform Rule Discovery (0.5 days) ⏱️ 4h 🆕 **ATOMIZED** [DONE]
+Status: DONE
+- Commit-ID: e4f9d09
+- LLM-NOTE: Skaner `editorial-service/migration/discover_publisher_platform_rules.py` przeskanował moduł publisher i wygenerował `editorial-service/migration/output/publisher_platform_rules_catalog.json` (3923 hits) z klasyfikacją per platforma i wartościami (strings/numbers).
 ```yaml
 objective: "Discover and catalog hardcoded rules in Publisher Platform components"
 deliverable: "Complete inventory of platform-specific validation rules"
@@ -1280,6 +1283,9 @@ acceptance_criteria:
   - Platform-specific rules categorized by platform
   - Rule dependencies mapped
   - Integration requirements documented
+
+validation_commands:
+  - "python editorial-service/migration/discover_publisher_platform_rules.py | jq '.total_hits' # Expected: > 500"
 
 test_requirements:
   unit_tests:
