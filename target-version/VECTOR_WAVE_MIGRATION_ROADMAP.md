@@ -1162,7 +1162,10 @@ test_requirements:
       - test_all_rules_pass_validation()
       - test_chromadb_format_compatibility()
 ```
-##### Task 1.3.2C: AI Writing Flow Rule Migration (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.2C: AI Writing Flow Rule Migration (0.5 days) ⏱️ 4h 🆕 **ATOMIZED** [DONE]
+Status: DONE
+- Commit-ID: 6f38d0a
+- LLM-NOTE: Zaimportowano 610 zwalidowanych reguł AI Writing Flow do `style_editorial_rules` (Chroma REST, UUID endpoint). Skrypty: `editorial-service/migration/migrate_ai_writing_flow_rules.py`, `editorial-service/migration/verify_ai_writing_flow_migration.py`. Weryfikacja: próbka 25 ID — 25/25.
 ```yaml
 objective: "Execute migration of AI Writing Flow rules to ChromaDB"
 deliverable: "AI Writing Flow rules successfully migrated to ChromaDB collections"
@@ -1171,6 +1174,10 @@ acceptance_criteria:
   - Rules queryable via ChromaDB API
   - Migration verified with test queries
   - Rollback capability confirmed
+
+validation_commands:
+  - "python editorial-service/migration/migrate_ai_writing_flow_rules.py | jq '.added' # Expected: > 300"
+  - "python editorial-service/migration/verify_ai_writing_flow_migration.py | jq '.success' # Expected: true"
 
 test_requirements:
   unit_tests:
