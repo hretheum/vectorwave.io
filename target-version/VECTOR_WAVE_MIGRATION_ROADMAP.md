@@ -1323,7 +1323,10 @@ test_requirements:
       - test_all_platforms_analyzed()
       - test_rule_catalog_platform_completeness()
 ```
-##### Task 1.3.3B: Publisher Platform Rule Validation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.3B: Publisher Platform Rule Validation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED** [DONE]
+Status: DONE
+- Commit-ID: fcab51e
+- LLM-NOTE: Ztransformowano i zwalidowano reguły platformowe; wygenerowano `editorial-service/migration/output/publisher_platform_chromadb_rules.json` (178 reguł, 0 błędów, 0 duplikatów). Skrypty: `editorial-service/migration/transform_publisher_platform_rules.py`, `editorial-service/migration/validate_publisher_platform_rules.py`.
 ```yaml
 objective: "Validate discovered Publisher Platform rules for migration"
 deliverable: "Validated platform rules ready for ChromaDB import"
@@ -1332,6 +1335,10 @@ acceptance_criteria:
   - Rule conflicts resolved
   - ChromaDB schema compatibility confirmed
   - Platform metadata enriched
+
+validation_commands:
+  - "python editorial-service/migration/transform_publisher_platform_rules.py | jq '.count' # Expected: > 100"
+  - "python editorial-service/migration/validate_publisher_platform_rules.py --check-format --check-duplicates | jq '[.validation_errors,.duplicate_count]' # Expected: [0,0]"
 
 test_requirements:
   unit_tests:
