@@ -98,6 +98,53 @@ class DraftContent(BaseModel):
     non_obvious_insights: List[str]
 
 
+# PHASE 4.5.3: Enhanced models for Platform Optimizer integration
+class MultiPlatformRequest(BaseModel):
+    """Request model for multi-platform content generation"""
+    topic: Dict[str, Any] = Field(..., description="Topic information (title, description, keywords)")
+    platforms: Dict[str, Dict[str, Any]] = Field(..., description="Platform configurations")
+    request_id: Optional[str] = Field(default=None, description="Request tracking ID")
+    priority: int = Field(default=5, ge=1, le=10, description="Processing priority")
+
+
+class MultiPlatformResponse(BaseModel):
+    """Response model for multi-platform content generation"""
+    request_id: str = Field(..., description="Request tracking ID")
+    platform_content: Dict[str, Any] = Field(..., description="Generated content per platform")
+    generation_time: float = Field(..., description="Total generation time")
+    success_count: int = Field(..., description="Number of successful generations")
+    error_count: int = Field(..., description="Number of failed generations")
+    metadata: Dict[str, Any] = Field(default={}, description="Additional metadata")
+
+
+class LinkedInPromptRequest(BaseModel):
+    """Request model for LinkedIn carousel prompt generation"""
+    topic: Dict[str, Any] = Field(..., description="Topic information")
+    slides_count: int = Field(default=5, ge=3, le=10, description="Number of slides")
+    template: str = Field(default="business", description="Presentation template")
+    enhanced_mode: bool = Field(default=True, description="Use enhanced AI features")
+
+
+class LinkedInPromptResponse(BaseModel):
+    """Response model for LinkedIn carousel prompt generation"""
+    prompt: str = Field(..., description="Generated presentation prompt")
+    slides_count: int = Field(..., description="Target slides count")
+    template_used: str = Field(..., description="Template used")
+    ready_for_presenton: bool = Field(default=True, description="Ready for Presenton service")
+    generation_time: float = Field(..., description="Generation time")
+    metadata: Dict[str, Any] = Field(default={}, description="Additional metadata")
+
+
+class ContentGenerationMetrics(BaseModel):
+    """Metrics for content generation tracking"""
+    total_requests: int = Field(default=0, description="Total requests processed")
+    successful_generations: int = Field(default=0, description="Successful generations")
+    failed_generations: int = Field(default=0, description="Failed generations")
+    average_generation_time: float = Field(default=0.0, description="Average generation time")
+    platform_usage: Dict[str, int] = Field(default={}, description="Usage per platform")
+    quality_scores: List[float] = Field(default=[], description="Quality score history")
+
+
 class StyleValidation(BaseModel):
     """Output from Style Validator"""
     is_compliant: bool

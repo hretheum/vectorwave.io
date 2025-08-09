@@ -24,6 +24,8 @@
 
 **Tech Stack**: CrewAI 0.152.0 + Linear Flow + FastAPI + Enterprise Monitoring + Docker + AI Assistant + Agentic RAG
 
+🚢 **Port Management**: Kolegium services use ports 8001-8003, 8082, 3001, 5432, 6379-6380, 8000, 9090-9091. See [../PORT_ALLOCATION.md](../PORT_ALLOCATION.md) for complete port registry.
+
 ## 🧭 **Start Tutaj**
 
 ### 👤 **Jestem nowy w projekcie**

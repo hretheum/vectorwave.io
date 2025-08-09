@@ -25,7 +25,16 @@ from dotenv import load_dotenv
 from ai_writing_flow.ai_writing_flow_v2 import AIWritingFlowV2
 
 # Legacy compatibility imports
-from ai_writing_flow.models import WritingFlowState, HumanFeedbackDecision
+from ai_writing_flow.models import (
+    WritingFlowState, 
+    HumanFeedbackDecision,
+    MultiPlatformRequest,
+    MultiPlatformResponse,
+    LinkedInPromptRequest, 
+    LinkedInPromptResponse,
+    ContentGenerationMetrics
+)
+from ai_writing_flow.platform_optimizer import PlatformOptimizer, Topic, PlatformConfig
 from ai_writing_flow.utils.ui_bridge import UIBridge
 
 # Load environment variables
@@ -181,5 +190,131 @@ def plot():
         raise
 
 
+def create_enhanced_app():
+    """
+    Create FastAPI app with enhanced multi-platform endpoints
+    
+    PHASE 4.5.3: Integration with Publisher Orchestrator
+    Provides both legacy compatibility and new enhanced endpoints
+    """
+    
+    from fastapi import FastAPI
+    from ai_writing_flow.enhanced_api import app as enhanced_app, enhanced_api_service
+    
+    # Create main app
+    app = FastAPI(
+        title="AI Writing Flow - Complete API",
+        description="Legacy + Enhanced API for multi-platform content generation",
+        version="2.0.0"
+    )
+    
+    # Mount enhanced API as sub-application
+    app.mount("/v2", enhanced_app, name="enhanced")
+    
+    # Legacy endpoints for backward compatibility
+    @app.post("/generate")
+    async def legacy_generate(request: Dict[str, Any]):
+        """Legacy endpoint - maintains backward compatibility"""
+        
+        logger.info("🔄 Legacy /generate endpoint called")
+        
+        try:
+            # Convert legacy request format
+            topic = Topic(
+                title=request.get("title", "Untitled"),
+                description=request.get("description", ""),
+                target_audience=request.get("audience", "general")
+            )
+            
+            platform = request.get("platform", "linkedin").lower()
+            
+            # Generate content using platform optimizer
+            result = await enhanced_api_service.platform_optimizer.generate_for_platform(
+                topic=topic,
+                platform=platform,
+                direct_content=True  # Legacy mode = direct content
+            )
+            
+            # Return in legacy format
+            return {
+                "type": result.content_type,
+                "platform": result.metadata.get("structure", "general"),
+                "content": result.content,
+                "metadata": {
+                    "generation_time": result.generation_time,
+                    "quality_score": result.quality_score,
+                    "platform": platform
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Legacy endpoint failed: {e}")
+            return {
+                "error": str(e),
+                "type": "error",
+                "platform": "unknown"
+            }
+    
+    @app.get("/")
+    async def root():
+        """Root endpoint with service information"""
+        return {
+            "service": "AI Writing Flow - Complete API",
+            "version": "2.0.0",
+            "description": "Legacy + Enhanced multi-platform content generation",
+            "endpoints": {
+                "legacy": {
+                    "generate": "/generate"
+                },
+                "enhanced": {
+                    "multi_platform": "/v2/generate/multi-platform",
+                    "linkedin_prompt": "/v2/generate/linkedin-prompt",
+                    "metrics": "/v2/metrics",
+                    "platforms": "/v2/platforms"
+                },
+                "documentation": {
+                    "swagger_ui": "/docs",
+                    "redoc": "/redoc",
+                    "enhanced_docs": "/v2/docs"
+                }
+            },
+            "compatibility": {
+                "legacy_support": True,
+                "enhanced_features": True,
+                "publisher_orchestrator_ready": True
+            }
+        }
+    
+    @app.get("/health")
+    async def health():
+        """Health check for complete service"""
+        try:
+            # Check enhanced API health
+            enhanced_health = await enhanced_app.router.get_route("health").endpoint()
+            
+            return {
+                "status": "healthy",
+                "service": "ai_writing_flow_complete",
+                "version": "2.0.0",
+                "components": {
+                    "legacy_api": True,
+                    "enhanced_api": enhanced_health.get("status") == "healthy",
+                    "platform_optimizer": True
+                }
+            }
+        except Exception as e:
+            return {
+                "status": "degraded",
+                "error": str(e)
+            }
+    
+    logger.info("✅ Complete AI Writing Flow app created with enhanced endpoints")
+    return app
+
+
 if __name__ == "__main__":
+    # Default behavior - run legacy kickoff
     kickoff()
+    
+    # If you want to run the enhanced API server, use:
+    # uvicorn ai_writing_flow.main:create_enhanced_app --factory --host 0.0.0.0 --port 8001
