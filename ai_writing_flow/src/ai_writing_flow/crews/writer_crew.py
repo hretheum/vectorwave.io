@@ -1,15 +1,21 @@
 """
-Writer Crew - Content generation following Vector Wave style
+Writer Crew - Content generation following Vector Wave style with Editorial Service integration
+Uses selective validation (3-4 rules) for human-assisted workflow
 """
 
 from crewai import Agent, Crew, Task
 from crewai.tools import tool
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import json
 import random
 import os
+import asyncio
+import logging
 
 from ..models import DraftContent
+from ..clients.editorial_client import EditorialServiceClient
+
+logger = logging.getLogger(__name__)
 
 # Disable CrewAI memory logs
 os.environ["CREWAI_STORAGE_LOG_ENABLED"] = "false"
@@ -159,28 +165,179 @@ def apply_style_rules(draft: str) -> str:
 
 
 class WriterCrew:
-    """Crew responsible for content writing"""
+    """
+    Crew responsible for content writing with Editorial Service integration
+    Uses selective validation (3-4 rules) for human-assisted workflow
+    """
     
-    def __init__(self):
+    def __init__(self, editorial_service_url: str = "http://localhost:8040"):
+        """
+        Initialize Writer Crew with Editorial Service integration
+        
+        Args:
+            editorial_service_url: URL of Editorial Service (default: http://localhost:8040)
+        """
         # Reference module-level constants
         self.structures = CONTENT_STRUCTURES
         self.platform_limits = PLATFORM_LIMITS
+        self.editorial_service_url = editorial_service_url
+        self.editorial_client = None
+        self._initialize_editorial_client()
+        
+        # Circuit breaker state for Editorial Service
+        self._editorial_service_available = True
+        self._last_check_time = None
+        
+    def _initialize_editorial_client(self):
+        """Initialize Editorial Service client"""
+        try:
+            self.editorial_client = EditorialServiceClient(
+                base_url=self.editorial_service_url,
+                timeout=30.0
+            )
+            logger.info(f"Connected to Editorial Service at {self.editorial_service_url}")
+        except Exception as e:
+            logger.error(f"Failed to initialize Editorial Service client: {e}")
+            self._editorial_service_available = False
     
+    @tool("Validate Content with Editorial Service")
+    def validate_selective(self, content: str, platform: str = "general", checkpoint: str = "writing") -> str:
+        """
+        Validate content using Editorial Service selective validation
+        Uses 3-4 most critical rules for human-assisted workflow
+        
+        Args:
+            content: Content to validate
+            platform: Target platform (linkedin, twitter, beehiiv, ghost, general)
+            checkpoint: Validation checkpoint (writing, style, review)
+            
+        Returns:
+            JSON string with validation results
+        """
+        if not self.editorial_client:
+            return json.dumps({
+                "error": "Editorial Service not available",
+                "violations": [],
+                "suggestions": ["Editorial Service connection required for validation"],
+                "is_compliant": True  # Allow writing to continue
+            })
+        
+        try:
+            # Run async validation in sync context
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import concurrent.futures
+                future = concurrent.futures.Future()
+                
+                async def run_validation():
+                    try:
+                        result = await self.editorial_client.validate_selective(
+                            content=content,
+                            platform=platform,
+                            checkpoint=checkpoint,
+                            context={"agent": "writer", "validation_type": "selective"}
+                        )
+                        future.set_result(result)
+                    except Exception as e:
+                        future.set_exception(e)
+                
+                asyncio.create_task(run_validation())
+                result = future.result(timeout=30)
+            else:
+                result = asyncio.run(
+                    self.editorial_client.validate_selective(
+                        content=content,
+                        platform=platform,
+                        checkpoint=checkpoint,
+                        context={"agent": "writer", "validation_type": "selective"}
+                    )
+                )
+            
+            return json.dumps(result, indent=2)
+            
+        except Exception as e:
+            logger.error(f"Editorial Service validation failed: {e}")
+            return json.dumps({
+                "error": str(e),
+                "violations": [],
+                "suggestions": ["Check Editorial Service connection"],
+                "is_compliant": True  # Allow writing to continue despite error
+            })
+    
+    @tool("Check Editorial Service Health")
+    def check_editorial_health(self) -> str:
+        """
+        Check if Editorial Service is available and ready
+        
+        Returns:
+            JSON string with service health status
+        """
+        if not self.editorial_client:
+            return json.dumps({
+                "available": False,
+                "error": "Client not initialized",
+                "service": "editorial-service"
+            })
+        
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import concurrent.futures
+                future = concurrent.futures.Future()
+                
+                async def check_health():
+                    try:
+                        health = await self.editorial_client.health_check()
+                        future.set_result({
+                            "available": True,
+                            "status": health.get("status"),
+                            "service": "editorial-service",
+                            "endpoint": self.editorial_service_url
+                        })
+                    except Exception as e:
+                        future.set_exception(e)
+                
+                asyncio.create_task(check_health())
+                result = future.result(timeout=5)
+            else:
+                health = asyncio.run(self.editorial_client.health_check())
+                result = {
+                    "available": True,
+                    "status": health.get("status"),
+                    "service": "editorial-service",
+                    "endpoint": self.editorial_service_url
+                }
+            
+            return json.dumps(result, indent=2)
+            
+        except Exception as e:
+            logger.error(f"Editorial health check failed: {e}")
+            return json.dumps({
+                "available": False,
+                "error": str(e),
+                "service": "editorial-service"
+            })
+
     def content_writer_agent(self) -> Agent:
-        """Create the content writer agent"""
+        """Create the content writer agent with Editorial Service integration"""
         return Agent(
-            role="Senior Content Strategist & Writer",
-            goal="Create compelling content that resonates with the target audience while maintaining Vector Wave's distinctive voice",
-            backstory="""You are a seasoned content creator who has written for top tech publications 
-            and helped numerous startups find their voice. You understand that great content isn't 
-            just well-written—it changes how people think. You excel at finding non-obvious angles, 
-            backing claims with evidence, and making complex topics accessible without dumbing them 
-            down. You never use corporate jargon or empty phrases.""",
+            role="Senior Content Strategist & Writer (Editorial Service Enhanced)",
+            goal="Create compelling content using Editorial Service selective validation for human-assisted workflow",
+            backstory="""You are a seasoned content creator enhanced with Editorial Service validation. 
+            You've written for top tech publications and helped numerous startups find their voice. 
+            You understand that great content isn't just well-written—it changes how people think. 
+            You excel at finding non-obvious angles, backing claims with evidence, and making complex 
+            topics accessible without dumbing them down. You use Editorial Service's selective validation 
+            (3-4 critical rules) to ensure quality while maintaining creative flow in the human-assisted 
+            workflow. You never use corporate jargon or empty phrases, and you validate your content 
+            against ChromaDB-sourced editorial guidelines.""",
             tools=[
                 generate_hook,
                 extract_insights,
                 structure_content,
-                apply_style_rules
+                apply_style_rules,
+                self.validate_selective,
+                self.check_editorial_health
             ],
             verbose=True,
             allow_delegation=False,
@@ -190,7 +347,7 @@ class WriterCrew:
     def create_writing_task(self, topic: str, platform: str, audience_insights: str,
                           research_summary: str, depth_level: int, 
                           styleguide_context: Dict[str, Any]) -> Task:
-        """Create a content writing task"""
+        """Create a content writing task with Editorial Service integration"""
         return Task(
             description=f"""
             Write compelling content for: {topic}
@@ -200,15 +357,29 @@ class WriterCrew:
             Audience Insights: {audience_insights}
             Research Summary: {research_summary}
             
-            Requirements:
-            1. Start with an irresistible hook
-            2. Structure content for {platform} format
-            3. Include 3+ non-obvious insights
+            Editorial Service Integration Steps:
+            1. 🏥 Check Editorial Service health to ensure validation is available
+            2. ✍️ Create initial draft following content requirements
+            3. 🔍 Validate content using Editorial Service selective validation (3-4 rules)
+            4. ✅ Apply validation suggestions to improve quality
+            5. 🎯 Re-validate if significant changes were made
+            
+            Content Requirements:
+            1. Start with an irresistible hook using generate_hook tool
+            2. Structure content for {platform} format using structure_content tool
+            3. Include 3+ non-obvious insights using extract_insights tool
             4. Back every claim with evidence
             5. Use concrete examples and stories
             6. End with clear next steps
+            7. Validate with Editorial Service selective validation throughout process
             
-            Style Guidelines:
+            Editorial Service Integration:
+            - Service: {self.editorial_service_url}
+            - Mode: Selective validation (3-4 critical rules for human-assisted workflow)
+            - Checkpoint: "writing" (focuses on content quality, not final polish)
+            - All validation rules sourced from ChromaDB (zero hardcoded)
+            
+            Style Guidelines (validated by Editorial Service):
             - No corporate jargon or buzzwords
             - Active voice, direct statements
             - Contrarian but not controversial
@@ -217,10 +388,13 @@ class WriterCrew:
             
             Word count target: {self.platform_limits.get(platform, {}).get('sweet_spot', 800)} words
             
+            Important: Use Editorial Service validation at key checkpoints during writing.
+            This ensures quality while maintaining creative flow in the human-assisted workflow.
+            
             Remember: Great content changes how people think about {topic}.
             """,
             agent=self.content_writer_agent(),
-            expected_output="Complete draft with compelling hook, structured body, and clear call-to-action"
+            expected_output="Complete validated draft with Editorial Service selective validation results, compelling hook, structured body, and clear call-to-action"
         )
     
     def execute(self, topic: str, platform: str, audience_insights: str,
