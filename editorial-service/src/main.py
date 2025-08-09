@@ -18,6 +18,16 @@ import structlog
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 import redis.asyncio as redis
 from .infrastructure.clients.chromadb_client import ChromaDBHTTPClient
+from .application.services.validation_strategy_factory import (
+    ValidationStrategyFactory,
+)
+from .infrastructure.repositories.mock_rule_repository import MockRuleRepository
+from .domain.entities.validation_request import (
+    ValidationMode as DomainValidationMode,
+    CheckpointType as DomainCheckpointType,
+    ValidationRequest as DomainValidationRequest,
+)
+from .domain.entities.validation_rule import ValidationRule as DomainValidationRule
 
 # Configure structured logging
 structlog.configure(
@@ -102,6 +112,7 @@ class ValidationRequest(BaseModel):
     content: str
     mode: ValidationMode
     checkpoint: Optional[CheckpointType] = None
+    platform: Optional[str] = None  # platform context (linkedin, twitter, etc.)
 
 class ValidationRule(BaseModel):
     rule_id: str
@@ -119,6 +130,7 @@ class ValidationResponse(BaseModel):
     rule_count: int
     processing_time_ms: float
     timestamp: datetime
+    metadata: Optional[Dict[str, Any]] = None
 
 async def get_redis_client():
     """Get Redis client for service discovery and caching.
@@ -350,78 +362,83 @@ async def metrics_middleware(request, call_next):
 
 # --- Validation API (v2) ---
 
-def _get_selective_rules_for_checkpoint(checkpoint: CheckpointType) -> List[ValidationRule]:
-    now = datetime.utcnow().isoformat()
-    return [
-        ValidationRule(
-            rule_id="pre_audience_001",
-            rule_name="audience_targeting",
-            rule_type="content",
-            description="Content targets appropriate audience segment",
-            severity="high",
-            collection_source="publication_platform_rules",
-            chromadb_origin_metadata={"collection": "publication_platform_rules", "query_timestamp": now},
-        ),
-        ValidationRule(
-            rule_id="pre_structure_001",
-            rule_name="structure_basic",
-            rule_type="structural",
-            description="Basic content structure requirements met",
-            severity="medium",
-            collection_source="style_editorial_rules",
-            chromadb_origin_metadata={"collection": "style_editorial_rules", "query_timestamp": now},
-        ),
-    ]
-
-def _get_comprehensive_rules() -> List[ValidationRule]:
-    now = datetime.utcnow().isoformat()
-    return [
-        ValidationRule(
-            rule_id="sty_con_001",
-            rule_name="style_consistency",
-            rule_type="style",
-            description="Writing style consistent with brand guidelines",
-            severity="high",
-            collection_source="style_editorial_rules",
-            chromadb_origin_metadata={"collection": "style_editorial_rules", "query_timestamp": now},
-        ),
-        ValidationRule(
-            rule_id="aud_tgt_001",
-            rule_name="audience_targeting",
-            rule_type="content",
-            description="Content targets appropriate audience segment",
-            severity="high",
-            collection_source="publication_platform_rules",
-            chromadb_origin_metadata={"collection": "publication_platform_rules", "query_timestamp": now},
-        ),
-    ]
+def _domain_rule_to_api(rule: DomainValidationRule) -> ValidationRule:
+    """Map domain ValidationRule to API model."""
+    return ValidationRule(
+        rule_id=rule.rule_id,
+        rule_name=rule.rule_name,
+        rule_type=rule.rule_type.value,
+        description=rule.description,
+        severity=rule.severity.value,
+        collection_source=rule.collection_source,
+        chromadb_origin_metadata=rule.chromadb_origin_metadata,
+    )
 
 @app.post("/validate/comprehensive", response_model=ValidationResponse)
 async def validate_comprehensive(request: ValidationRequest):
+    """Comprehensive validation using strategy factory (8-12 rules)."""
     start = time.time()
-    rules = _get_comprehensive_rules()
+    # Build domain request
+    domain_request = DomainValidationRequest(
+        content=request.content,
+        mode=DomainValidationMode.COMPREHENSIVE,
+        checkpoint=None,
+        metadata={"platform": request.platform} if request.platform else None,
+    )
+    # Resolve strategy and repository
+    repo = MockRuleRepository()  # TODO: replace with ChromaDB-backed repository
+    factory = ValidationStrategyFactory(repo)
+    strategy = factory.create("comprehensive")
+    domain_rules = await strategy.validate(domain_request)
+    api_rules = [_domain_rule_to_api(r) for r in domain_rules]
     return ValidationResponse(
         mode="comprehensive",
         checkpoint=None,
-        rules_applied=rules,
-        rule_count=len(rules),
+        rules_applied=api_rules,
+        rule_count=len(api_rules),
         processing_time_ms=(time.time() - start) * 1000,
         timestamp=datetime.utcnow(),
+        metadata={"workflow": "Kolegium"},
     )
 
 @app.post("/validate/selective", response_model=ValidationResponse)
 async def validate_selective(request: ValidationRequest):
+    """Selective validation using strategy factory (3-4 critical rules).
+
+    Requires checkpoint; optimized for human-assisted workflow.
+    """
     if not request.checkpoint:
         return JSONResponse(status_code=400, content={"detail": "checkpoint required for selective"})
     start = time.time()
-    rules = _get_selective_rules_for_checkpoint(request.checkpoint)
+    # Map API checkpoint literal to domain enum
+    checkpoint_map = {
+        "pre-writing": DomainCheckpointType.PRE_WRITING,
+        "mid-writing": DomainCheckpointType.MID_WRITING,
+        "post-writing": DomainCheckpointType.POST_WRITING,
+    }
+    domain_checkpoint = checkpoint_map.get(str(request.checkpoint))  # type: ignore[arg-type]
+    if domain_checkpoint is None:
+        return JSONResponse(status_code=400, content={"detail": f"invalid checkpoint: {request.checkpoint}"})
+
+    domain_request = DomainValidationRequest(
+        content=request.content,
+        mode=DomainValidationMode.SELECTIVE,
+        checkpoint=domain_checkpoint,
+        metadata={"platform": request.platform} if request.platform else None,
+    )
+    repo = MockRuleRepository()  # TODO: replace with ChromaDB-backed repository
+    factory = ValidationStrategyFactory(repo)
+    strategy = factory.create("selective")
+    domain_rules = await strategy.validate(domain_request)
+    api_rules = [_domain_rule_to_api(r) for r in domain_rules]
     return ValidationResponse(
         mode="selective",
         checkpoint=request.checkpoint,
-        rules_applied=rules,
-        rule_count=len(rules),
+        rules_applied=api_rules,
+        rule_count=len(api_rules),
         processing_time_ms=(time.time() - start) * 1000,
         timestamp=datetime.utcnow(),
+        metadata={"workflow": "AI Writing Flow", "checkpoint": request.checkpoint},
     )
 
 @app.get("/health", response_model=HealthResponse)
