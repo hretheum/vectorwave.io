@@ -2860,15 +2860,17 @@ test_requirements:
       - test_http_client_ready_for_integration()
       - test_all_editorial_endpoints_accessible()
 ```
-##### Task 2.1.2B: Selective Validation Logic (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.1.2B: Selective Validation Logic (0.5 days) ⏱️ 4h ✅ COMPLETED
 ```yaml
+status: COMPLETED
+commit_id: 66be84c
 objective: "Implement selective validation logic for human-assisted workflow"
 deliverable: "Optimized validation that applies fewer, critical rules"
 acceptance_criteria:
-  - Selective validation uses 3-4 critical rules only
-  - Rule selection based on content and platform context
-  - Performance optimized for real-time feedback
-  - Clear differentiation from comprehensive validation
+  - Selective validation uses 3-4 critical rules only ✅ (returns 3 rules on pre-writing sample)
+  - Rule selection based on content and platform context ✅ (platform passed through API to strategy)
+  - Performance optimized for real-time feedback ✅ (<100ms local)
+  - Clear differentiation from comprehensive validation ✅ (3-4 vs 8-12)
 
 test_requirements:
   unit_tests:
@@ -2885,6 +2887,7 @@ test_requirements:
       - test_selective_vs_comprehensive_differences()
       - test_real_time_validation_workflow()
       - test_rule_selection_accuracy()
+      - curl "http://localhost:8040/validate/selective" with checkpoint returns 3-4 rules ✅
   
   performance_tests:
     targets:
@@ -3948,7 +3951,7 @@ atomic_breakdown:
   - Task 3.6.5: "System Status & Monitoring Dashboard (8h)"
 
 technology_stack:
-  frontend: "Next.js 14 + React 18 + TypeScript"
+  frontend: "Next.js 14 + React 18 + TypeScript" <!-- ffs, update these, we have much newer versions!!! -->
   styling: "Tailwind CSS + Headless UI"
   state: "Zustand + React Query"
   real_time: "WebSockets + Server-Sent Events"
