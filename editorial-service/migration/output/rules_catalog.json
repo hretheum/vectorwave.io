@@ -1,0 +1,39 @@
+{
+  "files": [
+    {
+      "file": "/Users/hretheum/dev/bezrobocie/vector-wave/kolegium/ai_writing_flow/src/ai_writing_flow/crews/style_crew.py",
+      "hits": [
+        {
+          "type": "forbidden_phrases",
+          "count": 0,
+          "snippet": "",
+          "values_preview": []
+        },
+        {
+          "type": "forbidden_phrases",
+          "count": 0,
+          "snippet": "",
+          "values_preview": []
+        },
+        {
+          "type": "forbidden_phrases",
+          "count": 4,
+          "snippet": "\n            v.get(\"phrase\", \"\") \n            for v in violations \n            if v.get(\"type\") == \"forbidden_phrase\"\n        ",
+          "values_preview": [
+            "phrase",
+            "",
+            "type",
+            "forbidden_phrase"
+          ]
+        }
+      ],
+      "exists": true
+    },
+    {
+      "file": "/Users/hretheum/dev/bezrobocie/vector-wave/kolegium/ai_writing_flow/src/ai_writing_flow/tools/styleguide_loader.py",
+      "hits": [],
+      "exists": true
+    }
+  ],
+  "total_hits": 4
+}
