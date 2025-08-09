@@ -677,10 +677,10 @@ test_requirements:
       - test_docker_compose_integration()
 ```
 
-##### Task 1.2.2-1.2.6: Collection Creation (5 days) ⏱️ 40h
-Status: PARTIAL (dev init + perf DONE)
-- Commit-ID: ba73f94, 0b11369, 47f9bcc
-- LLM-NOTE: Utworzone 5 kolekcji w środowisku dev (ChromaDB 0.4.15) + metadane schematu i test wydajności. P95 zapytań <100ms (ok. 0.01ms). Gotowe do definicji indeksów i migracji reguł.
+##### Task 1.2.2-1.2.6: Collection Creation (5 days) ⏱️ 40h [DONE]
+Status: DONE
+- Commit-ID: ba73f94, 0b11369, 47f9bcc, a813f5e
+- LLM-NOTE: Utworzone i zweryfikowane 5 kolekcji (ChromaDB 0.4.15) z metadanymi (schema_version, description, hints), p95 zapytań <100ms (ok. 0.01ms). Kolekcje gotowe do migracji reguł (WEEK 3–4) i dalszych testów akceptacyjnych.
 Each collection setup includes:
 - Schema definition with metadata
 - Index optimization
