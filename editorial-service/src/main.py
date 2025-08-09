@@ -426,7 +426,8 @@ async def _selective_validate_internal(
         checkpoint=domain_checkpoint,
         metadata={"platform": platform} if platform else None,
     )
-    repo = ChromaDBRuleRepository() if ChromaDBRuleRepository else MockRuleRepository()
+    use_mock = os.getenv("EDITORIAL_USE_MOCK_RULES", "true").lower() == "true"
+    repo = MockRuleRepository() if use_mock or not ChromaDBRuleRepository else ChromaDBRuleRepository()
     factory = ValidationStrategyFactory(repo)
     strategy = factory.create("selective")
     domain_rules = await strategy.validate(domain_request)
@@ -452,7 +453,8 @@ async def validate_comprehensive(request: ValidationRequest):
         metadata={"platform": request.platform} if request.platform else None,
     )
     # Resolve strategy and repository
-    repo = ChromaDBRuleRepository() if ChromaDBRuleRepository else MockRuleRepository()
+    use_mock = os.getenv("EDITORIAL_USE_MOCK_RULES", "true").lower() == "true"
+    repo = MockRuleRepository() if use_mock or not ChromaDBRuleRepository else ChromaDBRuleRepository()
     factory = ValidationStrategyFactory(repo)
     strategy = factory.create("comprehensive")
     domain_rules = await strategy.validate(domain_request)
