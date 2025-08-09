@@ -678,6 +678,9 @@ test_requirements:
 ```
 
 ##### Task 1.2.2-1.2.6: Collection Creation (5 days) ⏱️ 40h
+Status: PARTIAL (dev init DONE)
+- Commit-ID: ba73f94
+- LLM-NOTE: Utworzone 5 kolekcji w środowisku dev (ChromaDB 0.4.15) wraz z minimalnym seedem/testem dostępności. Przygotowane do dalszej konfiguracji schematów, indeksów i migracji reguł w następnych krokach.
 Each collection setup includes:
 - Schema definition with metadata
 - Index optimization
@@ -2473,7 +2476,20 @@ phase_1_completion_checklist:
 
 #### **WEEK 5: AI Writing Flow Integration**
 
-##### Task 2.1.1: Editorial Service HTTP Client (1 day) ⏱️ 8h
+##### Task 2.1.1: Editorial Service HTTP Client (1 day) ⏱️ 8h ✅ COMPLETED
+```yaml
+status: COMPLETED
+completed_date: 2025-01-09
+commit_id: dc3655b
+location: kolegium/ai_writing_flow/src/ai_writing_flow/clients/editorial_client.py
+notes_for_llm: |
+  Task fully implemented with:
+  - Comprehensive Editorial Service HTTP client with circuit breaker
+  - Both selective and comprehensive validation methods
+  - Full test coverage in tests/test_editorial_client.py
+  - Ready for integration with all CrewAI crews
+```
+
 ```python
 # ai-writing-flow/src/editorial_client.py
 import httpx
@@ -2901,8 +2917,20 @@ test_requirements:
 ##### Task 2.2.3C: Workflow State Management (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**  
 ##### Task 2.2.3D: Multi-Agent Integration Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
 
-##### Task 2.6A: Style Crew Migration (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+##### Task 2.6A: Style Crew Migration (1 day) ⏱️ 8h 🆕 **ATOMIZED** ✅ COMPLETED
 ```yaml
+status: COMPLETED
+completed_date: 2025-01-09
+commit_id: 0135f67
+location: kolegium/ai_writing_flow/src/ai_writing_flow/crews/style_crew.py
+notes_for_llm: |
+  Migration completed successfully:
+  - ALL hardcoded rules removed (forbidden_phrases, required_elements, style_patterns)
+  - Full integration with Editorial Service via HTTP calls
+  - Circuit breaker pattern implemented
+  - All validation now from ChromaDB through Editorial Service
+  - Validation passed: zero hardcoded rules, full Editorial Service integration
+
 objective: "Migrate style_crew from hardcoded rules to Editorial Service HTTP calls"
 source_file: "/kolegium/ai_writing_flow/src/ai_writing_flow/crews/style_crew.py"
 deliverable: "Style crew using only Editorial Service validation"
@@ -2923,8 +2951,20 @@ validation_commands:
   - "grep -r 'http://localhost:8040' /kolegium/ai_writing_flow/src/ai_writing_flow/crews/style_crew.py | wc -l # Expected: >0"
 ```
 
-##### Task 2.6B: Research Crew Topic Integration (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+##### Task 2.6B: Research Crew Topic Integration (1 day) ⏱️ 8h 🆕 **ATOMIZED** ✅ COMPLETED
 ```yaml
+status: COMPLETED
+completed_date: 2025-01-09
+commit_id: 6023dd5
+location: kolegium/ai_writing_flow/src/ai_writing_flow/crews/research_crew.py
+notes_for_llm: |
+  Integration completed successfully:
+  - Added TopicManagerClient for AI-powered topic suggestions
+  - Implemented topic relevance scoring and auto-scraping capability
+  - Enhanced research workflow with Topic Manager integration
+  - All topic intelligence now sourced from Topic Manager on port 8041
+  - Research agent enhanced with dynamic topic discovery tools
+
 objective: "Integrate research_crew with Topic Manager for dynamic topic discovery"
 source_file: "/kolegium/ai_writing_flow/src/ai_writing_flow/crews/research_crew.py"
 deliverable: "Research crew with Topic Manager integration"
@@ -2940,8 +2980,20 @@ validation_commands:
   - "grep -r 'localhost:8041' /kolegium/ai_writing_flow/src/ai_writing_flow/crews/research_crew.py | wc -l # Expected: >0"
 ```
 
-##### Task 2.6C: Writer Crew Editorial Integration (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+##### Task 2.6C: Writer Crew Editorial Integration (1 day) ⏱️ 8h 🆕 **ATOMIZED** ✅ COMPLETED
 ```yaml
+status: COMPLETED
+completed_date: 2025-01-09
+commit_id: a455b64
+location: kolegium/ai_writing_flow/src/ai_writing_flow/crews/writer_crew.py
+notes_for_llm: |
+  Integration completed successfully:
+  - Added Editorial Service client for selective validation (3-4 rules)
+  - Enhanced writing workflow with validation checkpoints
+  - Uses human-assisted workflow with selective validation mode
+  - All editorial rules now sourced from Editorial Service via ChromaDB
+  - Writer agent enhanced with Editorial Service tools
+
 objective: "Replace writer_crew hardcoded validation with Editorial Service"
 source_file: "/kolegium/ai_writing_flow/src/ai_writing_flow/crews/writer_crew.py" 
 deliverable: "Writer crew using Editorial Service selective validation"
