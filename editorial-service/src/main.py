@@ -439,7 +439,11 @@ async def validate_selective(request: ValidationRequest):
         rule_count=len(api_rules),
         processing_time_ms=(time.time() - start) * 1000,
         timestamp=datetime.utcnow(),
-        metadata={"workflow": "AI Writing Flow", "checkpoint": request.checkpoint},
+        metadata={
+            "workflow": "AI Writing Flow",
+            "checkpoint": request.checkpoint,
+            "platform": request.platform,
+        },
     )
 
 @app.get("/health", response_model=HealthResponse)
