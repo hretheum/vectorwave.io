@@ -1,7 +1,8 @@
 import httpx
 import time
+import os
 from enum import Enum
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 
 class CircuitBreakerState(Enum):
@@ -46,29 +47,56 @@ class AgentHTTPClient:
         self.editorial_url = editorial_service_url.rstrip("/")
         self.client = httpx.AsyncClient(timeout=30.0)
         self.circuit_breaker = CircuitBreaker()
+        self._supports_validation: Optional[bool] = None
 
     async def validate_content(self, content: str, platform: str, validation_mode: str = "comprehensive") -> Dict[str, Any]:
+        # Ensure Editorial Service exposes validation endpoints
+        await self._ensure_validation_supported()
+
+        # Build payload compatible with Editorial Service ValidationRequest
         payload = {
             "content": content,
-            "platform": platform,
-            "agent_type": self.agent_type,
-            "validation_context": {
-                "agent": self.agent_type,
-                "timestamp": time.time(),
-            },
+            "mode": validation_mode,
         }
+        if validation_mode == "selective":
+            payload["checkpoint"] = self._checkpoint_for_agent()
 
         async def _make_request():
             endpoint = f"{self.editorial_url}/validate/{validation_mode}"
-            # Fallback to health if validate endpoint is not implemented
-            try:
-                resp = await self.client.post(endpoint, json=payload)
-            except httpx.HTTPError:
-                resp = await self.client.get(f"{self.editorial_url}/health")
+            resp = await self.client.post(endpoint, json=payload)
             resp.raise_for_status()
             return resp.json()
 
         return await self.circuit_breaker.call(_make_request)
+
+    async def _ensure_validation_supported(self) -> None:
+        if self._supports_validation is not None:
+            if not self._supports_validation:
+                raise RuntimeError("Editorial Service does not expose /validate endpoints")
+            return
+        try:
+            r = await self.client.get(f"{self.editorial_url}/openapi.json")
+            if r.status_code != 200:
+                self._supports_validation = False
+                raise RuntimeError("Editorial Service OpenAPI unavailable; cannot locate validation endpoints")
+            spec = r.json()
+            paths = spec.get("paths", {})
+            self._supports_validation = "/validate/selective" in paths and "/validate/comprehensive" in paths
+            if not self._supports_validation:
+                raise RuntimeError("Editorial Service missing /validate endpoints (selective/comprehensive)")
+        except Exception:
+            self._supports_validation = False
+            raise
+
+    def _checkpoint_for_agent(self) -> str:
+        mapping = {
+            "research": "pre-writing",
+            "audience": "pre-writing",
+            "writer": "mid-writing",
+            "style": "mid-writing",
+            "quality": "post-writing",
+        }
+        return mapping.get(self.agent_type, "mid-writing")
 
 
 class CrewAIAgentClients:
