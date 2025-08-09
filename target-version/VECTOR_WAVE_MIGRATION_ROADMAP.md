@@ -815,7 +815,10 @@ test_requirements:
     - "No duplicate rule content detected"
 ```
 
-##### Task 1.3.1C: ChromaDB Collection Preparation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.1C: ChromaDB Collection Preparation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED** [DONE]
+Status: DONE
+- Commit-ID: 8bc7280
+- LLM-NOTE: Dodano skrypty przygotowania/zerowania kolekcji i benchmarku: `editorial-service/migration/prepare_style_editorial_collection.py`, `editorial-service/migration/test_collection_performance.py`, `editorial-service/migration/backup_style_editorial_collection.py`. Kolekcja `style_editorial_rules` gotowa do importu; komendy uwzględniają lokalne ścieżki.
 ```yaml
 objective: "Prepare ChromaDB collection for rule import with optimization"
 dependencies: ["Task 1.2.2"]
@@ -828,8 +831,8 @@ acceptance_criteria:
   - Backup and rollback strategy implemented
 
 validation_commands:
-  - "curl http://localhost:8000/api/v1/collections/style_editorial_rules/count # Expected: 0 (empty, ready)"
-  - "python migration/test_collection_performance.py # Expected: P95 < 100ms"
+  - "python editorial-service/migration/prepare_style_editorial_collection.py && curl -s http://localhost:8000/api/v1/collections | jq -r '.[] | select(.name=="style_editorial_rules") | .name' # Expected: style_editorial_rules"
+  - "python editorial-service/migration/test_collection_performance.py --collection style_editorial_rules_testperf --docs 200 --queries 100 | jq '.p95_ms' # Expected: < 100"
 
 test_requirements:
   unit_tests:
