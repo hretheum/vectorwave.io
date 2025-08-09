@@ -447,7 +447,11 @@ class ChromaDBManager:
             }
 ```
 
-##### Task 1.1.3: Validation Strategy Factory (1 day) ⏱️ 8h
+##### Task 1.1.3: Validation Strategy Factory (1 day) ⏱️ 8h [DONE]
+
+- Status: DONE
+- Commit-ID: c53e6c4
+- LLM-NOTE: Validation Strategy Factory wdrożona zgodnie z planem. Strategie Comprehensive (8–12) i Selective (3–4) istnieją, implementują jednolity interfejs, fabryka tworzy poprawne instancje; testy jednostkowe zielone.
 ```yaml
 objective: "Implement strategy pattern for dual workflow validation"
 deliverable: "Factory pattern for comprehensive vs selective validation"
@@ -610,7 +614,11 @@ class ValidationStrategyFactory:
 
 #### **WEEK 2: ChromaDB Collections Setup**
 
-##### Task 1.2.1: ChromaDB Server Configuration (1 day) ⏱️ 8h
+##### Task 1.2.1: ChromaDB Server Configuration (1 day) ⏱️ 8h [DONE]
+
+- Status: DONE
+- Commit-ID: fb8a3df
+- LLM-NOTE: Konfiguracja ChromaDB gotowa. Healthcheck oparty o /api/v2/heartbeat (bez zależności na curl w kontenerze) zapewnia stabilne sprawdzanie stanu; środowisko gotowe pod tworzenie kolekcji.
 ```yaml
 objective: "Configure ChromaDB server with proper settings"
 deliverable: "ChromaDB running with optimized configuration"
