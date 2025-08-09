@@ -1,5 +1,5 @@
 import os
-from typing import List, Dict
+from typing import List, Dict, Optional
 from datetime import datetime
 
 try:
@@ -9,12 +9,52 @@ except Exception as e:
     raise SystemExit(f"Failed to import chromadb: {e}")
 
 
-def ensure_collection(client: "chromadb.HttpClient", name: str):
+SCHEMA_METADATA: Dict[str, Dict] = {
+    "style_editorial_rules": {
+        "schema_version": "1.0",
+        "description": "Editorial/style rules used for comprehensive validation",
+        "fields": ["rule_type", "severity", "platform", "workflow", "source", "migrated_at"],
+    },
+    "publication_platform_rules": {
+        "schema_version": "1.0",
+        "description": "Platform-specific constraints and optimizations",
+        "fields": ["platform", "constraint_type", "severity", "source", "migrated_at"],
+    },
+    "topics": {
+        "schema_version": "1.0",
+        "description": "Topic graph for discovery and suggestion",
+        "fields": ["title", "keywords", "score", "source", "scraped_at"],
+    },
+    "scheduling_optimization": {
+        "schema_version": "1.0",
+        "description": "Timing intelligence for platform scheduling",
+        "fields": ["platform", "slot", "score", "timezone", "observed_at"],
+    },
+    "user_preferences": {
+        "schema_version": "1.0",
+        "description": "Learned user preferences for personalization",
+        "fields": ["user_id", "preference_key", "value", "updated_at"],
+    },
+}
+
+
+def ensure_collection(client: "chromadb.HttpClient", name: str, force_recreate: bool = False):
+    metadata = SCHEMA_METADATA.get(name, {"schema_version": "1.0"})
+    if force_recreate:
+        try:
+            client.delete_collection(name)
+        except Exception:
+            pass
+        return client.create_collection(name, metadata=metadata)
+    # Try get-or-create with metadata
     try:
-        col = client.get_collection(name)
+        return client.get_or_create_collection(name=name, metadata=metadata)
     except Exception:
-        col = client.create_collection(name)
-    return col
+        # Fallback: try get; else create
+        try:
+            return client.get_collection(name)
+        except Exception:
+            return client.create_collection(name, metadata=metadata)
 
 
 def add_sample(col, doc_id: str, text: str, metadata: Dict):
@@ -39,6 +79,7 @@ def main():
     host = os.getenv("CHROMADB_HOST", "chromadb")
     port = int(os.getenv("CHROMADB_PORT", "8000"))
     collection = os.getenv("COLLECTION_NAME")
+    force = os.getenv("FORCE_RECREATE", "0") == "1"
 
     client = chromadb.HttpClient(host=host, port=port, settings=Settings(allow_reset=True))
 
@@ -54,7 +95,7 @@ def main():
         ]
 
     for name in targets:
-        col = ensure_collection(client, name)
+        col = ensure_collection(client, name, force_recreate=force)
         add_sample(
             col,
             doc_id=f"sample_{name}",
