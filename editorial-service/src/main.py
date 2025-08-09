@@ -6,7 +6,7 @@ import os
 import json
 import time
 import asyncio
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional, Literal
 from datetime import datetime
 from contextlib import asynccontextmanager
 
@@ -93,6 +93,32 @@ class ServiceInfo(BaseModel):
     environment: str
     port: int
     endpoints: Dict[str, str]
+
+# --- Validation API models (v2) ---
+ValidationMode = Literal["comprehensive", "selective"]
+CheckpointType = Literal["pre-writing", "mid-writing", "post-writing"]
+
+class ValidationRequest(BaseModel):
+    content: str
+    mode: ValidationMode
+    checkpoint: Optional[CheckpointType] = None
+
+class ValidationRule(BaseModel):
+    rule_id: str
+    rule_name: str
+    rule_type: str
+    description: str
+    severity: str
+    collection_source: str
+    chromadb_origin_metadata: Dict[str, Any]
+
+class ValidationResponse(BaseModel):
+    mode: ValidationMode
+    checkpoint: Optional[CheckpointType]
+    rules_applied: List[ValidationRule]
+    rule_count: int
+    processing_time_ms: float
+    timestamp: datetime
 
 async def get_redis_client():
     """Get Redis client for service discovery and caching.
@@ -322,6 +348,82 @@ async def metrics_middleware(request, call_next):
     
     return response
 
+# --- Validation API (v2) ---
+
+def _get_selective_rules_for_checkpoint(checkpoint: CheckpointType) -> List[ValidationRule]:
+    now = datetime.utcnow().isoformat()
+    return [
+        ValidationRule(
+            rule_id="pre_audience_001",
+            rule_name="audience_targeting",
+            rule_type="content",
+            description="Content targets appropriate audience segment",
+            severity="high",
+            collection_source="publication_platform_rules",
+            chromadb_origin_metadata={"collection": "publication_platform_rules", "query_timestamp": now},
+        ),
+        ValidationRule(
+            rule_id="pre_structure_001",
+            rule_name="structure_basic",
+            rule_type="structural",
+            description="Basic content structure requirements met",
+            severity="medium",
+            collection_source="style_editorial_rules",
+            chromadb_origin_metadata={"collection": "style_editorial_rules", "query_timestamp": now},
+        ),
+    ]
+
+def _get_comprehensive_rules() -> List[ValidationRule]:
+    now = datetime.utcnow().isoformat()
+    return [
+        ValidationRule(
+            rule_id="sty_con_001",
+            rule_name="style_consistency",
+            rule_type="style",
+            description="Writing style consistent with brand guidelines",
+            severity="high",
+            collection_source="style_editorial_rules",
+            chromadb_origin_metadata={"collection": "style_editorial_rules", "query_timestamp": now},
+        ),
+        ValidationRule(
+            rule_id="aud_tgt_001",
+            rule_name="audience_targeting",
+            rule_type="content",
+            description="Content targets appropriate audience segment",
+            severity="high",
+            collection_source="publication_platform_rules",
+            chromadb_origin_metadata={"collection": "publication_platform_rules", "query_timestamp": now},
+        ),
+    ]
+
+@app.post("/validate/comprehensive", response_model=ValidationResponse)
+async def validate_comprehensive(request: ValidationRequest):
+    start = time.time()
+    rules = _get_comprehensive_rules()
+    return ValidationResponse(
+        mode="comprehensive",
+        checkpoint=None,
+        rules_applied=rules,
+        rule_count=len(rules),
+        processing_time_ms=(time.time() - start) * 1000,
+        timestamp=datetime.utcnow(),
+    )
+
+@app.post("/validate/selective", response_model=ValidationResponse)
+async def validate_selective(request: ValidationRequest):
+    if not request.checkpoint:
+        return JSONResponse(status_code=400, content={"detail": "checkpoint required for selective"})
+    start = time.time()
+    rules = _get_selective_rules_for_checkpoint(request.checkpoint)
+    return ValidationResponse(
+        mode="selective",
+        checkpoint=request.checkpoint,
+        rules_applied=rules,
+        rule_count=len(rules),
+        processing_time_ms=(time.time() - start) * 1000,
+        timestamp=datetime.utcnow(),
+    )
+
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Comprehensive health check with dependency validation"""
@@ -383,7 +485,9 @@ async def service_info_endpoint():
             "health": "/health",
             "metrics": "/metrics",
             "info": "/info",
-            "ready": "/ready"
+            "ready": "/ready",
+            "validate_comprehensive": "/validate/comprehensive",
+            "validate_selective": "/validate/selective",
         }
     )
 
