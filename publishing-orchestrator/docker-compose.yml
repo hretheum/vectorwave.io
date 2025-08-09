@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8050:8050"
+      - "8080:8080"
     environment:
       - ENVIRONMENT=development
       - LOG_LEVEL=info
@@ -16,7 +16,7 @@ services:
     networks:
       - vector-wave-dev
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8050/health', timeout=5)"]
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8080/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
