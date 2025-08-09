@@ -753,6 +753,9 @@ test_requirements:
 #### **WEEK 3-4: Hardcoded Rule Migration** 🆕 **EXTENDED DUE TO ATOMIZATION**
 
 ##### Task 1.3.1A: Rule Discovery & Cataloging (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+Status: DONE
+- Commit-ID: a40dd6c
+- LLM-NOTE: Dodano skaner reguł i wygenerowano pierwszy katalog `editorial-service/migration/output/rules_catalog.json` z wykrytymi hitami. Gotowe do walidacji i transformacji (1.3.1B).
 ```yaml
 objective: "Complete inventory of hardcoded rules in Kolegium files"
 source_files:
