@@ -1376,7 +1376,10 @@ test_requirements:
       - test_all_platform_rules_validated()
       - test_zero_unresolved_conflicts()
 ```
-##### Task 1.3.3C: Publisher Platform Rule Migration (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.3C: Publisher Platform Rule Migration (0.5 days) ⏱️ 4h 🆕 **ATOMIZED** [DONE]
+Status: DONE
+- Commit-ID: af05f1d
+- LLM-NOTE: Zaimportowano 178 reguł platformowych do kolekcji `publication_platform_rules` (Chroma REST, UUID endpoint). Weryfikacja: próbka 25 ID — 25/25. Skrypty: `editorial-service/migration/migrate_publisher_platform_rules.py`, `editorial-service/migration/verify_publisher_platform_migration.py`.
 ```yaml
 objective: "Execute migration of Publisher Platform rules to ChromaDB"
 deliverable: "Platform-specific rules migrated to appropriate ChromaDB collections"
@@ -1385,6 +1388,10 @@ acceptance_criteria:
   - Platform-specific queries functional
   - Rule indexing optimized per platform
   - Migration integrity verified
+
+validation_commands:
+  - "python editorial-service/migration/migrate_publisher_platform_rules.py | jq '.added' # Expected: > 100"
+  - "python editorial-service/migration/verify_publisher_platform_migration.py | jq '.success' # Expected: true"
 
 test_requirements:
   unit_tests:
