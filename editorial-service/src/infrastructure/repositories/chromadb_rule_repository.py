@@ -1,10 +1,9 @@
 """
 Infrastructure Repository: ChromaDBRuleRepository
-Production implementation using ChromaDB HTTP API with metadata filtering.
+Production implementation using ChromaDB Python SDK (HttpClient).
 
 Notes:
-- Prefers metadata-based filtering (where) with collection-specific queries
-- Falls back between /query and /get endpoints depending on server support
+- Uses SDK `collection.query()` and `collection.get()` with metadata filters
 - Returns only rules with constructed chromadb_origin_metadata
 """
 from __future__ import annotations
@@ -13,7 +12,11 @@ import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-import httpx
+try:
+    import chromadb  # type: ignore
+    from chromadb.config import Settings  # type: ignore
+except Exception as e:  # pragma: no cover
+    raise RuntimeError(f"ChromaDB SDK import failed: {e}")
 import structlog
 
 from ...domain.entities.validation_rule import ValidationRule, RuleType, RuleSeverity
@@ -33,8 +36,9 @@ class ChromaDBRuleRepository(IRuleRepository):
     def __init__(self, host: Optional[str] = None, port: Optional[int] = None) -> None:
         self.host: str = host or os.getenv("CHROMADB_HOST", "localhost")
         self.port: int = int(port or os.getenv("CHROMADB_PORT", "8000"))
-        self.base_v1: str = f"http://{self.host}:{self.port}/api/v1"
-        self.base_v2: str = f"http://{self.host}:{self.port}/api/v2"
+
+        # SDK client
+        self._client = None
 
         # Collections used by editorial validation
         self.style_collection: str = "style_editorial_rules"
@@ -129,16 +133,17 @@ class ChromaDBRuleRepository(IRuleRepository):
         return None
 
     async def get_collection_stats(self) -> Dict[str, Any]:
-        # v2 doesn't expose the same endpoint set; return heartbeat only
-        async with httpx.AsyncClient(timeout=3.0) as client:
-            hb = await client.get(f"{self.base_v2}/heartbeat")
-        return {"v2_heartbeat": hb.status_code == 200}
+        try:
+            client = self._ensure_client()
+            # Best-effort availability flag
+            return {"sdk_available": client is not None, "host": self.host, "port": self.port}
+        except Exception as e:
+            return {"sdk_available": False, "error": str(e)}
 
     async def health_check(self) -> bool:
         try:
-            async with httpx.AsyncClient(timeout=3.0) as client:
-                hb = await client.get(f"{self.base_v2}/heartbeat")
-                return hb.status_code == 200
+            self._ensure_client()
+            return True
         except Exception:
             return False
 
@@ -150,36 +155,38 @@ class ChromaDBRuleRepository(IRuleRepository):
         n_results: int = 10,
         query_text: Optional[str] = None,
     ) -> List[ValidationRule]:
-        include = ["metadatas", "documents", "ids"]
-        async with httpx.AsyncClient(timeout=8.0) as client:
-            try:
-                payload: Dict[str, Any] = {
-                    "n_results": n_results,
-                    "include": include,
-                }
-                if query_text:
-                    payload["query_texts"] = [query_text]
-                if where:
-                    payload["where"] = where
-                r = await client.post(f"{self.base_v1}/collections/{collection}/query", json=payload)
-                if r.status_code == 200:
-                    return self._parse_query_response(collection, r.json())
-                logger.warning("Chroma query non-200", code=r.status_code, collection=collection)
-            except Exception as e:
-                logger.warning("Chroma query failed, falling back to /get", error=str(e), collection=collection)
-            try:
-                get_payload: Dict[str, Any] = {"limit": n_results}
-                if where:
-                    get_payload["where"] = where
-                r2 = await client.post(f"{self.base_v1}/collections/{collection}/get", json=get_payload)
-                if r2.status_code == 200:
-                    return self._parse_get_response(collection, r2.json())
-                logger.warning("Chroma get non-200", code=r2.status_code, collection=collection)
-            except Exception as e2:
-                logger.error("Chroma get failed", error=str(e2), collection=collection)
-        return []
+        """Query ChromaDB using Python SDK (preferred)."""
+        col = self._ensure_client().get_or_create_collection(name=collection)
+        rules: List[ValidationRule] = []
+        try:
+            if query_text:
+                res = col.query(
+                    query_texts=[query_text],
+                    where=where,
+                    n_results=n_results,
+                    include=["ids", "metadatas", "documents"],
+                )
+                ids_groups = res.get("ids", []) or []
+                metas_groups = res.get("metadatas", []) or []
+                docs_groups = res.get("documents", []) or []
+                ids = ids_groups[0] if ids_groups else []
+                metadatas = metas_groups[0] if metas_groups else []
+                documents = docs_groups[0] if docs_groups else []
+            else:
+                res = col.get(where=where, limit=n_results, include=["ids", "metadatas", "documents"])  # type: ignore[arg-type]
+                ids = res.get("ids", []) or []
+                metadatas = res.get("metadatas", []) or []
+                documents = res.get("documents", []) or []
+            for idx, meta in enumerate(metadatas):
+                rid = ids[idx] if idx < len(ids) else f"{collection}_{idx:04d}"
+                doc = documents[idx] if idx < len(documents) else ""
+                rules.append(self._metadata_to_rule(collection, rid, meta, doc))
+        except Exception as e:
+            logger.error("chroma_sdk_query_failed", error=str(e), collection=collection)
+        return rules
 
     def _parse_query_response(self, collection: str, data: Dict[str, Any]) -> List[ValidationRule]:
+        # Not used in SDK path; kept for completeness if needed in future
         ids_groups = data.get("ids", []) or []
         metas_groups = data.get("metadatas", []) or []
         docs_groups = data.get("documents", []) or []
@@ -194,6 +201,7 @@ class ChromaDBRuleRepository(IRuleRepository):
         return rules
 
     def _parse_get_response(self, collection: str, data: Dict[str, Any]) -> List[ValidationRule]:
+        # Not used in SDK path; kept for completeness if needed in future
         ids = data.get("ids", []) or []
         metadatas = data.get("metadatas", []) or []
         documents = data.get("documents", []) or []
@@ -269,3 +277,12 @@ class ChromaDBRuleRepository(IRuleRepository):
         return sorted_rules[:target]
 
     # No mock fallback allowed by project rules
+
+    def _ensure_client(self):
+        if self._client is None:
+            self._client = chromadb.HttpClient(
+                host=self.host,
+                port=self.port,
+                settings=Settings(allow_reset=True),
+            )
+        return self._client
