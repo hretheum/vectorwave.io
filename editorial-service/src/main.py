@@ -22,6 +22,7 @@ from .application.services.validation_strategy_factory import (
     ValidationStrategyFactory,
 )
 from .infrastructure.repositories.mock_rule_repository import MockRuleRepository
+from .infrastructure.repositories import ChromaDBRuleRepository
 from .domain.entities.validation_request import (
     ValidationMode as DomainValidationMode,
     CheckpointType as DomainCheckpointType,
@@ -386,7 +387,7 @@ async def validate_comprehensive(request: ValidationRequest):
         metadata={"platform": request.platform} if request.platform else None,
     )
     # Resolve strategy and repository
-    repo = MockRuleRepository()  # TODO: replace with ChromaDB-backed repository
+    repo = ChromaDBRuleRepository() if ChromaDBRuleRepository else MockRuleRepository()
     factory = ValidationStrategyFactory(repo)
     strategy = factory.create("comprehensive")
     domain_rules = await strategy.validate(domain_request)
@@ -426,7 +427,7 @@ async def validate_selective(request: ValidationRequest):
         checkpoint=domain_checkpoint,
         metadata={"platform": request.platform} if request.platform else None,
     )
-    repo = MockRuleRepository()  # TODO: replace with ChromaDB-backed repository
+    repo = ChromaDBRuleRepository() if ChromaDBRuleRepository else MockRuleRepository()
     factory = ValidationStrategyFactory(repo)
     strategy = factory.create("selective")
     domain_rules = await strategy.validate(domain_request)
