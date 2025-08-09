@@ -67,6 +67,16 @@ class ChromaDBRuleRepository(IRuleRepository):
             self.platform_collection, where=where, n_results=6, query_text=content
         )
         candidates = style_rules + platform_rules
+        # Fallback: if checkpoint-filtered returns nothing, broaden search without checkpoint
+        if not candidates:
+            logger.warning("checkpoint_filter_empty_fallback", checkpoint=checkpoint.value)
+            style_rules = await self._fetch_by_where(
+                self.style_collection, where=None, n_results=8, query_text=content
+            )
+            platform_rules = await self._fetch_by_where(
+                self.platform_collection, where=None, n_results=6, query_text=content
+            )
+            candidates = style_rules + platform_rules
         selected = self._prioritize_by_severity(candidates, target=4)
         if len(selected) < 3:
             remaining = [r for r in candidates if r not in selected]
