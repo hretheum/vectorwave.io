@@ -1,18 +1,20 @@
 """
-Audience Crew - Maps content to target audiences and calibrates messaging
-FIXED: Infinite loop prevention with circuit breakers and forced completion
+Audience Crew - Maps content to target audiences with platform-aware optimization
+Enhanced with Editorial Service integration for platform-specific validation
 """
 
 from crewai import Agent, Crew, Task, Process
 from crewai.tools import tool
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import json
 import logging
 import re
 import os
 import time
+import asyncio
 
 from ..models import AudienceAlignment
+from ..clients.editorial_client import EditorialServiceClient
 
 # Disable CrewAI memory logs
 os.environ["CREWAI_STORAGE_LOG_ENABLED"] = "false"
@@ -181,20 +183,276 @@ def calibrate_tone(primary_audience: str) -> str:
 
 
 class AudienceCrew:
-    """Crew responsible for audience alignment and messaging calibration"""
+    """
+    Crew responsible for audience alignment and messaging calibration
+    Enhanced with Editorial Service platform-aware optimization
+    """
     
-    def __init__(self):
+    def __init__(self, editorial_service_url: str = "http://localhost:8040"):
+        """
+        Initialize Audience Crew with Editorial Service integration
+        
+        Args:
+            editorial_service_url: URL of Editorial Service (default: http://localhost:8040)
+        """
         # Reference module-level audiences
         self.audiences = VECTOR_WAVE_AUDIENCES
         # Track execution time for timeout
         self.start_time = None
         self.max_execution_time = 30  # 30 seconds max
+        
+        # Editorial Service integration
+        self.editorial_service_url = editorial_service_url
+        self.editorial_client = None
+        self._initialize_editorial_client()
+        
+        # Circuit breaker state for Editorial Service
+        self._editorial_service_available = True
+        self._last_check_time = None
+        
+    def _initialize_editorial_client(self):
+        """Initialize Editorial Service client"""
+        try:
+            self.editorial_client = EditorialServiceClient(
+                base_url=self.editorial_service_url,
+                timeout=30.0
+            )
+            logger.info(f"Connected to Editorial Service at {self.editorial_service_url}")
+        except Exception as e:
+            logger.error(f"Failed to initialize Editorial Service client: {e}")
+            self._editorial_service_available = False
     
+    @tool("Validate Platform-Specific Content")
+    def validate_platform_optimization(self, content: str, platform: str, target_audience: str) -> str:
+        """
+        Validate content for platform-specific optimization using Editorial Service
+        Uses comprehensive validation for thorough platform compliance check
+        
+        Args:
+            content: Content to validate for platform optimization
+            platform: Target platform (linkedin, twitter, beehiiv, ghost)
+            target_audience: Primary target audience
+            
+        Returns:
+            JSON string with platform-specific validation results
+        """
+        if not self.editorial_client:
+            return json.dumps({
+                "error": "Editorial Service not available",
+                "platform_compliance": True,  # Allow to continue
+                "suggestions": ["Editorial Service connection required for platform optimization"]
+            })
+        
+        try:
+            # Run async validation in sync context
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import concurrent.futures
+                future = concurrent.futures.Future()
+                
+                async def run_validation():
+                    try:
+                        result = await self.editorial_client.validate_comprehensive(
+                            content=content,
+                            platform=platform,
+                            content_type="article",
+                            context={
+                                "agent": "audience",
+                                "validation_type": "platform_optimization",
+                                "target_audience": target_audience,
+                                "platform_specific": True
+                            }
+                        )
+                        future.set_result(result)
+                    except Exception as e:
+                        future.set_exception(e)
+                
+                asyncio.create_task(run_validation())
+                result = future.result(timeout=30)
+            else:
+                result = asyncio.run(
+                    self.editorial_client.validate_comprehensive(
+                        content=content,
+                        platform=platform,
+                        content_type="article",
+                        context={
+                            "agent": "audience",
+                            "validation_type": "platform_optimization",
+                            "target_audience": target_audience,
+                            "platform_specific": True
+                        }
+                    )
+                )
+            
+            # Add platform-specific insights
+            platform_insights = self._get_platform_insights(platform, result)
+            result["platform_insights"] = platform_insights
+            
+            return json.dumps(result, indent=2)
+            
+        except Exception as e:
+            logger.error(f"Editorial Service platform validation failed: {e}")
+            return json.dumps({
+                "error": str(e),
+                "platform_compliance": True,  # Allow to continue
+                "suggestions": ["Check Editorial Service connection for platform optimization"]
+            })
+    
+    @tool("Get Platform-Specific Rules")
+    def get_platform_rules(self, platform: str) -> str:
+        """
+        Get platform-specific rules and constraints from Editorial Service
+        
+        Args:
+            platform: Target platform (linkedin, twitter, beehiiv, ghost)
+            
+        Returns:
+            JSON string with platform-specific rules and guidelines
+        """
+        if not self.editorial_client:
+            return json.dumps({
+                "error": "Editorial Service not available",
+                "platform_rules": self._get_fallback_platform_rules(platform)
+            })
+        
+        try:
+            # Get cache stats to check available platform rules
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                import concurrent.futures
+                future = concurrent.futures.Future()
+                
+                async def get_rules():
+                    try:
+                        cache_dump = await self.editorial_client.get_cache_dump()
+                        platform_rules = [
+                            rule for rule in cache_dump
+                            if rule.get("platform") == platform or rule.get("platform") == "universal"
+                        ]
+                        
+                        result = {
+                            "platform": platform,
+                            "rules_count": len(platform_rules),
+                            "rules": platform_rules[:10],  # First 10 rules
+                            "platform_constraints": self._get_platform_constraints(platform)
+                        }
+                        future.set_result(result)
+                    except Exception as e:
+                        future.set_exception(e)
+                
+                asyncio.create_task(get_rules())
+                result = future.result(timeout=30)
+            else:
+                cache_dump = asyncio.run(self.editorial_client.get_cache_dump())
+                platform_rules = [
+                    rule for rule in cache_dump
+                    if rule.get("platform") == platform or rule.get("platform") == "universal"
+                ]
+                
+                result = {
+                    "platform": platform,
+                    "rules_count": len(platform_rules),
+                    "rules": platform_rules[:10],  # First 10 rules
+                    "platform_constraints": self._get_platform_constraints(platform)
+                }
+            
+            return json.dumps(result, indent=2)
+            
+        except Exception as e:
+            logger.error(f"Failed to get platform rules: {e}")
+            return json.dumps({
+                "error": str(e),
+                "platform_rules": self._get_fallback_platform_rules(platform)
+            })
+    
+    def _get_platform_insights(self, platform: str, validation_result: Dict) -> Dict:
+        """Generate platform-specific insights based on validation"""
+        insights = {
+            "platform": platform,
+            "optimization_suggestions": []
+        }
+        
+        if platform == "linkedin":
+            insights["optimization_suggestions"].extend([
+                "Professional tone recommended",
+                "Include industry insights and data",
+                "Use LinkedIn-appropriate hashtags",
+                "Consider thought leadership angle"
+            ])
+        elif platform == "twitter":
+            insights["optimization_suggestions"].extend([
+                "Concise, punchy messaging",
+                "Thread-friendly structure",
+                "Engaging hooks for retweets",
+                "Visual content recommendations"
+            ])
+        elif platform == "beehiiv":
+            insights["optimization_suggestions"].extend([
+                "Newsletter-friendly formatting",
+                "Subscriber retention focus",
+                "Email-optimized structure",
+                "Call-to-action placement"
+            ])
+        elif platform == "ghost":
+            insights["optimization_suggestions"].extend([
+                "Blog-style content structure",
+                "SEO optimization hints",
+                "Reader engagement tactics",
+                "Subscription conversion tips"
+            ])
+        
+        return insights
+    
+    def _get_platform_constraints(self, platform: str) -> Dict:
+        """Get platform-specific constraints and limits"""
+        constraints = {
+            "linkedin": {
+                "character_limit": 1300,
+                "optimal_length": "600-800 characters",
+                "tone": "professional",
+                "hashtags_limit": 5,
+                "features": ["carousel", "video", "document", "poll"]
+            },
+            "twitter": {
+                "character_limit": 280,
+                "thread_limit": 25,
+                "tone": "conversational",
+                "hashtags_limit": 2,
+                "features": ["thread", "poll", "spaces", "image"]
+            },
+            "beehiiv": {
+                "character_limit": None,
+                "optimal_length": "1200-2000 words",
+                "tone": "newsletter-friendly",
+                "features": ["segments", "analytics", "referrals"]
+            },
+            "ghost": {
+                "character_limit": None,
+                "optimal_length": "800-1500 words",
+                "tone": "blog-style",
+                "features": ["SEO", "membership", "comments", "newsletters"]
+            }
+        }
+        
+        return constraints.get(platform, {})
+    
+    def _get_fallback_platform_rules(self, platform: str) -> Dict:
+        """Fallback platform rules when Editorial Service unavailable"""
+        return {
+            "platform": platform,
+            "basic_rules": [
+                f"Optimize content for {platform} audience",
+                f"Follow {platform} best practices",
+                "Maintain brand voice consistency",
+                "Ensure engagement optimization"
+            ]
+        }
+
     def audience_mapper_agent(self) -> Agent:
-        """Create the audience mapping specialist agent with strict loop prevention"""
+        """Create the audience mapping specialist agent with Editorial Service platform optimization"""
         return Agent(
-            role="Audience Strategy Specialist",
-            goal="Complete audience analysis in EXACTLY 2 tool calls, then provide final answer",
+            role="Audience Strategy Specialist (Platform-Aware)",
+            goal="Complete audience analysis with Editorial Service platform optimization in focused tool calls",
             backstory="""You are a highly efficient audience strategist who completes analysis quickly.
             
             CRITICAL RULES:
@@ -206,7 +464,9 @@ class AudienceCrew:
             You are being monitored for infinite loops. Stay focused and efficient.""",
             tools=[
                 analyze_all_audiences,
-                calibrate_tone
+                calibrate_tone,
+                self.validate_platform_optimization,
+                self.get_platform_rules
             ],
             verbose=True,
             allow_delegation=False,
@@ -216,22 +476,31 @@ class AudienceCrew:
     
     def create_audience_task(self, topic: str, platform: str, research_summary: str, 
                            editorial_recommendations: str) -> Task:
-        """Create an audience alignment task with forced completion"""
+        """Create an audience alignment task with Editorial Service platform optimization"""
         return Task(
             description=f"""
-            Quick audience analysis for: {topic}
+            Complete audience analysis with platform optimization for: {topic}
             Platform: {platform}
             
-            TWO STEPS ONLY:
-            1. Call Analyze All Audiences tool ONCE
-            2. Call Calibrate Tone tool ONCE
+            PLATFORM-AWARE ANALYSIS STEPS:
+            1. Get Platform Rules - Call "Get Platform-Specific Rules" to understand {platform} constraints
+            2. Analyze All Audiences - Call "Analyze All Audiences" tool ONCE for topic fit
+            3. Calibrate Tone - Call "Calibrate Tone" tool ONCE for primary audience
+            4. Validate Platform Optimization - Call "Validate Platform-Specific Content" to ensure platform compliance
             
-            Then immediately write your final answer. No more analysis. No more tools.
+            Then immediately write your final answer with platform optimization insights.
             
             Topic context: {research_summary[:200]}...
+            Editorial context: {editorial_recommendations[:100]}...
+            
+            Platform Integration:
+            - Use Editorial Service platform rules from ChromaDB
+            - Consider {platform}-specific constraints and best practices
+            - Optimize messaging for {platform} audience behavior
+            - Ensure content fits {platform} engagement patterns
             """,
             agent=self.audience_mapper_agent(),
-            expected_output="""STRUCTURED FINAL ANSWER:
+            expected_output="""STRUCTURED FINAL ANSWER WITH PLATFORM OPTIMIZATION:
 
             PRIMARY AUDIENCE: [audience_name] (Score: X.XX)
             CONTENT DEPTH: Level [1-3]
@@ -246,7 +515,13 @@ class AudienceCrew:
             KEY MESSAGES:
             [List key messages for each audience]
             
-            Format exactly as shown above. No additional analysis."""
+            PLATFORM OPTIMIZATION ({platform}):
+            - Character/Word Limits: [limits]
+            - Optimal Format: [format recommendations]
+            - Engagement Strategy: [platform-specific tactics]
+            - Platform Rules Applied: [X rules from Editorial Service]
+            
+            Format exactly as shown above with platform optimization section."""
         )
     
     def execute(self, topic: str, platform: str, research_summary: str, 
