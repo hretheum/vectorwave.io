@@ -1,16 +1,52 @@
-FROM python:3.11-slim
+# Multi-stage Dockerfile for optimal container performance
+FROM python:3.11-slim as builder
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy only what we need
-COPY minimal_server.py .
+# Install Python dependencies
+COPY requirements.txt ./
+COPY requirements-test.txt ./
+RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir --user -r requirements-test.txt
 
-# Expose port 8040 
-EXPOSE 8040
+# Production stage
+FROM python:3.11-slim as production
+
+# Install curl for health checks
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r editorial && useradd -r -g editorial editorial
+
+# Copy installed packages from builder
+COPY --from=builder /root/.local /home/editorial/.local
+
+# Set PATH to include user packages and make src importable
+ENV PATH="/home/editorial/.local/bin:$PATH" \
+    PYTHONPATH="/app/src"
+
+WORKDIR /app
+
+# Copy application code
+COPY --chown=editorial:editorial src/ ./src/
+COPY --chown=editorial:editorial config/ ./config/
+
+# Switch to non-root user
+USER editorial
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8040/health', timeout=5)" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8040/health', timeout=5)"
 
-# Run the minimal server (no dependencies needed)
-CMD ["python3", "minimal_server.py"]
+EXPOSE 8040
+
+# Use uvicorn for production
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8040", "--workers", "1"]

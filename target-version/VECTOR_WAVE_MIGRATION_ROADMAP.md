@@ -167,70 +167,158 @@ test_requirements:
       - test_health_check_dependencies()
 ```
 
-**Implementation Steps:**
-```bash
-# 1. Create service structure
-mkdir -p editorial-service/{src,tests,docker,config}
 
-# 2. Setup FastAPI foundation
-cat > editorial-service/src/main.py << 'EOF'
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-import logging
+**Container-First Implementation Steps:**
+```yaml
+# 1. Docker Compose Setup (Development Environment)
+editorial-service:
+  development:
+    environment:
+      - ENVIRONMENT=development  
+      - LOG_LEVEL=debug
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+    volumes:
+      - ./src:/app/src:ro
+      - ./tests:/app/tests:ro
+      - ./config:/app/config:ro
+    networks:
+      - vector-wave-dev
+    depends_on:
+      chromadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8040/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
-app = FastAPI(
-    title="Editorial Service",
-    version="2.0.0",
-    description="ChromaDB-centric content validation service"
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.get("/health")
-async def health_check():
-    return {
-        "status": "healthy",
-        "service": "editorial-service",
-        "version": "2.0.0",
-        "port": 8040
-    }
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8040)
-EOF
-
-# 3. Create requirements
-cat > editorial-service/requirements.txt << 'EOF'
-fastapi==0.104.1
-uvicorn==0.24.0
-pydantic==2.5.0
-chromadb==0.4.15
-redis==5.0.1
-python-multipart==0.0.6
-EOF
-
-# 4. Docker setup
-cat > editorial-service/Dockerfile << 'EOF'
-FROM python:3.11-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY src/ ./src/
-EXPOSE 8040
-
-CMD ["python", "src/main.py"]
-EOF
+# 2. ChromaDB Integration (Containerized)  
+chromadb:
+  image: chromadb/chroma:latest
+  environment:
+    - CHROMA_SERVER_HOST=0.0.0.0
+    - CHROMA_SERVER_HTTP_PORT=8000
+  ports:
+    - "8000:8000"
+  volumes:
+    - chromadb_data:/chroma/chroma
+  networks:
+    - vector-wave-dev
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+    interval: 30s
+    timeout: 10s
+    retries: 3
 ```
 
+**Container-First Build Process:**
+```dockerfile
+# Multi-stage Dockerfile for optimal container performance
+FROM python:3.11-slim as builder
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python dependencies
+COPY requirements.txt requirements-dev.txt ./
+RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir --user -r requirements-dev.txt
+
+# Production stage
+FROM python:3.11-slim as production
+
+# Create non-root user
+RUN groupadd -r editorial && useradd -r -g editorial editorial
+
+# Copy installed packages from builder
+COPY --from=builder /root/.local /home/editorial/.local
+
+# Set PATH to include user packages
+ENV PATH="/home/editorial/.local/bin:$PATH"
+
+WORKDIR /app
+
+# Copy application code
+COPY --chown=editorial:editorial src/ ./src/
+COPY --chown=editorial:editorial config/ ./config/
+
+# Switch to non-root user
+USER editorial
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8040/health', timeout=5)"
+
+EXPOSE 8040
+
+# Use uvicorn for production
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8040", "--workers", "1"]
+```
+
+**Development Workflow Commands:**
+```bash
+# 1. Container-first development start
+docker-compose -f docker-compose.dev.yml up --build editorial-service
+
+# 2. Hot-reload development (volumes mounted)
+docker-compose -f docker-compose.dev.yml up --build -d
+docker-compose logs -f editorial-service
+
+# 3. Run tests in container
+docker-compose exec editorial-service python -m pytest tests/ -v --cov=src --cov-report=html
+
+# 4. Production-like testing
+docker-compose -f docker-compose.prod.yml up --build editorial-service
+
+# 5. Health verification (container networking)
+docker-compose exec editorial-service curl http://editorial-service:8040/health
+docker-compose exec chromadb curl http://chromadb:8000/api/v1/heartbeat
+
+# 6. Container resource monitoring
+docker stats editorial-service chromadb
+
+# 7. Network inspection
+docker network ls
+docker network inspect vector-wave_vector-wave-dev
+```
+
+**Production Configuration:**
+```yaml
+# docker-compose.prod.yml snippet
+editorial-service:
+  production:
+    image: vector-wave/editorial-service:2.0.0
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info  
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      - WORKERS=4
+    networks:
+      - vector-wave-prod
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8040/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+```
 ##### Task 1.1.2: ChromaDB Client Integration (1 day) ⏱️ 8h
 ```yaml
 objective: "Integrate ChromaDB client with connection management"
@@ -938,7 +1026,7 @@ test_requirements:
     tests:
       - test_all_rules_pass_validation()
       - test_chromadb_format_compatibility()
-```  
+```
 ##### Task 1.3.2C: AI Writing Flow Rule Migration (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
 ```yaml
 objective: "Execute migration of AI Writing Flow rules to ChromaDB"
@@ -1172,7 +1260,7 @@ test_requirements:
     tests:
       - test_all_platforms_migrated_successfully()
       - test_platform_rule_accessibility()
-```  
+```
 ##### Task 1.3.3D: Publisher Platform Migration Verification (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
 ```yaml
 objective: "Verify successful migration of Publisher Platform rules"
@@ -2929,7 +3017,7 @@ implementation_pattern:
       verbose=True,
       memory=True
   )
-  ```
+```
 
 validation_commands:
   - "grep -r 'Process.sequential' kolegium/ | wc -l # Expected: >5"
