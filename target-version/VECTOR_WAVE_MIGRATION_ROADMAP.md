@@ -1055,7 +1055,10 @@ if __name__ == "__main__":
     print(f"🎉 Total rules migrated: {len(total_rules)}")
 ```
 
-##### Task 1.3.2A: AI Writing Flow Rule Discovery (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 1.3.2A: AI Writing Flow Rule Discovery (0.5 days) ⏱️ 4h 🆕 **ATOMIZED** [DONE]
+Status: DONE
+- Commit-ID: ce67a34
+- LLM-NOTE: Dodano skaner reguł AI Writing Flow `editorial-service/migration/discover_ai_writing_flow_rules.py` i wygenerowano katalog `editorial-service/migration/output/ai_writing_flow_rules_catalog.json` (1250 hits). Obejmuje forbidden/required/pattern/directives + punkty integracji z Editorial/Chroma.
 ```yaml
 objective: "Discover and catalog hardcoded rules in AI Writing Flow components"
 deliverable: "Comprehensive inventory of AI Writing Flow validation rules"
@@ -1064,6 +1067,9 @@ acceptance_criteria:
   - Rules categorized by type and priority
   - Source mapping with line numbers
   - Integration points identified
+
+validation_commands:
+  - "python editorial-service/migration/discover_ai_writing_flow_rules.py | jq '.total_hits' # Expected: > 300"
 
 test_requirements:
   unit_tests:
