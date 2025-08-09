@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from .agent_clients import CrewAIAgentClients
+from agent_clients import CrewAIAgentClients
 
 router = APIRouter()
 clients = CrewAIAgentClients()
