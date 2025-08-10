@@ -26,7 +26,7 @@ class StyleCrew:
     All validation rules sourced from Editorial Service (ChromaDB)
     """
     
-    def __init__(self, editorial_service_url: str = "http://localhost:8040"):
+    def __init__(self, editorial_service_url: str = "http://localhost:8040", min_compliance_score: int = 70):
         """
         Initialize Style Crew with Editorial Service integration
         
@@ -36,6 +36,8 @@ class StyleCrew:
         self.editorial_service_url = editorial_service_url
         self.editorial_client = None
         self._initialize_client()
+        # Compliance threshold for approval
+        self.min_compliance_score = max(0, min(100, int(min_compliance_score)))
         
         # Circuit breaker state for resilience
         self._service_available = True
@@ -462,7 +464,7 @@ class StyleCrew:
                                   (medium_violations * 10) - (low_violations * 5))
         
         return StyleValidation(
-            is_compliant=compliance_score >= 70,
+            is_compliant=compliance_score >= self.min_compliance_score,
             violations=violations,
             forbidden_phrases=forbidden_phrases,
             suggestions=suggestions,
