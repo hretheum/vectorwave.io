@@ -19,12 +19,18 @@ import os
 import json
 from datetime import datetime
 import uuid
+import time
 
 
 class WritingCrew:
     """Main crew that orchestrates all writing agents"""
     
-    def __init__(self, state_dir: str = ".crew_state"):
+    def __init__(
+        self,
+        state_dir: str = ".crew_state",
+        total_time_budget_s: Optional[float] = None,
+        per_stage_budget_s: Optional[float] = None,
+    ):
         self._research_crew = None
         self._audience_crew = None
         self._writer_crew = None
@@ -33,6 +39,9 @@ class WritingCrew:
         # Directory for state persistence
         self._state_dir = state_dir
         os.makedirs(self._state_dir, exist_ok=True)
+        # Performance budgets (None means no budget enforced)
+        self._total_time_budget_s = total_time_budget_s
+        self._per_stage_budget_s = per_stage_budget_s
     
     def research_agent(self):
         """Get or create research crew"""
@@ -91,6 +100,7 @@ class WritingCrew:
         inputs: Dict[str, Any] = Field(default_factory=dict)
         results: Dict[str, Any] = Field(default_factory=dict)
         error_message: Optional[str] = None
+        metrics: Dict[str, Any] = Field(default_factory=lambda: {"stages": {}, "overall_ms": None})
 
         def to_json(self) -> str:
             return self.model_dump_json(indent=2)
@@ -140,14 +150,20 @@ class WritingCrew:
                 "audience_insights": audience_insights,
                 "research_sources_path": research_sources_path,
                 "writer_depth_level": writer_depth_level,
+                "budgets": {
+                    "total_time_budget_s": self._total_time_budget_s,
+                    "per_stage_budget_s": self._per_stage_budget_s,
+                },
             },
         )
         self._save_state(state)
 
         try:
+            overall_start = time.perf_counter()
             # 1) Research
             state.current_stage = WritingCrew.Stage.RESEARCH
             self._save_state(state)
+            stage_start = time.perf_counter()
             research_result = self.research_agent().execute(
                 topic=topic,
                 sources_path=research_sources_path,
@@ -155,12 +171,27 @@ class WritingCrew:
                 content_ownership="EXTERNAL",
             )
             state.results[state.current_stage.value] = research_result.model_dump() if hasattr(research_result, "model_dump") else str(research_result)
+            state.metrics["stages"][state.current_stage.value] = {
+                "duration_ms": (time.perf_counter() - stage_start) * 1000.0
+            }
+            # Budget checks
+            if self._per_stage_budget_s is not None and state.metrics["stages"][state.current_stage.value]["duration_ms"] > self._per_stage_budget_s * 1000.0:
+                state.status = WritingCrew.ExecutionStatus.FAILED
+                state.error_message = f"Time budget exceeded in stage {state.current_stage.value}"
+                self._save_state(state)
+                return state
             state.stages_completed.append(state.current_stage)
             self._save_state(state)
+            if self._total_time_budget_s is not None and (time.perf_counter() - overall_start) > self._total_time_budget_s:
+                state.status = WritingCrew.ExecutionStatus.FAILED
+                state.error_message = "Total time budget exceeded"
+                self._save_state(state)
+                return state
 
             # 2) Audience
             state.current_stage = WritingCrew.Stage.AUDIENCE
             self._save_state(state)
+            stage_start = time.perf_counter()
             audience_alignment = self.audience_mapper().execute(
                 topic=topic,
                 platform=platform,
@@ -168,12 +199,26 @@ class WritingCrew:
                 editorial_recommendations="",
             )
             state.results[state.current_stage.value] = audience_alignment.model_dump() if hasattr(audience_alignment, "model_dump") else str(audience_alignment)
+            state.metrics["stages"][state.current_stage.value] = {
+                "duration_ms": (time.perf_counter() - stage_start) * 1000.0
+            }
+            if self._per_stage_budget_s is not None and state.metrics["stages"][state.current_stage.value]["duration_ms"] > self._per_stage_budget_s * 1000.0:
+                state.status = WritingCrew.ExecutionStatus.FAILED
+                state.error_message = f"Time budget exceeded in stage {state.current_stage.value}"
+                self._save_state(state)
+                return state
             state.stages_completed.append(state.current_stage)
             self._save_state(state)
+            if self._total_time_budget_s is not None and (time.perf_counter() - overall_start) > self._total_time_budget_s:
+                state.status = WritingCrew.ExecutionStatus.FAILED
+                state.error_message = "Total time budget exceeded"
+                self._save_state(state)
+                return state
 
             # 3) Write
             state.current_stage = WritingCrew.Stage.WRITE
             self._save_state(state)
+            stage_start = time.perf_counter()
             draft_content = self.content_writer().execute(
                 topic=topic,
                 platform=platform,
@@ -183,41 +228,83 @@ class WritingCrew:
                 styleguide_context=styleguide_context,
             )
             state.results[state.current_stage.value] = draft_content.model_dump() if hasattr(draft_content, "model_dump") else str(draft_content)
+            state.metrics["stages"][state.current_stage.value] = {
+                "duration_ms": (time.perf_counter() - stage_start) * 1000.0
+            }
+            if self._per_stage_budget_s is not None and state.metrics["stages"][state.current_stage.value]["duration_ms"] > self._per_stage_budget_s * 1000.0:
+                state.status = WritingCrew.ExecutionStatus.FAILED
+                state.error_message = f"Time budget exceeded in stage {state.current_stage.value}"
+                self._save_state(state)
+                return state
             state.stages_completed.append(state.current_stage)
             self._save_state(state)
+            if self._total_time_budget_s is not None and (time.perf_counter() - overall_start) > self._total_time_budget_s:
+                state.status = WritingCrew.ExecutionStatus.FAILED
+                state.error_message = "Total time budget exceeded"
+                self._save_state(state)
+                return state
 
             # 4) Style
             state.current_stage = WritingCrew.Stage.STYLE
             self._save_state(state)
+            stage_start = time.perf_counter()
             style_validation = self.style_validator().execute(
                 draft=state.results[WritingCrew.Stage.WRITE.value].get("draft", ""),
                 styleguide_context=styleguide_context,
             )
             state.results[state.current_stage.value] = style_validation.model_dump() if hasattr(style_validation, "model_dump") else str(style_validation)
+            state.metrics["stages"][state.current_stage.value] = {
+                "duration_ms": (time.perf_counter() - stage_start) * 1000.0
+            }
+            if self._per_stage_budget_s is not None and state.metrics["stages"][state.current_stage.value]["duration_ms"] > self._per_stage_budget_s * 1000.0:
+                state.status = WritingCrew.ExecutionStatus.FAILED
+                state.error_message = f"Time budget exceeded in stage {state.current_stage.value}"
+                self._save_state(state)
+                return state
             state.stages_completed.append(state.current_stage)
             self._save_state(state)
+            if self._total_time_budget_s is not None and (time.perf_counter() - overall_start) > self._total_time_budget_s:
+                state.status = WritingCrew.ExecutionStatus.FAILED
+                state.error_message = "Total time budget exceeded"
+                self._save_state(state)
+                return state
 
             # 5) Quality
             state.current_stage = WritingCrew.Stage.QUALITY
             self._save_state(state)
+            stage_start = time.perf_counter()
             quality_assessment = self.quality_controller().execute(
                 draft=state.results[WritingCrew.Stage.WRITE.value].get("draft", ""),
                 sources=quality_sources,
                 styleguide_context=styleguide_context,
             )
             state.results[state.current_stage.value] = quality_assessment.model_dump() if hasattr(quality_assessment, "model_dump") else str(quality_assessment)
+            state.metrics["stages"][state.current_stage.value] = {
+                "duration_ms": (time.perf_counter() - stage_start) * 1000.0
+            }
+            if self._per_stage_budget_s is not None and state.metrics["stages"][state.current_stage.value]["duration_ms"] > self._per_stage_budget_s * 1000.0:
+                state.status = WritingCrew.ExecutionStatus.FAILED
+                state.error_message = f"Time budget exceeded in stage {state.current_stage.value}"
+                self._save_state(state)
+                return state
             state.stages_completed.append(state.current_stage)
             self._save_state(state)
 
             # Done
             state.current_stage = None
             state.status = WritingCrew.ExecutionStatus.COMPLETED
+            state.metrics["overall_ms"] = (time.perf_counter() - overall_start) * 1000.0
             self._save_state(state)
             return state
 
         except Exception as e:
             state.status = WritingCrew.ExecutionStatus.FAILED
             state.error_message = str(e)
+            # If overall timer exists, record it for diagnostics
+            try:
+                state.metrics["overall_ms"] = (time.perf_counter() - overall_start) * 1000.0  # type: ignore[name-defined]
+            except Exception:
+                pass
             self._save_state(state)
             return state
 
