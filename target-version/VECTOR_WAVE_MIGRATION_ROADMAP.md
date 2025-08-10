@@ -3352,7 +3352,7 @@ dependencies:
 risks:
   - "Memory footprint; add TTL for completed flows"
 ```
-##### Task 2.2.3D: Multi-Agent Integration Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.2.3D: Multi-Agent Integration Testing (0.5 days) ⏱️ 4h ✅ COMPLETED
 ```yaml
 objective: "Integration tests for multi-agent pipeline"
 deliverable: "Scenario tests verifying agent chain and validations"
@@ -3360,11 +3360,14 @@ acceptance_criteria:
   - End-to-end success path passes
   - Critical violation stops flow with clear error
 validation_commands:
-  - "pytest -q crewai-orchestrator/tests/test_agent_integration.py"
+  - "pytest -q crewai-orchestrator/tests/test_multi_agent_integration.py"
+commit:
+  module: "root"
+  id: "(see multi-agent integration tests commit)"
 test_requirements:
   integration_tests:
-    - test_full_chain_success
-    - test_critical_violation_short_circuit
+    - test_full_linear_flow_integration_happy_path
+    - test_linear_flow_failure_resilience_stateful
 dependencies:
   - "Tasks 2.2.3A–C"
 risks:
