@@ -3680,6 +3680,7 @@ validation_commands:
 ```yaml
 status: COMPLETED
 completed_date: 2025-08-10
+commit_id: 7d34d3f
 objective: "Eliminate all @router/@listen patterns from codebase"
 scope: "All CrewAI crew files and coordination logic"
 deliverable: "Zero @router/@listen patterns in entire codebase"
