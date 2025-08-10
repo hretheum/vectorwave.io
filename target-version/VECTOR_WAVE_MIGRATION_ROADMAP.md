@@ -3195,7 +3195,7 @@ dependencies:
 risks:
   - "Transient 5xx from Editorial -> tune backoff"
 ```
-##### Task 2.2.2A: Comprehensive Validation Client (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.2.2A: Comprehensive Validation Client (0.5 days) ⏱️ 4h ✅ COMPLETED
 ```yaml
 objective: "Expose comprehensive validation in Kolegium client with platform/type"
 deliverable: "Method `validate_comprehensive(content, platform, content_type)`"
@@ -3205,6 +3205,9 @@ acceptance_criteria:
   - Errors surfaced with actionable messages
 validation_commands:
   - "pytest -q kolegium/ai_writing_flow/tests/test_editorial_client.py::TestEditorialServiceClient::test_validate_comprehensive"
+commit:
+  module: "kolegium"
+  id: "ee56450"
 test_requirements:
   unit_tests:
     - test_validate_comprehensive_payload
