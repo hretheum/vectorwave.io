@@ -39,12 +39,20 @@ class AgentMetrics:
 class AgentPerformanceMonitor:
     def __init__(self, clients: CrewAIAgentClients) -> None:
         self.clients = clients
-        self.metrics: Dict[str, AgentMetrics] = {name: AgentMetrics() for name in clients.agents.keys()}
-        self._latency_windows: Dict[str, list[float]] = {name: [] for name in clients.agents.keys()}
+        # initialize lazily to avoid constructor order issues
+        self.metrics: Dict[str, AgentMetrics] = {}
+        self._latency_windows: Dict[str, list[float]] = {}
         self._lock = asyncio.Lock()
+
+    def ensure_initialized(self) -> None:
+        if not self.metrics:
+            for name in self.clients.agents.keys():
+                self.metrics[name] = AgentMetrics()
+                self._latency_windows[name] = []
 
     async def record_call(self, agent_type: str, latency_ms: float, success: bool, error: Optional[str] = None) -> None:
         async with self._lock:
+            self.ensure_initialized()
             m = self.metrics[agent_type]
             m.calls_total += 1
             if not success:
@@ -70,4 +78,5 @@ class AgentPerformanceMonitor:
 
     async def snapshot(self) -> Dict[str, Any]:
         async with self._lock:
+            self.ensure_initialized()
             return {agent: m.as_dict() for agent, m in self.metrics.items()}

@@ -67,7 +67,9 @@ class ChromaDBRuleRepository(IRuleRepository):
 
     async def get_selective_rules(self, content: str, checkpoint: CheckpointType) -> List[ValidationRule]:
         """Return 3-4 checkpoint-specific rules, prioritizing critical/high severity."""
-        where = {"checkpoint": checkpoint.value}
+        # Normalize checkpoint to metadata convention (underscore)
+        checkpoint_meta = str(checkpoint.value).replace("-", "_")
+        where = {"checkpoint": checkpoint_meta}
         style_rules = await self._fetch_by_where(
             self.style_collection, where=where, n_results=8, query_text=content
         )
@@ -75,8 +77,8 @@ class ChromaDBRuleRepository(IRuleRepository):
             self.platform_collection, where=where, n_results=6, query_text=content
         )
         candidates = style_rules + platform_rules
-        # Fallback: if checkpoint-filtered returns nothing, broaden search without checkpoint
-        if not candidates:
+        # Fallback: if checkpoint-filtered returns too few, broaden search without checkpoint but keep checkpointed first
+        if len(candidates) < 3:
             logger.warning("checkpoint_filter_empty_fallback", checkpoint=checkpoint.value)
             style_rules = await self._fetch_by_where(
                 self.style_collection, where=None, n_results=8, query_text=content
@@ -159,12 +161,18 @@ class ChromaDBRuleRepository(IRuleRepository):
         col = self._ensure_client().get_or_create_collection(name=collection)
         rules: List[ValidationRule] = []
         try:
-            if query_text:
+            # Prefer metadata-based filtering to avoid embedding dependency
+            res = col.get(where=where, limit=n_results, include=["metadatas", "documents"])  # type: ignore[arg-type]
+            ids = res.get("ids", []) or []
+            metadatas = res.get("metadatas", []) or []
+            documents = res.get("documents", []) or []
+            if not metadatas and query_text:
+                # Fallback to similarity query if no direct matches
                 res = col.query(
                     query_texts=[query_text],
                     where=where,
                     n_results=n_results,
-                    include=["ids", "metadatas", "documents"],
+                    include=["metadatas", "documents"],
                 )
                 ids_groups = res.get("ids", []) or []
                 metas_groups = res.get("metadatas", []) or []
@@ -172,11 +180,6 @@ class ChromaDBRuleRepository(IRuleRepository):
                 ids = ids_groups[0] if ids_groups else []
                 metadatas = metas_groups[0] if metas_groups else []
                 documents = docs_groups[0] if docs_groups else []
-            else:
-                res = col.get(where=where, limit=n_results, include=["ids", "metadatas", "documents"])  # type: ignore[arg-type]
-                ids = res.get("ids", []) or []
-                metadatas = res.get("metadatas", []) or []
-                documents = res.get("documents", []) or []
             for idx, meta in enumerate(metadatas):
                 rid = ids[idx] if idx < len(ids) else f"{collection}_{idx:04d}"
                 doc = documents[idx] if idx < len(documents) else ""

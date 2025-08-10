@@ -11,7 +11,7 @@ volumes:
 
 services:
   chromadb:
-    image: chromadb/chroma:latest
+    image: chromadb/chroma:0.4.15
     environment:
       - CHROMA_SERVER_HOST=0.0.0.0
       - CHROMA_SERVER_HTTP_PORT=8000
