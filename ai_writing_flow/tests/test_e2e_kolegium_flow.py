@@ -91,3 +91,17 @@ def test_e2e_partial_failure_quality(monkeypatch):
         assessment = quality.execute(draft.draft, [], {"platform": "linkedin", "content_type": "article"})
         assert assessment.is_approved is False
         assert assessment.requires_human_review is True
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(os.getenv("CI") == "true", reason="requires local Editorial Service")
+def test_e2e_style_editorial_5xx(monkeypatch):
+    if StyleCrew is None:
+        pytest.skip("crewai not available")
+    style = StyleCrew()
+    with patch.object(style, 'check_service_health', return_value={"available": True, "total_rules": 300}):
+        # Simulate 5xx in Editorial comprehensive validation
+        with patch.object(style.editorial_client, 'validate_comprehensive', side_effect=Exception("500 Server Error")):
+            result = style.execute("text", {"platform": "linkedin"})
+            assert result.is_compliant is False
+            assert any(v.get("type") == "validation_error" for v in result.violations)
