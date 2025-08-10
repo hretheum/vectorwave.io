@@ -3165,6 +3165,22 @@ test_requirements:
 ```
 
 #### **WEEK 6: Kolegium Integration & CrewAI Migration**
+##### Task 2.2.4: Style Crew Replacement (1 day) ⏱️ 8h ✅ COMPLETED
+```yaml
+objective: "Replace Style Crew with ChromaDB-only, client-driven validation"
+deliverable: "StyleCrew using comprehensive validation + rule aggregation"
+acceptance_criteria:
+  - No hardcoded rules, only Editorial Service
+  - Adds rule_summary and computes compliance score
+  - Threshold parameterized (default 70)
+validation_commands:
+  - "PYTHONPATH=kolegium/ai_writing_flow/src pytest -q kolegium/ai_writing_flow/tests/test_style_crew_replacement.py"
+commit:
+  module: "kolegium"
+  id: "917fb2b"
+risks:
+  - "External dependency availability; tests skip if crewai missing"
+```
 
 ##### Task 2.2.1: Kolegium Editorial Service Client (1 day) ⏱️ 8h ✅ COMPLETED
 ```yaml
