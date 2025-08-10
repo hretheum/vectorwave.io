@@ -3290,7 +3290,7 @@ risks:
   - "Environment-dependent latency causing flaky perf assertions"
 ```
 
-##### Task 2.2.3A: Multi-Agent API Design (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.2.3A: Multi-Agent API Design (0.5 days) ⏱️ 4h ✅ COMPLETED
 ```yaml
 objective: "Design HTTP API surface between Orchestrator and editorial validators"
 deliverable: "Documented agent endpoints and payload contracts"
@@ -3299,6 +3299,9 @@ acceptance_criteria:
   - Standardized response envelope with metadata
 validation_commands:
   - "rg 'agents/registered|agents/register' crewai-orchestrator/src -n"
+commit:
+  module: "root"
+  id: "5146ad6"
 test_requirements:
   docs:
     - api_contract_markdown_present
