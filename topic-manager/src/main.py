@@ -38,6 +38,24 @@ async def get_topic(topic_id: str):
     return t
 
 
+@app.put("/topics/{topic_id}")
+async def update_topic(topic_id: str, topic: Topic):
+    if topic_id not in TOPICS:
+        return {"error": "not_found"}
+    # Preserve ID
+    topic.topic_id = topic_id
+    TOPICS[topic_id] = topic
+    return {"status": "updated", "topic_id": topic_id}
+
+
+@app.delete("/topics/{topic_id}")
+async def delete_topic(topic_id: str):
+    if topic_id in TOPICS:
+        del TOPICS[topic_id]
+        return {"status": "deleted", "topic_id": topic_id}
+    return {"error": "not_found"}
+
+
 @app.get("/topics/suggestions")
 async def get_topic_suggestions(limit: int = 10) -> Dict[str, List[Dict[str, str]]]:
     suggestions = [
