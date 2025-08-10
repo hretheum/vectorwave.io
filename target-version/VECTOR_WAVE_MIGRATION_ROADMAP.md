@@ -3044,7 +3044,22 @@ class StyleguideAPI:
     # style_patterns = []     # ❌ DELETED
 ```
 
-##### Task 2.1.3: Checkpoint-Based Validation (2 days) ⏱️ 16h
+##### Task 2.1.3: Checkpoint-Based Validation (2 days) ⏱️ 16h ✅ COMPLETED
+```yaml
+objective: "Implement 3-checkpoint validation system with user intervention points"
+deliverable: "ValidationCheckpoints utility integrated into WriterCrew; selective API uses top-level checkpoint"
+acceptance_criteria:
+  - Three checkpoints implemented (pre/mid/post-writing) ✅
+  - Top-level checkpoint in selective payload ✅
+  - Light tests for checkpoint sequence ✅
+validation_commands:
+  - "pytest -q kolegium/ai_writing_flow/tests/test_validation_checkpoints.py"
+commit:
+  module: "kolegium"
+  id: "d10b211"
+notes:
+  - "Phase 2 core smoke green post-integration"
+```
 Implement 3-checkpoint validation workflow:
 
 ```python
