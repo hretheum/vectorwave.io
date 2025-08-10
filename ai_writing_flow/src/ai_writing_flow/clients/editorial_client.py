@@ -6,11 +6,13 @@ Aligned with Vector Wave ChromaDB-centric architecture
 
 import httpx
 import os
-from typing import Dict, List, Optional, Any, Iterable, Tuple
+from typing import Dict, List, Optional, Any, Iterable, Tuple, Callable
 import logging
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 import json
+import uuid
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,8 @@ class EditorialServiceClient:
         max_retries: int = 3,
         retry_backoff_factor: float = 0.2,
         retry_on_status: Iterable[int] = (502, 503, 504),
+        api_token: Optional[str] = None,
+        observer: Optional[Callable[[str, float, bool, Optional[str]], None]] = None,
     ):
         """
         Initialize Editorial Service client
@@ -51,6 +55,12 @@ class EditorialServiceClient:
             timeout=httpx.Timeout(timeout),
             limits=self._limits,
         )
+        # Base headers
+        self._base_headers: Dict[str, str] = {}
+        if api_token:
+            self._base_headers["Authorization"] = f"Bearer {api_token}"
+        # Optional observer hook: (endpoint, elapsed_ms, success, error)
+        self._observer = observer
         # Retry configuration
         self._max_retries = max(1, int(max_retries))
         self._retry_backoff_factor = float(retry_backoff_factor)
@@ -58,7 +68,7 @@ class EditorialServiceClient:
         self._circuit_breaker_open = False
         self._failure_count = 0
         self._failure_threshold = 5
-        self._last_failure_time = None
+        self._last_failure_time: Optional[datetime] = None
         self._recovery_timeout = 60  # seconds
         
     async def __aenter__(self):
@@ -79,11 +89,18 @@ class EditorialServiceClient:
         Retries on network errors, timeouts, and configured HTTP status codes.
         """
         if not await self._check_circuit_breaker():
-            raise Exception("Circuit breaker is open - Editorial Service unavailable")
+            raise EditorialServiceUnavailable("Circuit breaker is open - Editorial Service unavailable")
 
         last_exc: Optional[Exception] = None
         for attempt in range(1, self._max_retries + 1):
             try:
+                # Inject headers with auth and x-request-id
+                headers = dict(self._base_headers)
+                hdrs = kwargs.get("headers") or {}
+                headers.update(hdrs)
+                headers.setdefault("x-request-id", str(uuid.uuid4()))
+                kwargs["headers"] = headers
+                start = datetime.now(timezone.utc)
                 # Use verb-specific method for backward compatibility with tests mocking .get/.post
                 lower_method = method.lower()
                 if lower_method == "get" and hasattr(self.client, "get"):
@@ -102,11 +119,20 @@ class EditorialServiceClient:
                             "url": url,
                         },
                     )
-                    await asyncio.sleep(self._retry_backoff_factor * (2 ** (attempt - 1)))
+                    # Exponential backoff with jitter
+                    base = self._retry_backoff_factor * (2 ** (attempt - 1))
+                    sleep_s = base + random.uniform(0, base)
+                    await asyncio.sleep(sleep_s)
                     continue
 
                 response.raise_for_status()
                 await self._handle_success()
+                if self._observer:
+                    try:
+                        elapsed = (datetime.now(timezone.utc) - start).total_seconds() * 1000.0
+                        self._observer(url, elapsed, True, None)
+                    except Exception:
+                        pass
                 return response
             except (httpx.ConnectError, httpx.ReadTimeout, httpx.PoolTimeout, httpx.RemoteProtocolError) as e:
                 last_exc = e
@@ -116,8 +142,9 @@ class EditorialServiceClient:
                         "HTTP request failed after retries",
                         extra={"attempts": attempt, "url": url, "error": str(e)},
                     )
-                    raise
+                    raise EditorialServiceTimeout(str(e))
                 backoff = self._retry_backoff_factor * (2 ** (attempt - 1))
+                backoff += random.uniform(0, backoff)
                 logger.info(
                     "Retrying HTTP request",
                     extra={"attempt": attempt, "backoff_seconds": backoff, "url": url},
@@ -128,12 +155,12 @@ class EditorialServiceClient:
                 last_exc = e
                 await self._handle_failure(e)
                 logger.error("Non-retryable HTTP status or final attempt failed", extra={"url": url, "error": str(e)})
-                raise
+                raise EditorialServiceError(str(e))
             except Exception as e:
                 last_exc = e
                 await self._handle_failure(e)
                 logger.error("Unexpected error during HTTP request", extra={"url": url, "error": str(e)})
-                raise
+                raise EditorialServiceError(str(e))
 
         # Should not reach here due to returns/raises above
         if last_exc:
@@ -146,7 +173,7 @@ class EditorialServiceClient:
             return True
             
         if self._last_failure_time:
-            time_since_failure = (datetime.utcnow() - self._last_failure_time).total_seconds()
+            time_since_failure = (datetime.now(timezone.utc) - self._last_failure_time).total_seconds()
             if time_since_failure > self._recovery_timeout:
                 logger.info("Circuit breaker recovery timeout reached, attempting to close")
                 self._circuit_breaker_open = False
@@ -158,7 +185,7 @@ class EditorialServiceClient:
     async def _handle_failure(self, error: Exception):
         """Handle request failure and update circuit breaker state"""
         self._failure_count += 1
-        self._last_failure_time = datetime.utcnow()
+        self._last_failure_time = datetime.now(timezone.utc)
         
         if self._failure_count >= self._failure_threshold:
             self._circuit_breaker_open = True
@@ -177,7 +204,7 @@ class EditorialServiceClient:
         Returns:
             Dict with health status information
         """
-        response = await self._request_with_retries("GET", f"{self.base_url}/health")
+        response = await self._request_with_retries("GET", f"{self.base_url}/health", timeout=10.0)
         return response.json()
     
     async def validate_selective(self, 
@@ -213,6 +240,7 @@ class EditorialServiceClient:
             "POST",
             f"{self.base_url}/validate/selective",
             json=payload,
+            timeout=10.0,
         )
         return response.json()
     
@@ -245,6 +273,7 @@ class EditorialServiceClient:
             "POST",
             f"{self.base_url}/validate/comprehensive",
             json=payload,
+            timeout=30.0,
         )
         return response.json()
     
@@ -255,7 +284,7 @@ class EditorialServiceClient:
         Returns:
             Dict with cache statistics including rule count
         """
-        response = await self._request_with_retries("GET", f"{self.base_url}/cache/stats")
+        response = await self._request_with_retries("GET", f"{self.base_url}/cache/stats", timeout=10.0)
         return response.json()
     
     async def get_cache_dump(self) -> List[Dict]:
@@ -265,7 +294,7 @@ class EditorialServiceClient:
         Returns:
             List of cached rules with metadata
         """
-        response = await self._request_with_retries("GET", f"{self.base_url}/cache/dump")
+        response = await self._request_with_retries("GET", f"{self.base_url}/cache/dump", timeout=10.0)
         return response.json()
     
     async def refresh_cache(self) -> Dict:
@@ -275,7 +304,7 @@ class EditorialServiceClient:
         Returns:
             Dict with refresh status
         """
-        response = await self._request_with_retries("POST", f"{self.base_url}/cache/refresh")
+        response = await self._request_with_retries("POST", f"{self.base_url}/cache/refresh", timeout=15.0)
         return response.json()
     
     async def benchmark_latency(self, queries: int = 10000, percentiles: List[int] = None) -> Dict:
@@ -353,7 +382,7 @@ class EditorialServiceClient:
         Returns:
             Dict with service info including version and endpoints
         """
-        response = await self._request_with_retries("GET", f"{self.base_url}/info")
+        response = await self._request_with_retries("GET", f"{self.base_url}/info", timeout=10.0)
         return response.json()
     
     async def check_readiness(self) -> bool:
@@ -364,10 +393,35 @@ class EditorialServiceClient:
             True if service is ready, False otherwise
         """
         try:
-            response = await self._request_with_retries("GET", f"{self.base_url}/ready")
+            response = await self._request_with_retries("GET", f"{self.base_url}/ready", timeout=5.0)
             return response.status_code == 200
         except Exception:
             return False
+
+    # --- Sync convenience wrappers ---
+    def validate_selective_sync(self, content: str, platform: str, checkpoint: str = "general", context: Optional[Dict] = None) -> Dict:
+        return asyncio.run(self.validate_selective(content, platform, checkpoint, context))
+
+    def validate_comprehensive_sync(self, content: str, platform: str, content_type: str = "article", context: Optional[Dict] = None) -> Dict:
+        return asyncio.run(self.validate_comprehensive(content, platform, content_type, context))
+
+    def get_cache_stats_sync(self) -> Dict:
+        return asyncio.run(self.get_cache_stats())
+
+    def health_check_sync(self) -> Dict:
+        return asyncio.run(self.health_check())
+
+
+class EditorialServiceError(Exception):
+    pass
+
+
+class EditorialServiceUnavailable(EditorialServiceError):
+    pass
+
+
+class EditorialServiceTimeout(EditorialServiceError):
+    pass
 
 
 # Convenience functions for quick usage

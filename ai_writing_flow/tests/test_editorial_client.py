@@ -8,11 +8,13 @@ import pytest_asyncio
 import httpx
 from unittest.mock import AsyncMock, patch, MagicMock
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ai_writing_flow.clients.editorial_client import (
     EditorialServiceClient,
-    create_editorial_client
+    create_editorial_client,
+    EditorialServiceError,
+    EditorialServiceTimeout,
 )
 
 
@@ -81,7 +83,12 @@ class TestEditorialServiceClient:
             
             assert result["status"] == "healthy"
             assert result["service"] == "editorial-service"
-            mock_get.assert_called_once_with("http://localhost:8040/health")
+            # Allow headers/timeouts in new client
+            assert mock_get.call_count == 1
+            args, kwargs = mock_get.call_args
+            assert args[0] == "http://localhost:8040/health"
+            assert "timeout" in kwargs
+            assert "headers" in kwargs and "x-request-id" in kwargs["headers"]
     
     @pytest.mark.asyncio
     async def test_validate_selective(self, client, mock_response):
@@ -180,7 +187,7 @@ class TestEditorialServiceClient:
         with patch.object(client.client, 'get', new=AsyncMock(return_value=error_response)):
             # Trigger failures up to threshold
             for i in range(5):
-                with pytest.raises(httpx.HTTPStatusError):
+                with pytest.raises(EditorialServiceError):
                     await client.health_check()
             
             # Circuit breaker should be open
@@ -197,7 +204,7 @@ class TestEditorialServiceClient:
         # Open circuit breaker
         client._circuit_breaker_open = True
         client._failure_count = 5
-        client._last_failure_time = datetime.utcnow()
+        client._last_failure_time = datetime.now(timezone.utc)
         
         # Simulate time passage
         client._recovery_timeout = 0.1  # 100ms for testing
@@ -316,12 +323,12 @@ class TestEditorialServiceClient:
         """Test error handling for various scenarios"""
         # Network error
         with patch.object(client.client, 'get', new=AsyncMock(side_effect=httpx.NetworkError("Connection failed"))):
-            with pytest.raises(httpx.NetworkError):
+            with pytest.raises(EditorialServiceError):
                 await client.health_check()
         
         # Timeout error
         with patch.object(client.client, 'get', new=AsyncMock(side_effect=httpx.TimeoutException("Request timeout"))):
-            with pytest.raises(httpx.TimeoutException):
+            with pytest.raises(EditorialServiceError):
                 await client.health_check()
         
         # HTTP error
@@ -330,7 +337,7 @@ class TestEditorialServiceClient:
             "404 Not Found", request=None, response=None
         )
         with patch.object(client.client, 'get', new=AsyncMock(return_value=error_response)):
-            with pytest.raises(httpx.HTTPStatusError):
+            with pytest.raises(EditorialServiceError):
                 await client.health_check()
     
     @pytest.mark.asyncio
