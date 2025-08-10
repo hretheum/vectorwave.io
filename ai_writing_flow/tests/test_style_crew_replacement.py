@@ -77,3 +77,61 @@ async def test_style_validation_contract_and_threshold():
         }):
             out2 = crew2.execute("text", {"platform": "linkedin"})
             assert out2.is_compliant is False
+
+
+@pytest.mark.asyncio
+async def test_compliance_score_aggregation():
+    if StyleCrew is None:
+        pytest.skip("crewai not available")
+    crew = StyleCrew()
+    with patch.object(crew, 'check_service_health', return_value={"available": True, "total_rules": 100}):
+        violations = [
+            {"severity": "high"},
+            {"severity": "high"},
+            {"severity": "medium"},
+            {"severity": "low"},
+        ]
+        with patch.object(crew, 'validate_style_comprehensive', return_value={
+            "violations": violations,
+            "suggestions": []
+        }):
+            out = crew.execute("text", {"platform": "linkedin"})
+            # Expected: 100 - 2*15 - 1*10 - 1*5 = 55
+            assert out.compliance_score == 55
+            assert out.is_compliant is False
+
+
+@pytest.mark.asyncio
+async def test_min_compliance_score_edges():
+    if StyleCrew is None:
+        pytest.skip("crewai not available")
+    # Threshold 0 -> always compliant if score >=0
+    crew_low = StyleCrew(min_compliance_score=0)
+    with patch.object(crew_low, 'check_service_health', return_value={"available": True, "total_rules": 100}):
+        with patch.object(crew_low, 'validate_style_comprehensive', return_value={
+            "violations": [{"severity": "high"}, {"severity": "high"}, {"severity": "high"}],
+            "suggestions": []
+        }):
+            out_low = crew_low.execute("text", {"platform": "linkedin"})
+            assert out_low.compliance_score >= 0
+            assert out_low.is_compliant is True
+
+    # Threshold 100 -> compliant only with perfect score
+    crew_high = StyleCrew(min_compliance_score=100)
+    with patch.object(crew_high, 'check_service_health', return_value={"available": True, "total_rules": 100}):
+        # No violations -> 100
+        with patch.object(crew_high, 'validate_style_comprehensive', return_value={
+            "violations": [],
+            "suggestions": []
+        }):
+            out_high_ok = crew_high.execute("text", {"platform": "linkedin"})
+            assert out_high_ok.compliance_score == 100
+            assert out_high_ok.is_compliant is True
+        # One low violation -> < 100 -> not compliant
+        with patch.object(crew_high, 'validate_style_comprehensive', return_value={
+            "violations": [{"severity": "low"}],
+            "suggestions": []
+        }):
+            out_high_bad = crew_high.execute("text", {"platform": "linkedin"})
+            assert out_high_bad.compliance_score < 100
+            assert out_high_bad.is_compliant is False
