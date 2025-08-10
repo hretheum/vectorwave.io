@@ -3667,7 +3667,7 @@ dependencies:
 risks:
   - "Future analytics fields; version schema"
 ```
-##### Task 2.3.1C: Topic CRUD Operations (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.3.1C: Topic CRUD Operations (0.5 days) ⏱️ 4h ✅ COMPLETED
 ```yaml
 objective: "Implement CRUD endpoints with in-memory or sqlite backend"
 deliverable: "POST/GET/PUT/DELETE for topics"
@@ -3675,6 +3675,9 @@ acceptance_criteria:
   - CRUD works with validation and 4xx/5xx handling
 validation_commands:
   - "pytest -q topic-manager/tests/test_crud.py"
+commit:
+  module: "root"
+  id: "eec8e1e"
 dependencies:
   - "2.3.1B"
 risks:
@@ -3823,7 +3826,7 @@ dependencies:
 risks:
   - "Bias in simple heuristics; document limits"
 ```
-##### Task 2.3.4B: Content-Platform Optimization (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.3.4B: Content-Platform Optimization (0.5 days) ⏱️ 4h ✅ COMPLETED
 ```yaml
 objective: "Produce platform-specific hints (length, structure, CTA)"
 deliverable: "Adapter returning optimization hints per platform"
@@ -3831,6 +3834,9 @@ acceptance_criteria:
   - Hints include max_length, sections, tone
 validation_commands:
   - "pytest -q topic-manager/tests/test_platform_hints.py"
+commit:
+  module: "root"
+  id: "(see main after adding platform_hints)"
 dependencies:
   - "2.3.4A"
 risks:
