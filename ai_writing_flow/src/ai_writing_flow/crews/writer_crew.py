@@ -15,6 +15,7 @@ import logging
 from ..models import DraftContent
 from ..clients.editorial_client import EditorialServiceClient
 from ..clients.editorial_utils import aggregate_rules
+from ..validation_checkpoints import ValidationCheckpoints
 
 logger = logging.getLogger(__name__)
 
@@ -184,6 +185,7 @@ class WriterCrew:
         self.editorial_service_url = editorial_service_url
         self.editorial_client = None
         self._initialize_editorial_client()
+        self._checkpoint_runner = ValidationCheckpoints(self.editorial_client)
         
         # Circuit breaker state for Editorial Service
         self._editorial_service_available = True
@@ -268,6 +270,25 @@ class WriterCrew:
                 "suggestions": ["Check Editorial Service connection"],
                 "is_compliant": True  # Allow writing to continue despite error
             })
+
+    @tool("Run Checkpoint Sequence (pre/mid/post)")
+    def run_checkpoint_sequence(self, content: str, platform: str = "general") -> str:
+        """Run selective validation at pre-, mid-, and post-writing checkpoints and summarize."""
+        try:
+            # If loop is already running (inside agent), offload via asyncio.run as best-effort
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                results = asyncio.run(self._checkpoint_runner.validate_all(content, platform))
+            else:
+                results = loop.run_until_complete(self._checkpoint_runner.validate_all(content, platform))
+        except Exception:
+            results = asyncio.run(self._checkpoint_runner.validate_all(content, platform))
+
+        summary = {
+            "passed_all": all(r.get("passed", False) for r in results),
+            "checkpoints": results,
+        }
+        return json.dumps(summary, indent=2)
     
     @tool("Check Editorial Service Health")
     def check_editorial_health(self) -> str:
@@ -342,6 +363,7 @@ class WriterCrew:
                 structure_content,
                 apply_style_rules,
                 self.validate_selective,
+                self.run_checkpoint_sequence,
                 self.check_editorial_health
             ],
             verbose=True,
