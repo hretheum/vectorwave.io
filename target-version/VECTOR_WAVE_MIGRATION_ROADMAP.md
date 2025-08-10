@@ -1857,7 +1857,7 @@ acceptance_criteria:
   - A final verification script confirms that all 355+ rules are served from ChromaDB
 
 validation_commands:
-  - "find . -path '*/src/*' -name '*.py' | xargs grep -l 'forbidden_phrases|required_elements|style_patterns' | wc -l # Expected: 0"
+  - "find . -path '*/src/*' -name '*.py' | xargs grep -l 'forbidden_phrases\|required_elements\|style_patterns' | wc -l # Expected: 0"
   - "curl http://localhost:8040/cache/stats | jq '.total_rules' # Expected: >= 355"
 
 test_requirements:
@@ -1910,6 +1910,8 @@ test_requirements:
 ```
 
 ### 5.3 Dependencies Mapping
+
+```
 
 ```
 ```yaml
