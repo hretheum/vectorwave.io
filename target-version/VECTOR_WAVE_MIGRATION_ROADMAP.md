@@ -3630,7 +3630,10 @@ acceptance_criteria:
   - E2E end-to-end passes locally with live Editorial
   - Skips cleanly when dependency unavailable
 validation_commands:
-  - "pytest -q kolegium/ai_writing_flow/tests -k integration -v"
+  - "PYTHONPATH=kolegium/ai_writing_flow/src pytest -q kolegium/ai_writing_flow/tests/test_e2e_kolegium_flow.py -q"
+commit:
+  module: "kolegium"
+  id: "4e0ca58"
 dependencies:
   - "2.2.1–2.2.4"
 risks:
