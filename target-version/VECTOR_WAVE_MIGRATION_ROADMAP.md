@@ -3965,21 +3965,22 @@ dependencies:
   - "2.2.4 Style Crew Replacement"
 risks:
   - "Interface drift; keep arguments minimal and documented"
-        - TM_DB_PATH=/data/topics.sqlite
-      ports:
-        - "8041:8041"
-      healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:8041/health"]
-        interval: 30s
-        timeout: 10s
-        retries: 3
-        start_period: 10s
-      networks: [vector-wave]
+```
 
-    volumes:
-      topic_manager_data:
-        # local named volume to persist SQLite file
-        driver: local
+##### Task 2.8B: Kolegium E2E Smoke Runner (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Add a smoke script to run Kolegium E2E only when local services are up"
+deliverable: "scripts/run_kolegium_e2e.sh with dependency checks and selective pytest run"
+acceptance_criteria:
+  - Checks availability of Editorial Service (8040) and Orchestrator (8042)
+  - Runs only E2E tests: `test_e2e_kolegium_flow.py`
+  - Exits 0 on success, non-zero on failures; prints brief summary
+validation_commands:
+  - "bash scripts/run_kolegium_e2e.sh"
+dependencies:
+  - "2.2.5 End-to-End Kolegium Testing"
+risks:
+  - "Environment variability; ensure robust checks and timeouts"
 ```
 
 #### **WEEK 9: Auto-Scraping Integration**
