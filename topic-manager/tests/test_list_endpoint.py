@@ -16,4 +16,6 @@ def test_list_endpoint_filters_and_pagination():
     assert r.status_code == 200
     data = r.json()
     assert data["count"] == 2
+    assert data["total"] >= 2
+    assert data["limit"] == 2 and data["offset"] == 0
     assert len(data["items"]) == 2

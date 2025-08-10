@@ -1,0 +1,46 @@
+{
+  "projectName": "Vector Wave",
+  "description": "An advanced, multi-platform AI content creation and publishing system using a microservices architecture. It leverages a crew of specialized AI agents to research, write, style, and validate content for various platforms.",
+  "architecture": {
+    "style": "Microservices",
+    "containerization": "Docker with Docker Compose",
+    "modularity": "Monorepo with Git submodules for core components (kolegium, publisher, etc.)",
+    "keyPattern": "A linear, sequential execution flow is enforced to ensure reliability and predictability, replacing older, loop-prone agentic patterns."
+  },
+  "techStack": {
+    "backend": [
+      "Python",
+      "FastAPI",
+      "CrewAI"
+    ],
+    "frontend": [
+      "Next.js",
+      "React",
+      "TypeScript",
+      "Tailwind CSS"
+    ],
+    "database": [
+      "ChromaDB (Vector Store)",
+      "Redis (Cache/Queue)",
+      "SQLite (Metrics)"
+    ],
+    "infrastructure": [
+      "Docker",
+      "GitHub Actions"
+    ]
+  },
+  "keyServices": {
+    "ai_writing_flow": "The core AI agent orchestration engine.",
+    "editorial-service": "Centralized, ChromaDB-driven content validation.",
+    "publisher": "Multi-platform publishing orchestrator.",
+    "vector-wave-ui": "User-facing Next.js web application.",
+    "knowledge-base": "Long-term memory and knowledge source for agents."
+  },
+  "conventions": {
+    "rulesEngine": "All business logic (style, platform rules) is stored in ChromaDB, not hardcoded.",
+    "stateManagement": "Maintains backward compatibility with legacy state models via adapters.",
+    "observability": "Extensive use of Prometheus, OpenTelemetry, and structured logging."
+  },
+  "lastAnalyzed": "2025-08-10T12:00:00Z",
+  "lastAction": "Completed Phase 1 and 2 of the documentation cleanup plan. Archived obsolete files and consolidated service-level READMEs. The documentation now accurately reflects the target architecture without modifying the 'target-version' directory."
+}

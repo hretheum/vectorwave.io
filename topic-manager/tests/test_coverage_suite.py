@@ -35,10 +35,9 @@ async def test_crud_endpoints_async():
         assert r.status_code == 200
         assert r.json()["status"] == "deleted"
 
-        # Not found
+        # Not found now returns 404
         r = ac.get(f"/topics/{tid}")
-        assert r.status_code == 200
-        assert r.json().get("error") == "not_found"
+        assert r.status_code == 404
     finally:
         ac.close()
 

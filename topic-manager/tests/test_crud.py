@@ -43,7 +43,6 @@ def test_create_get_update_delete_topic_crud():
     assert r.status_code == 200
     assert r.json()["status"] == "deleted"
 
-    # Verify deletion
+    # Verify deletion now returns 404
     r = client.get(f"/topics/{tid}")
-    assert r.status_code == 200
-    assert r.json().get("error") == "not_found"
+    assert r.status_code == 404
