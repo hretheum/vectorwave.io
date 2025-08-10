@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 
 app = FastAPI(title="Topic Manager", version="1.0.0")
 
@@ -12,6 +12,13 @@ class Topic(BaseModel):
     keywords: List[str] = []
     content_type: str
     platform_assignment: Optional[Dict[str, bool]] = None
+class Suggestion(BaseModel):
+    topic_id: str
+    title: str
+    description: str
+    suggested_platforms: List[str]
+    engagement_prediction: float
+
 
 
 TOPICS: Dict[str, Topic] = {}
@@ -28,6 +35,21 @@ async def add_manual_topic(topic: Topic):
     topic.topic_id = topic_id
     TOPICS[topic_id] = topic
     return {"status": "created", "topic_id": topic_id}
+
+
+@app.get("/topics/suggestions")
+async def get_topic_suggestions(limit: int = 10) -> Dict[str, List[Suggestion]]:
+    suggestions = [
+        Suggestion(**{
+            "topic_id": f"sug_{i+1}",
+            "title": f"AI trend #{i+1}",
+            "description": "Auto-generated suggestion",
+            "suggested_platforms": ["linkedin", "twitter"],
+            "engagement_prediction": 0.6 + (i * 0.01),
+        })
+        for i in range(min(limit, 10))
+    ]
+    return {"suggestions": suggestions}
 
 
 @app.get("/topics/{topic_id}")
@@ -54,18 +76,3 @@ async def delete_topic(topic_id: str):
         del TOPICS[topic_id]
         return {"status": "deleted", "topic_id": topic_id}
     return {"error": "not_found"}
-
-
-@app.get("/topics/suggestions")
-async def get_topic_suggestions(limit: int = 10) -> Dict[str, List[Dict[str, str]]]:
-    suggestions = [
-        {
-            "topic_id": f"sug_{i+1}",
-            "title": f"AI trend #{i+1}",
-            "description": "Auto-generated suggestion",
-            "suggested_platforms": ["linkedin", "twitter"],
-            "engagement_prediction": 0.6 + (i * 0.01),
-        }
-        for i in range(min(limit, 10))
-    ]
-    return {"suggestions": suggestions}

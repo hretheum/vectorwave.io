@@ -3686,7 +3686,7 @@ dependencies:
 risks:
   - "Migration path to real DB later"
 ```
-##### Task 2.3.1D: Topic Manager Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.3.1D: Topic Manager Testing (0.5 days) ⏱️ 4h ✅ COMPLETED
 ```yaml
 objective: "Add unit/integration tests for Topic Manager basics"
 deliverable: "Green baseline test suite"
@@ -3694,6 +3694,9 @@ acceptance_criteria:
   - >85% coverage on models and CRUD
 validation_commands:
   - "pytest -q topic-manager/tests -q"
+commit:
+  module: "root"
+  id: "(see coverage suite commit)"
 dependencies:
   - "2.3.1A–C"
 risks:
