@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from pydantic import BaseModel
 import sqlite3
 import threading
@@ -19,7 +19,7 @@ class TopicRepository:
     def get(self, topic_id: str) -> Optional[TopicModel]: ...
     def update(self, topic: TopicModel) -> bool: ...
     def delete(self, topic_id: str) -> bool: ...
-    def list(self, limit: int = 100, offset: int = 0) -> List[TopicModel]: ...
+    def list(self, limit: int = 100, offset: int = 0, q: Optional[str] = None, content_type: Optional[str] = None) -> List[TopicModel]: ...
 
 
 class InMemoryTopicRepository(TopicRepository):
@@ -42,8 +42,13 @@ class InMemoryTopicRepository(TopicRepository):
     def delete(self, topic_id: str) -> bool:
         return self._store.pop(topic_id, None) is not None
 
-    def list(self, limit: int = 100, offset: int = 0) -> List[TopicModel]:
+    def list(self, limit: int = 100, offset: int = 0, q: Optional[str] = None, content_type: Optional[str] = None) -> List[TopicModel]:
         vals = list(self._store.values())
+        if q:
+            ql = q.lower()
+            vals = [t for t in vals if ql in t.title.lower() or ql in t.description.lower() or any(ql in k.lower() for k in t.keywords)]
+        if content_type:
+            vals = [t for t in vals if t.content_type.lower() == content_type.lower()]
         return vals[offset: offset + limit]
 
 
@@ -52,6 +57,14 @@ class SQLiteTopicRepository(TopicRepository):
         self._db_path = db_path
         self._lock = threading.Lock()
         self._conn = sqlite3.connect(self._db_path, check_same_thread=False)
+        with self._lock:
+            self._conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS schema_version (
+                    version INTEGER NOT NULL
+                )
+                """
+            )
         self._conn.execute(
             """
             CREATE TABLE IF NOT EXISTS topics (
@@ -64,6 +77,11 @@ class SQLiteTopicRepository(TopicRepository):
             """
         )
         self._conn.commit()
+        # initialize schema version to 1 if empty
+        cur = self._conn.execute("SELECT COUNT(1) FROM schema_version")
+        if cur.fetchone()[0] == 0:
+            self._conn.execute("INSERT INTO schema_version(version) VALUES(1)")
+            self._conn.commit()
 
     def create(self, topic: TopicModel) -> str:
         with self._lock:
@@ -114,11 +132,22 @@ class SQLiteTopicRepository(TopicRepository):
             self._conn.commit()
             return cur.rowcount > 0
 
-    def list(self, limit: int = 100, offset: int = 0) -> List[TopicModel]:
-        cur = self._conn.execute(
-            "SELECT topic_id, title, description, keywords, content_type FROM topics ORDER BY topic_id LIMIT ? OFFSET ?",
-            (limit, offset),
-        )
+    def list(self, limit: int = 100, offset: int = 0, q: Optional[str] = None, content_type: Optional[str] = None) -> List[TopicModel]:
+        sql = "SELECT topic_id, title, description, keywords, content_type FROM topics"
+        args: Tuple = tuple()
+        clauses = []
+        if q:
+            clauses.append("(LOWER(title) LIKE ? OR LOWER(description) LIKE ? OR LOWER(keywords) LIKE ?)")
+            ql = f"%{q.lower()}%"
+            args += (ql, ql, ql)
+        if content_type:
+            clauses.append("LOWER(content_type) = ?")
+            args += (content_type.lower(),)
+        if clauses:
+            sql += " WHERE " + " AND ".join(clauses)
+        sql += " ORDER BY topic_id LIMIT ? OFFSET ?"
+        args += (limit, offset)
+        cur = self._conn.execute(sql, args)
         rows = cur.fetchall()
         return [
             TopicModel(

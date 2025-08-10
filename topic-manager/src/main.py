@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from pydantic import BaseModel
 from typing import List, Dict, Optional, Any
 
@@ -24,7 +24,9 @@ class Suggestion(BaseModel):
 TOPICS: Dict[str, Topic] = {}
 try:
     from repository import SQLiteTopicRepository, TopicModel
-    REPO = SQLiteTopicRepository(":memory:")
+    import os
+    DB_PATH = os.getenv("TOPIC_MANAGER_DB", ":memory:")
+    REPO = SQLiteTopicRepository(DB_PATH)
 except Exception:
     REPO = None
 
@@ -89,3 +91,29 @@ async def delete_topic(topic_id: str):
     if REPO and REPO.delete(topic_id):
         return {"status": "deleted", "topic_id": topic_id}
     return {"error": "not_found"}
+
+
+@app.get("/topics")
+async def list_topics(limit: int = Query(20, ge=1, le=200), offset: int = Query(0, ge=0), q: Optional[str] = None, content_type: Optional[str] = None):
+    # Combine in-memory and repo for now; in future switch to repo-only when persistence enabled
+    items = list(TOPICS.values())
+    if REPO:
+        items = [
+            Topic(
+                topic_id=t.topic_id,
+                title=t.title,
+                description=t.description,
+                keywords=t.keywords,
+                content_type=t.content_type,
+                platform_assignment=None,
+            )
+            for t in REPO.list(limit=limit, offset=offset, q=q, content_type=content_type)
+        ]
+    else:
+        if q:
+            ql = q.lower()
+            items = [t for t in items if ql in t.title.lower() or ql in t.description.lower() or any(ql in k.lower() for k in t.keywords)]
+        if content_type:
+            items = [t for t in items if t.content_type.lower() == content_type.lower()]
+        items = items[offset: offset + limit]
+    return {"items": [i.model_dump() for i in items], "count": len(items)}
