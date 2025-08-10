@@ -3945,7 +3945,7 @@ notes:
         - SERVICE_PORT=8041
 ```
 
-##### Task 2.7A: CLI Playbooks for Kolegium (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.8A: CLI Playbooks for Kolegium (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
 ```yaml
 objective: "Provide CLI scripts to run Style/Audience/Writer/Quality playbooks"
 deliverable: "Minimal CLI wrappers that accept input and print JSON outputs"
