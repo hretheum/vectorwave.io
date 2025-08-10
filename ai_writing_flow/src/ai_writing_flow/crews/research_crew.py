@@ -3,7 +3,7 @@ Research Crew - Deep content research and fact-finding with Topic Manager integr
 Integrated with Topic Manager for dynamic topic discovery and AI-powered suggestions
 """
 
-from crewai import Agent, Crew, Task
+from crewai import Agent, Crew, Task, Process
 from crewai.tools import tool
 from typing import List, Dict, Any, Optional
 import os
@@ -614,7 +614,8 @@ class ResearchCrew:
         crew = Crew(
             agents=[self.research_analyst_agent()],
             tasks=[self.create_research_task(topic, sources_path, context, content_ownership)],
-            verbose=False  # Zmienione na False aby zmniejszyć spam
+            verbose=False,  # Zmienione na False aby zmniejszyć spam
+            process=Process.sequential
         )
         
         result = crew.kickoff()

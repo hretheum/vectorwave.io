@@ -3,7 +3,7 @@ Writer Crew - Content generation following Vector Wave style with Editorial Serv
 Uses selective validation (3-4 rules) for human-assisted workflow
 """
 
-from crewai import Agent, Crew, Task
+from crewai import Agent, Crew, Task, Process
 from crewai.tools import tool
 from typing import Dict, Any, List, Optional
 import json
@@ -434,7 +434,8 @@ class WriterCrew:
                 topic, platform, audience_insights, 
                 research_summary, depth_level, styleguide_context
             )],
-            verbose=True
+            verbose=True,
+            process=Process.sequential
         )
         
         result = crew.kickoff()

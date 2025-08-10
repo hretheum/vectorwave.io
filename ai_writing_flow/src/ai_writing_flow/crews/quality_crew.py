@@ -3,7 +3,7 @@ Quality Crew - Final quality assessment with Editorial Service comprehensive val
 Enhanced with ChromaDB-sourced editorial guidelines for final quality check
 """
 
-from crewai import Agent, Crew, Task
+from crewai import Agent, Crew, Task, Process
 from crewai.tools import tool
 from typing import Dict, Any, List, Optional
 import re
@@ -562,7 +562,8 @@ class QualityCrew:
         crew = Crew(
             agents=[self.quality_controller_agent()],
             tasks=[self.create_quality_task(draft, sources, styleguide_context)],
-            verbose=True
+            verbose=True,
+            process=Process.sequential
         )
         
         result = crew.kickoff()

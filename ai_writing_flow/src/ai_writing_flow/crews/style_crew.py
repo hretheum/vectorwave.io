@@ -3,7 +3,7 @@ Style Crew - Validates content against Vector Wave styleguide using Editorial Se
 Migrated to ChromaDB-centric architecture without hardcoded rules
 """
 
-from crewai import Agent, Crew, Task
+from crewai import Agent, Crew, Task, Process
 from crewai.tools import tool
 from typing import Dict, Any, List, Optional
 import os
@@ -414,7 +414,8 @@ class StyleCrew:
         crew = Crew(
             agents=[self.style_validator_agent()],
             tasks=[self.create_validation_task(draft, styleguide_context)],
-            verbose=True
+            verbose=True,
+            process=Process.sequential
         )
         
         result = crew.kickoff()
