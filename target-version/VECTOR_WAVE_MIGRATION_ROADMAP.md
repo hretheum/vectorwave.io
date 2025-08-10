@@ -3217,7 +3217,21 @@ dependencies:
 risks:
   - "Schema drift between client and service"
 ```
-##### Task 2.2.2B: Multi-Rule Processing Logic (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**  
+##### Task 2.2.2B: Multi-Rule Processing Logic (0.5 days) ⏱️ 4h ✅ COMPLETED
+```yaml
+objective: "Aggregate multi-rule outputs into concise metrics"
+deliverable: "Function aggregate_rules(validation_result) in Kolegium"
+acceptance_criteria:
+  - Weighted severity scoring and critical count present
+  - Works for both selective and comprehensive responses
+validation_commands:
+  - "pytest -q kolegium/ai_writing_flow/tests/test_rule_summary_integration.py"
+commit:
+  module: "kolegium"
+  id: "2061224"
+notes:
+  - "Integrated across Style/Audience/Writer/Quality crews"
+```
 ```yaml
 objective: "Normalize and score multi-rule outputs from Editorial Service"
 deliverable: "Utility to aggregate rules across types with severity weighting"
