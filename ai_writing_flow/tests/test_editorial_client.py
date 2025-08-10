@@ -4,6 +4,7 @@ Verifies client functionality and integration with Editorial Service
 """
 
 import pytest
+import pytest_asyncio
 import httpx
 from unittest.mock import AsyncMock, patch, MagicMock
 import asyncio
@@ -18,7 +19,7 @@ from ai_writing_flow.clients.editorial_client import (
 class TestEditorialServiceClient:
     """Test suite for Editorial Service Client"""
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def client(self):
         """Create test client"""
         client = EditorialServiceClient(base_url="http://localhost:8040")
@@ -75,7 +76,7 @@ class TestEditorialServiceClient:
             "version": "2.0.0"
         }
         
-        with patch.object(client.client, 'get', return_value=mock_response) as mock_get:
+        with patch.object(client.client, 'get', new=AsyncMock(return_value=mock_response)) as mock_get:
             result = await client.health_check()
             
             assert result["status"] == "healthy"
@@ -93,7 +94,7 @@ class TestEditorialServiceClient:
             "suggestions": ["Consider adding more context"]
         }
         
-        with patch.object(client.client, 'post', return_value=mock_response) as mock_post:
+        with patch.object(client.client, 'post', new=AsyncMock(return_value=mock_response)) as mock_post:
             result = await client.validate_selective(
                 content="Test content",
                 platform="linkedin",
@@ -128,7 +129,7 @@ class TestEditorialServiceClient:
         mock_response.json.return_value = {"status": "healthy"}
 
         with patch.object(client, '_max_retries', 3):
-            with patch.object(client.client, 'request', side_effect=[response_503, response_503, mock_response]) as mock_req:
+            with patch.object(client.client, 'request', new=AsyncMock(side_effect=[response_503, response_503, mock_response])) as mock_req:
                 result = await client.health_check()
                 assert result["status"] == "healthy"
                 # Ensure multiple attempts happened
@@ -147,7 +148,7 @@ class TestEditorialServiceClient:
             "suggestions": []
         }
         
-        with patch.object(client.client, 'post', return_value=mock_response) as mock_post:
+        with patch.object(client.client, 'post', new=AsyncMock(return_value=mock_response)) as mock_post:
             result = await client.validate_comprehensive(
                 content="Test article content",
                 platform="twitter",
@@ -176,7 +177,7 @@ class TestEditorialServiceClient:
             "Server error", request=None, response=None
         )
         
-        with patch.object(client.client, 'get', return_value=error_response):
+        with patch.object(client.client, 'get', new=AsyncMock(return_value=error_response)):
             # Trigger failures up to threshold
             for i in range(5):
                 with pytest.raises(httpx.HTTPStatusError):
@@ -203,7 +204,7 @@ class TestEditorialServiceClient:
         await asyncio.sleep(0.2)
         
         # Should allow request after recovery timeout
-        with patch.object(client.client, 'get', return_value=mock_response):
+        with patch.object(client.client, 'get', new=AsyncMock(return_value=mock_response)):
             result = await client.health_check()
             assert result["status"] == "success"
             assert client._failure_count == 0
@@ -222,7 +223,7 @@ class TestEditorialServiceClient:
             for i in range(3)
         ]
         
-        with patch.object(client.client, 'post', return_value=mock_response):
+        with patch.object(client.client, 'post', new=AsyncMock(return_value=mock_response)):
             results = await client.validate_batch(items)
             
             assert len(results) == 3
@@ -240,7 +241,7 @@ class TestEditorialServiceClient:
         """Test cache-related operations"""
         # Test cache stats
         mock_response.json.return_value = {"total_rules": 355, "collections": 5}
-        with patch.object(client.client, 'get', return_value=mock_response):
+        with patch.object(client.client, 'get', new=AsyncMock(return_value=mock_response)):
             stats = await client.get_cache_stats()
             assert stats["total_rules"] == 355
         
@@ -314,12 +315,12 @@ class TestEditorialServiceClient:
     async def test_error_handling(self, client):
         """Test error handling for various scenarios"""
         # Network error
-        with patch.object(client.client, 'get', side_effect=httpx.NetworkError("Connection failed")):
+        with patch.object(client.client, 'get', new=AsyncMock(side_effect=httpx.NetworkError("Connection failed"))):
             with pytest.raises(httpx.NetworkError):
                 await client.health_check()
         
         # Timeout error
-        with patch.object(client.client, 'get', side_effect=httpx.TimeoutException("Request timeout")):
+        with patch.object(client.client, 'get', new=AsyncMock(side_effect=httpx.TimeoutException("Request timeout"))):
             with pytest.raises(httpx.TimeoutException):
                 await client.health_check()
         
@@ -328,7 +329,7 @@ class TestEditorialServiceClient:
         error_response.raise_for_status.side_effect = httpx.HTTPStatusError(
             "404 Not Found", request=None, response=None
         )
-        with patch.object(client.client, 'get', return_value=error_response):
+        with patch.object(client.client, 'get', new=AsyncMock(return_value=error_response)):
             with pytest.raises(httpx.HTTPStatusError):
                 await client.health_check()
     
@@ -353,7 +354,7 @@ class TestEditorialServiceClient:
 class TestIntegrationScenarios:
     """Integration test scenarios"""
     
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def client(self):
         """Create test client"""
         client = EditorialServiceClient()
@@ -372,7 +373,7 @@ class TestIntegrationScenarios:
             "suggestions": ["Minor improvements"]
         }
         
-        with patch.object(client.client, 'post', return_value=mock_response):
+        with patch.object(client.client, 'post', new=AsyncMock(return_value=mock_response)):
             # Human-assisted workflow
             selective_result = await client.validate_selective(
                 "Draft content",
@@ -408,7 +409,7 @@ class TestIntegrationScenarios:
         
         # Refresh cache
         mock_response.json.return_value = {"status": "refreshed", "rules_loaded": 355}
-        with patch.object(client.client, 'post', return_value=mock_response):
+        with patch.object(client.client, 'post', new=AsyncMock(return_value=mock_response)):
             refresh_result = await client.refresh_cache()
             assert refresh_result["rules_loaded"] == 355
         
