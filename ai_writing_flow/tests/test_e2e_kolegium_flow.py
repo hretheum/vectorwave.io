@@ -59,3 +59,35 @@ def test_e2e_kolegium_dependency_unavailable(monkeypatch):
         result = style.execute("text", {"platform": "linkedin"})
         assert result.is_compliant is False
         assert any(v["type"] == "service_error" for v in result.violations)
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(os.getenv("CI") == "true", reason="requires local Editorial Service")
+def test_e2e_partial_failure_quality(monkeypatch):
+    if any(x is None for x in (WriterCrew, QualityCrew)):
+        pytest.skip("crewai not available")
+    writer = WriterCrew()
+    quality = QualityCrew()
+
+    # Produce a draft
+    draft = writer.execute("SLOs", "LinkedIn", "technical", "research", 2, {"platform": "linkedin"})
+
+    # Force Quality Crew to require human review via high controversy and poor value
+    with patch.object(quality, 'check_controversy', return_value=0.9), \
+         patch.object(quality, 'evaluate_value', return_value={
+             "has_clear_takeaway": False,
+             "provides_examples": False,
+             "actionable_advice": False,
+             "unique_perspective": False,
+             "saves_reader_time": False,
+         }), \
+         patch.object(quality, 'assess_logical_flow', return_value={
+             "structure_clear": False,
+             "has_introduction": False,
+             "has_conclusion": False,
+             "logical_transitions": 0,
+             "coherence_score": 0.3,
+         }):
+        assessment = quality.execute(draft.draft, [], {"platform": "linkedin", "content_type": "article"})
+        assert assessment.is_approved is False
+        assert assessment.requires_human_review is True
