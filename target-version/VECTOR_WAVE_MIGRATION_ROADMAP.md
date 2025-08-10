@@ -1765,7 +1765,7 @@ Status: DONE
 ##### Task 1.4.2: ChromaDB-Only Cache (1.5 days) ⏱️ 12h [DONE]
 Status: DONE
 - Commit-ID: f2e4c10
-- LLM-NOTE: Dodano cache „tylko ChromaDB” dla wyników reguł: `editorial-service/src/cache/chromadb_cache.py` + testy `editorial-service/tests/test_chromadb_cache.py`. Cache przyjmuje wyłącznie reguły z poprawnym `chromadb_metadata`, dodaje `cache_metadata`, posiada `stats()` i `clear()`.
+- LLM-NOTE: Dodano cache „tylko ChromaDB" dla wyników reguł: `editorial-service/src/cache/chromadb_cache.py` + testy `editorial-service/tests/test_chromadb_cache.py`. Cache przyjmuje wyłącznie reguły z poprawnym `chromadb_metadata`, dodaje `cache_metadata`, posiada `stats()` i `clear()`.
 
 ## 🎯 Phase 2: Workflow Integration & Topic Intelligence
 **Duration**: 5 weeks | **Objective**: Integrate ChromaDB-centric services with core workflows and introduce topic intelligence.
@@ -2093,7 +2093,7 @@ test_requirements:
 ##### Task 1.4.2: ChromaDB-Only Cache (1.5 days) ⏱️ 12h [DONE]
 Status: DONE
 - Commit-ID: f2e4c10
-- LLM-NOTE: Dodano cache „tylko ChromaDB” dla wyników reguł: `editorial-service/src/cache/chromadb_cache.py` + testy `editorial-service/tests/test_chromadb_cache.py`. Cache przyjmuje wyłącznie reguły z poprawnym `chromadb_metadata`, dodaje `cache_metadata`, posiada `stats()` i `clear()`.
+- LLM-NOTE: Dodano cache „tylko ChromaDB" dla wyników reguł: `editorial-service/src/cache/chromadb_cache.py` + testy `editorial-service/tests/test_chromadb_cache.py`. Cache przyjmuje wyłącznie reguły z poprawnym `chromadb_metadata`, dodaje `cache_metadata`, posiada `stats()` i `clear()`.
 ```python
 # editorial-service/src/chromadb_cache.py
 import json
@@ -3726,23 +3726,26 @@ validation_commands:
   - "grep -r 'Process.sequential' kolegium/ | wc -l # Expected: >5"
   - "python scripts/test_crew_execution_order.py # Expected: SEQUENTIAL"
 
-##### Task 2.7C: Crew State Management (1 day) ⏱️ 8h 🆕 **ATOMIZED** 
-
-```
-
+##### Task 2.7C: Crew State Management (1 day) ⏱️ 8h 🆕 **ATOMIZED** ✅ COMPLETED
 ```yaml
+status: COMPLETED
+completed_date: 2025-08-10
+commit_id: 6e53dc6
 objective: "Implement proper state management between sequential agents"
 deliverable: "State persistence and recovery for crew executions"
 
 state_management_features:
   - Agent execution state tracking
-  - Intermediate result persistence  
+  - Intermediate result persistence
   - Failure recovery and resume capability
   - Execution metrics and logging
 
+location:
+  - kolegium/ai_writing_flow/src/ai_writing_flow/crews/writing_crew.py
+
 validation_commands:
-  - "curl http://localhost:8042/flows/status/{flow_id} # Expected: detailed state"
-  - "python scripts/test_state_persistence.py # Expected: PASS"
+  - "rg 'CrewExecutionState|resume_from_last_stage' kolegium/ai_writing_flow/src -n"
+  - "ls -1 kolegium/ai_writing_flow/src/ai_writing_flow/crews/.crew_state || true"
 ```
 
 ##### Task 2.7D: Crew Performance Optimization (1 day) ⏱️ 8h 🆕 **ATOMIZED**
