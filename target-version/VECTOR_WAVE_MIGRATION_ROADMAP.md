@@ -3845,7 +3845,7 @@ dependencies:
 risks:
   - "Keep hints data-driven in future"
 ```
-##### Task 2.3.4C: Assignment Algorithm Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.3.4C: Assignment Algorithm Testing (0.5 days) ⏱️ 4h ✅ COMPLETED
 ```yaml
 objective: "Test assignment correctness and stability"
 deliverable: "Deterministic tests over seed dataset"
@@ -3853,6 +3853,9 @@ acceptance_criteria:
   - Same inputs → same outputs
 validation_commands:
   - "pytest -q topic-manager/tests/test_assignment.py"
+commit:
+  module: "root"
+  id: "(see tests commit for assignment)"
 dependencies:
   - "2.3.4A–B"
 risks:
