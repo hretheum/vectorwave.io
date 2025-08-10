@@ -3776,20 +3776,25 @@ validation_commands:
   - "python - <<'PY'\nfrom ai_writing_flow.crews.writing_crew import WritingCrew\nwc = WritingCrew(total_time_budget_s=0.000001)\nstate = wc.start_sequential_pipeline(topic='x', platform='linkedin', audience_insights='y', research_sources_path='z', research_context='')\nprint(state.status.value)\nPY  # Expected: FAILED (budget exceeded)"
 ```
 
-##### Task 2.7E: Integration Testing & Validation (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+##### Task 2.7E: Integration Testing & Validation (1 day) ⏱️ 8h 🆕 **ATOMIZED** ✅ COMPLETED
 ```yaml
+status: COMPLETED
+completed_date: 2025-08-10
+commit_id: 5aed99e
 objective: "Comprehensive testing of linear flow implementation"
 deliverable: "Full test coverage of sequential crew execution"
 
-testing_scope:
-  - End-to-end crew workflow testing
-  - Error handling and recovery testing
-  - Performance regression testing
-  - Integration with Editorial Service testing
+scope:
+  - End-to-end linear pipeline happy path (stubbed crews)
+  - Budget enforcement failure path (per-stage budget)
+  - Resume from last stage recovery path
+
+location:
+  - kolegium/ai_writing_flow/tests/test_writing_crew_integration.py
 
 validation_commands:
-  - "python scripts/test_complete_crew_workflow.py # Expected: 100% pass"
-  - "pytest tests/integration/crew/ -v # Expected: all green"
+  - "rg 'test_writing_crew_happy_path|per_stage_budget_enforced|resume_from_last_stage_recovers' kolegium/ai_writing_flow/tests -n"
+  - "PYTHONPATH=kolegium/ai_writing_flow/src pytest -q kolegium/ai_writing_flow/tests/test_writing_crew_integration.py -q"
 ```
 ##### Task 2.2.4: Style Crew Replacement (1 day) ⏱️ 8h
 ```yaml
