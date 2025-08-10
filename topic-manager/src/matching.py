@@ -1,4 +1,5 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
+from functools import lru_cache
 
 
 def suggest_platforms(topic: Dict) -> List[str]:
@@ -6,22 +7,27 @@ def suggest_platforms(topic: Dict) -> List[str]:
 
     Deterministic given same input; used as a placeholder for Phase 2.
     """
-    title = (topic.get("title") or "").lower()
-    keywords = [str(k).lower() for k in topic.get("keywords") or []]
+    title = (topic.get("title") or "").strip().lower()
+    keywords = tuple(sorted({str(k).strip().lower() for k in (topic.get("keywords") or [])}))
+    return _suggest_platforms_cached((title, keywords))
+
+
+@lru_cache(maxsize=2048)
+def _suggest_platforms_cached(key: Tuple[str, Tuple[str, ...]]) -> List[str]:
+    title, keywords = key
+    joined = (title + " " + " ".join(keywords)).strip()
 
     platforms: List[str] = []
 
-    if any(k in (title + " "+" ".join(keywords)) for k in ["enterprise", "b2b", "linkedin", "career"]):
+    if any(k in joined for k in ["enterprise", "b2b", "linkedin", "career"]):
         platforms.append("linkedin")
-    if any(k in (title + " "+" ".join(keywords)) for k in ["ai", "ml", "dev", "opensource", "oss", "python", "js"]):
+    if any(k in joined for k in ["ai", "ml", "dev", "opensource", "oss", "python", "js"]):
         platforms.append("twitter")
-    if any(k in (title + " "+" ".join(keywords)) for k in ["newsletter", "longform", "case study", "deep dive"]):
+    if any(k in joined for k in ["newsletter", "longform", "case study", "deep dive"]):
         platforms.append("beehiiv")
 
     if not platforms:
         platforms = ["linkedin", "twitter"]
 
-    # Make deterministic: sort by fixed weight
     weight = {"linkedin": 2, "twitter": 1, "beehiiv": 3}
-    platforms = sorted(set(platforms), key=lambda p: weight.get(p, 99))
-    return platforms
+    return sorted(set(platforms), key=lambda p: weight.get(p, 99))

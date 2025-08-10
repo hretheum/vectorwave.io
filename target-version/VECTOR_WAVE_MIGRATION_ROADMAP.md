@@ -3864,7 +3864,7 @@ dependencies:
 risks:
   - "Edge inputs; add guards"
 ```
-##### Task 2.3.4D: Algorithm Performance Optimization (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.3.4D: Algorithm Performance Optimization (0.5 days) ⏱️ 4h ✅ COMPLETED
 ```yaml
 objective: "Optimize matching/assignment to sub-10ms per topic"
 deliverable: "Micro-benchmarks and simple caching"
@@ -3872,6 +3872,9 @@ acceptance_criteria:
   - P95 < 10ms for 100 topics
 validation_commands:
   - "pytest -q topic-manager/tests/test_perf.py"
+commit:
+  module: "root"
+  id: "(see matching cache commit)"
 dependencies:
   - "2.3.4C"
 risks:
