@@ -3570,6 +3570,23 @@ risks:
   - "Environment coupling; add robust skip logic"
 ```
 
+##### Task 2.2.6: Phase 2 CI Test Profile Hardening (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+```yaml
+objective: "Stabilize CI test profile for Phase 2 core without external heavy deps"
+deliverable: "pytest.ini + conftest filters + markers; green core suite by default"
+acceptance_criteria:
+  - Default `pytest` runs core tests only (editorial-service unit, kolegium light, topic-manager)
+  - Heavy/perf/external-dep tests opt-in via ENABLE_FULL_SUITE=1
+  - No ImportPathMismatch/ModuleNotFound errors in default profile
+validation_commands:
+  - "pytest -q"
+  - "ENABLE_FULL_SUITE=1 pytest -q -m 'not slow'"
+dependencies:
+  - "2.1.2D, 2.2.1–2.2.5, 2.3.1A–D"
+risks:
+  - "Test drift; maintain markers and docs"
+```
+
 #### **WEEK 7-8: Topic Manager Implementation**
 
 ##### Task 2.3.1A: Topic Manager FastAPI Foundation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
