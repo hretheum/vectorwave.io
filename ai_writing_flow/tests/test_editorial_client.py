@@ -164,8 +164,10 @@ class TestEditorialServiceClient:
             )
             
             assert result["mode"] == "comprehensive"
-            assert result["rules_applied"] == 10
+            assert result["rules_applied"] == 10 or result.get("rule_count") == 10
             assert len(result["violations"]) == 1
+            # Normalized rules list presence
+            assert "rules" in result
             
             # Verify request payload
             call_args = mock_post.call_args

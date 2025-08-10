@@ -275,7 +275,13 @@ class EditorialServiceClient:
             json=payload,
             timeout=30.0,
         )
-        return response.json()
+        data = response.json()
+        # Normalize fields per acceptance criteria
+        if "rules" not in data and "rules_applied" in data:
+            data["rules"] = data.get("rules_applied", [])
+        data.setdefault("violations", [])
+        data.setdefault("suggestions", [])
+        return data
     
     async def get_cache_stats(self) -> Dict:
         """
