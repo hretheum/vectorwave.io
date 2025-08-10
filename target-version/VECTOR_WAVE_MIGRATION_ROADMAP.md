@@ -1892,14 +1892,17 @@ validation_commands:
 objective: "Enhance the Editorial Service to expose a profile-scoring endpoint"
 deliverable: "A new `POST /profile/score` endpoint in the Editorial Service"
 acceptance_criteria:
-  - The new endpoint accepts a JSON payload with `content_summary`
-  - It performs a ChromaDB query against the `style_editorial_rules` collection
-  - It returns a `profile_fit_score` between 0.0 and 1.0 and a list of `matching_rules`
-  - The endpoint is documented in `target-version/COMPLETE_API_SPECIFICATIONS.md`
+  - The new endpoint accepts a JSON payload with `content_summary` (string).
+  - It performs a ChromaDB query against the `style_editorial_rules` collection using the summary.
+  - **Scoring Logic:** The returned `profile_fit_score` is calculated as `1.0 - distance`, where `distance` is the value returned by ChromaDB for the most relevant rule. The score must be between 0.0 and 1.0.
+  - If no rules are found, the score must be `0.0`.
+  - The response includes a list of `matching_rules` containing the content of the top 3 matched rules.
+  - The endpoint is documented in `target-version/COMPLETE_API_SPECIFICATIONS.md`.
 
 validation_commands:
-  - "curl -X POST http://localhost:8040/profile/score -H 'Content-Type: application/json' -d '{\"content_summary\": \"A new AI model for code generation\"}' | jq '.profile_fit_score'"
+  - "curl -X POST http://localhost:8040/profile/score -H 'Content-Type: application/json' -d '{\"content_summary\": "A new AI model for code generation"}' | jq '.profile_fit_score'"
 ```
+
 
 ##### Task 4.1.3: Harvester Fetcher Engine (2 days) ⏱️ 16h
 ```yaml
@@ -3961,9 +3964,12 @@ acceptance_criteria:
   - Default `pytest` runs core tests only (editorial-service unit, kolegium light, topic-manager)
   - Heavy/perf/external-dep tests opt-in via ENABLE_FULL_SUITE=1
   - No ImportPathMismatch/ModuleNotFound errors in default profile
+status: COMPLETED
+completed_date: 2025-08-10
+commit_id: TO_FILL_AFTER_COMMIT
 validation_commands:
-  - "pytest -q"
-  - "ENABLE_FULL_SUITE=1 pytest -q -m 'not slow'"
+  - "pytest -q # Default core profile"
+  - "ENABLE_FULL_SUITE=1 pytest -q -m 'not slow' # Full suite opt-in"
 dependencies:
   - "2.1.2D, 2.2.1–2.2.5, 2.3.1A–D"
 risks:
