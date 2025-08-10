@@ -1864,6 +1864,131 @@ test_requirements:
   - "A dedicated test suite (`test_zero_hardcoded_rules.py`) that fails if any hardcoded rules are detected"
 ```
 
+## 🎯 Phase 4: Content Intelligence & Automation
+**Duration**: 2 weeks | **Objective**: Automate the discovery and triage of new topics.
+
+### 📋 Phase 4 Task Breakdown
+
+##### Task 4.1: Trend Harvester Service Implementation (2 weeks) 🆕
+This task replaces the original `Task 2.4: Auto-Scraping Integration` with a more robust, microservice-based approach.
+
+##### Task 4.1.1: Harvester Service Foundation (1 day) ⏱️ 8h
+```yaml
+objective: "Create the Trend-Harvester microservice foundation with container-first approach"
+deliverable: "A running FastAPI service on port 8043, integrated into the main docker-compose file under the 'harvester' profile"
+acceptance_criteria:
+  - The `harvester/` directory is created with a standard project structure (src, Dockerfile, etc.)
+  - The service can be started with `docker compose --profile harvester up -d`
+  - The `/health` endpoint returns a 200 OK status and shows 'disconnected' for dependencies
+  - The service has its own `README.md`, `ARCHITECTURE.md`, and `API_SPECIFICATIONS.md`
+
+validation_commands:
+  - "docker compose --profile harvester up -d --build"
+  - "curl http://localhost:8043/health"
+```
+
+##### Task 4.1.2: Editorial Service Profile Endpoint (1 day) ⏱️ 8h
+```yaml
+objective: "Enhance the Editorial Service to expose a profile-scoring endpoint"
+deliverable: "A new `POST /profile/score` endpoint in the Editorial Service"
+acceptance_criteria:
+  - The new endpoint accepts a JSON payload with `content_summary`
+  - It performs a ChromaDB query against the `style_editorial_rules` collection
+  - It returns a `profile_fit_score` between 0.0 and 1.0 and a list of `matching_rules`
+  - The endpoint is documented in `target-version/COMPLETE_API_SPECIFICATIONS.md`
+
+validation_commands:
+  - "curl -X POST http://localhost:8040/profile/score -H 'Content-Type: application/json' -d '{\"content_summary\": \"A new AI model for code generation\"}' | jq '.profile_fit_score'"
+```
+
+##### Task 4.1.3: Harvester Fetcher Engine (2 days) ⏱️ 16h
+```yaml
+objective: "Implement the logic for fetching data from external APIs"
+deliverable: "A modular `Fetcher Engine` capable of querying at least 3 sources defined in `AI_TRENDS_API_SOURCES_REPORT.md` (e.g., Hacker News, ArXiv, GitHub)"
+acceptance_criteria:
+  - Each source is implemented as a separate, pluggable 'fetcher' module
+  - The engine handles different authentication methods (none, token)
+  - Results are normalized into a common `RawTrendItem` Pydantic model
+  - The process is resilient to single-source failures
+
+validation_commands:
+  - "pytest harvester/tests/test_fetchers.py"
+```
+
+##### Task 4.1.4: Raw Trends ChromaDB Collection (1 day) ⏱️ 8h
+```yaml
+objective: "Implement the storage layer for raw, incoming trends"
+deliverable: "A new ChromaDB collection named `raw_trends` managed by the Harvester service"
+acceptance_criteria:
+  - The Harvester service creates or connects to the `raw_trends` collection on startup
+  - Normalized `RawTrendItem` objects are successfully saved to the collection
+  - A `status` metadata field (`new`, `triaged`, `promoted`, `rejected`) is used to track items
+  - The main architecture document is updated with the new collection schema
+
+validation_commands:
+  - "python harvester/scripts/test_storage.py --item-count 10"
+```
+
+##### Task 4.1.5: Triage Crew Implementation (2 days) ⏱️ 16h
+```yaml
+objective: "Implement the `Triage Crew` of AI agents for automated assessment"
+deliverable: "A functional CrewAI team within the Harvester that can process items from the `raw_trends` collection"
+acceptance_criteria:
+  - The crew consists of `SummarizerAgent`, `ProfileAssessorAgent`, and `NoveltyCheckAgent`
+  - `ProfileAssessorAgent` successfully calls the new `/profile/score` endpoint on the Editorial Service
+  - `NoveltyCheckAgent` successfully calls the Topic Manager to check for duplicates
+  - The crew produces a final decision (`PROMOTE` or `REJECT`) and a score for each item
+
+validation_commands:
+  - "pytest harvester/tests/test_triage_crew.py"
+```
+
+##### Task 4.1.6: Topic Promotion and Scheduler (2 days) ⏱️ 16h
+```yaml
+objective: "Implement the final step of the workflow: promoting topics and scheduling the process"
+deliverable: "A complete, scheduled workflow that automatically discovers, triages, and promotes new topics"
+acceptance_criteria:
+  - Items marked `PROMOTE` by the Triage Crew are sent to the `POST /topics/suggestion` endpoint of the Topic Manager
+  - The status of the item in the `raw_trends` collection is updated to `promoted`
+  - The entire process is scheduled to run automatically using APScheduler (e.g., every 6 hours)
+  - A `POST /harvest/trigger` endpoint is available for manual triggering
+
+validation_commands:
+  - "curl -X POST http://localhost:8043/harvest/trigger"
+  - "docker compose logs harvester | grep 'Harvest cycle completed'"
+```
+
+##### Task 4.1.7: Final Integration & Monitoring (1 day) ⏱️ 8h
+```yaml
+objective: "Fully integrate the Harvester service and add monitoring"
+deliverable: "A stable, observable Harvester service"
+acceptance_criteria:
+  - The `/health` endpoint correctly reflects the status of all dependencies (ChromaDB, Editorial Service, Topic Manager)
+  - The `/harvest/status` endpoint provides accurate information about the last and next runs
+  - The service is included in the main `docker-compose.yml` with the `harvester` profile
+  - The main `VECTOR_WAVE_TARGET_SYSTEM_ARCHITECTURE.md` diagram is updated
+
+validation_commands:
+  - "curl http://localhost:8043/harvest/status | jq '.last_run.status'"
+```
+
+##### Task 2.5: Hardcoded Rules Elimination (0.5 weeks)
+```yaml
+objective: "Perform a final sweep of the entire codebase to remove any remaining hardcoded validation rules"
+deliverable: "A codebase completely free of hardcoded style, editorial, or platform rules"
+acceptance_criteria:
+  - A `grep` or similar search for common hardcoded rule patterns returns zero results in the `src` directories of all services
+  - All validation logic is confirmed to originate from Editorial Service API calls
+  - A final verification script confirms that all 355+ rules are served from ChromaDB
+
+validation_commands:
+  - "find . -path '*/src/*' -name '*.py' | xargs grep -l 'forbidden_phrases\|required_elements\|style_patterns' | wc -l # Expected: 0"
+  - "curl http://localhost:8040/cache/stats | jq '.total_rules' # Expected: >= 355"
+
+test_requirements:
+  - "A dedicated test suite (`test_zero_hardcoded_rules.py`) that fails if any hardcoded rules are detected"
+```
+
 ## 🎯 Phase 3: Publishing Orchestration & Finalization
 **Duration**: 3 weeks | **Objective**: Enhance the publishing workflow and complete the end-to-end integration.
 

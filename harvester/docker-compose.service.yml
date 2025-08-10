@@ -1,0 +1,32 @@
+# docker-compose.service.yml for Trend-Harvester
+
+services:
+  harvester:
+    build:
+      context: ./harvester
+      dockerfile: Dockerfile
+    container_name: trend-harvester
+    ports:
+      - "8043:8043"
+    volumes:
+      - ./harvester/src:/home/appuser/app/src
+    environment:
+      - EDITORIAL_SERVICE_URL=http://editorial-service:8040
+      - TOPIC_MANAGER_URL=http://topic-manager:8041
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      # Add any necessary API keys here
+      # - HACKERNEWS_API_KEY=...
+    depends_on:
+      - chromadb
+      - editorial-service
+      - topic-manager
+    networks:
+      - vector-wave-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8043/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
