@@ -2960,6 +2960,10 @@ test_requirements:
 ```
 ##### Task 2.1.2D: Integration Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
 ```yaml
+status: COMPLETED
+completed_date: 2025-08-10
+commit_ids:
+  kolegium_submodule: "2061224"
 objective: "Comprehensive integration testing of AI Writing Flow components"
 deliverable: "Fully tested and verified AI Writing Flow integration"
 acceptance_criteria:
@@ -3210,7 +3214,7 @@ dependencies:
 risks:
   - "Overfitting weights; keep configurable"
 ```
-##### Task 2.2.2C: Kolegium Integration (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.2.2C: Kolegium Integration (0.5 days) ⏱️ 4h ✅ COMPLETED
 ```yaml
 objective: "Wire comprehensive validation into Kolegium crews where needed"
 deliverable: "Audience/Style/Quality crews call comprehensive mode"
@@ -3228,7 +3232,7 @@ dependencies:
 risks:
   - "Latency increase for comprehensive; monitor P95"
 ```
-##### Task 2.2.2D: Comprehensive Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.2.2D: Comprehensive Testing (0.5 days) ⏱️ 4h ✅ COMPLETED
 ```yaml
 objective: "Ensure correctness/performance of comprehensive path"
 deliverable: "Focused tests for payload, rule counts, and error paths"
