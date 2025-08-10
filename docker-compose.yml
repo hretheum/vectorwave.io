@@ -72,6 +72,20 @@ services:
       start_period: 20s
     networks: [vector-wave]
 
+  topic-manager:
+    build: ./topic-manager
+    environment:
+      - SERVICE_PORT=8041
+    ports:
+      - "8041:8041"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8041/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks: [vector-wave]
+
   publishing-orchestrator:
     profiles: ["publishing"]
     build: ./kolegium/publishing-orchestrator

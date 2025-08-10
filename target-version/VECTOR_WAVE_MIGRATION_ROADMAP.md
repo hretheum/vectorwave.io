@@ -3148,15 +3148,180 @@ test_requirements:
 #### **WEEK 6: Kolegium Integration & CrewAI Migration**
 
 ##### Task 2.2.1: Kolegium Editorial Service Client (1 day) ⏱️ 8h
+```yaml
+objective: "Add robust HTTP client in Kolegium for Editorial Service"
+deliverable: "`kolegium/ai_writing_flow` uses a shared `EditorialServiceClient` with retries/CB"
+acceptance_criteria:
+  - Client config via ENV `EDITORIAL_SERVICE_URL`
+  - Health, selective, comprehensive, cache and benchmark endpoints supported
+  - Retries with exponential backoff and circuit breaker present
+  - Basic metrics/logging added
+validation_commands:
+  - "pytest -q kolegium/ai_writing_flow/tests/test_editorial_client.py"
+  - "python - <<'PY'\nimport asyncio; from ai_writing_flow.clients.editorial_client import create_editorial_client;\nasync def main():\n  c = await create_editorial_client('http://localhost:8040'); print(await c.health_check()); await c.close()\nasyncio.run(main())\nPY"
+test_requirements:
+  unit_tests:
+    - test_client_initialization
+    - test_retry_logic_implementation
+    - test_circuit_breaker
+    - test_timeout_configuration
+  integration_tests:
+    - test_service_info
+    - test_readiness_check
+dependencies:
+  - "Phase 1 Editorial Service up on :8040"
+risks:
+  - "Transient 5xx from Editorial -> tune backoff"
+```
 ##### Task 2.2.2A: Comprehensive Validation Client (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Expose comprehensive validation in Kolegium client with platform/type"
+deliverable: "Method `validate_comprehensive(content, platform, content_type)`"
+acceptance_criteria:
+  - Sends `content`, `platform`, `content_type` to `/validate/comprehensive`
+  - Returns rules, violations, suggestions fields
+  - Errors surfaced with actionable messages
+validation_commands:
+  - "pytest -q kolegium/ai_writing_flow/tests/test_editorial_client.py::TestEditorialServiceClient::test_validate_comprehensive"
+test_requirements:
+  unit_tests:
+    - test_validate_comprehensive_payload
+    - test_validate_comprehensive_response_parsing
+dependencies:
+  - "Task 2.2.1"
+risks:
+  - "Schema drift between client and service"
+```
 ##### Task 2.2.2B: Multi-Rule Processing Logic (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**  
+```yaml
+objective: "Normalize and score multi-rule outputs from Editorial Service"
+deliverable: "Utility to aggregate rules across types with severity weighting"
+acceptance_criteria:
+  - Provides aggregate `rule_count`, `critical_count`, `score`
+  - Works for both selective and comprehensive responses
+validation_commands:
+  - "python - <<'PY'\nfrom ai_writing_flow.clients.editorial_utils import aggregate_rules;\nprint(aggregate_rules({"rules_applied":[{"severity":"critical"},{"severity":"warning"}]}))\nPY"
+test_requirements:
+  unit_tests:
+    - test_rule_aggregation_weights
+    - test_empty_rules_handling
+dependencies:
+  - "Task 2.2.2A"
+risks:
+  - "Overfitting weights; keep configurable"
+```
 ##### Task 2.2.2C: Kolegium Integration (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Wire comprehensive validation into Kolegium crews where needed"
+deliverable: "Audience/Style/Quality crews call comprehensive mode"
+acceptance_criteria:
+  - Style and Quality use comprehensive; Writer remains selective
+  - Platform forwarded from flow inputs
+validation_commands:
+  - "rg 'validate_comprehensive\(' kolegium/ai_writing_flow/src -n"
+  - "pytest -q kolegium/ai_writing_flow/tests/test_editorial_client.py::TestIntegrationScenarios::test_dual_workflow_scenario"
+test_requirements:
+  integration_tests:
+    - test_dual_workflow_scenario
+dependencies:
+  - "Tasks 2.2.1, 2.2.2A"
+risks:
+  - "Latency increase for comprehensive; monitor P95"
+```
 ##### Task 2.2.2D: Comprehensive Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Ensure correctness/performance of comprehensive path"
+deliverable: "Focused tests for payload, rule counts, and error paths"
+acceptance_criteria:
+  - Payload includes platform and content_type
+  - Rule count within 8–12 for sample cases
+  - Graceful 5xx/timeout handling covered
+validation_commands:
+  - "pytest -q kolegium/ai_writing_flow/tests/test_editorial_client.py::TestEditorialServiceClient::test_validate_comprehensive"
+test_requirements:
+  unit_tests:
+    - test_validate_comprehensive
+    - test_error_handling_http
+  performance_tests:
+    targets:
+      - "P95 < 200ms"
+dependencies:
+  - "Task 2.2.2A"
+risks:
+  - "Environment-dependent latency causing flaky perf assertions"
+```
 
 ##### Task 2.2.3A: Multi-Agent API Design (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Design HTTP API surface between Orchestrator and editorial validators"
+deliverable: "Documented agent endpoints and payload contracts"
+acceptance_criteria:
+  - Agents declare needs (mode, platform, content_type)
+  - Standardized response envelope with metadata
+validation_commands:
+  - "rg 'agents/registered|agents/register' crewai-orchestrator/src -n"
+test_requirements:
+  docs:
+    - api_contract_markdown_present
+dependencies:
+  - "CrewAI Orchestrator foundation"
+risks:
+  - "Future evolution; keep versioned"
+```
 ##### Task 2.2.3B: Agent Coordination Logic (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Implement deterministic order and data handoff between agents"
+deliverable: "Sequential execution with intermediate results in state"
+acceptance_criteria:
+  - Fixed order: research→audience→writer→style→quality
+  - Intermediate suggestions can modify content
+validation_commands:
+  - "pytest -q crewai-orchestrator/tests/test_linear_flow_engine.py"
+test_requirements:
+  unit_tests:
+    - test_sequential_order
+    - test_content_mutation
+dependencies:
+  - "Task 2.2.3A"
+risks:
+  - "Content drift; add limits to auto-apply"
+```
 ##### Task 2.2.3C: Workflow State Management (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**  
+```yaml
+objective: "Persist agent states and expose status API"
+deliverable: "In-memory store + status endpoint with progress%"
+acceptance_criteria:
+  - Status shows state, current_agent, progress, chromadb_sourced
+  - Resilient to single-agent failures
+validation_commands:
+  - "curl http://localhost:8042/flows/status/{flow_id}"
+test_requirements:
+  unit_tests:
+    - test_state_snapshot
+    - test_failure_marking
+dependencies:
+  - "Task 2.2.3B"
+risks:
+  - "Memory footprint; add TTL for completed flows"
+```
 ##### Task 2.2.3D: Multi-Agent Integration Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Integration tests for multi-agent pipeline"
+deliverable: "Scenario tests verifying agent chain and validations"
+acceptance_criteria:
+  - End-to-end success path passes
+  - Critical violation stops flow with clear error
+validation_commands:
+  - "pytest -q crewai-orchestrator/tests/test_agent_integration.py"
+test_requirements:
+  integration_tests:
+    - test_full_chain_success
+    - test_critical_violation_short_circuit
+dependencies:
+  - "Tasks 2.2.3A–C"
+risks:
+  - "Mock vs live Editorial behavior differences"
+```
 
 ##### Task 2.6A: Style Crew Migration (1 day) ⏱️ 8h 🆕 **ATOMIZED** ✅ COMPLETED
 ```yaml
@@ -3377,14 +3542,92 @@ validation_commands:
   - "pytest tests/integration/crew/ -v # Expected: all green"
 ```
 ##### Task 2.2.4: Style Crew Replacement (1 day) ⏱️ 8h
+```yaml
+objective: "Replace any residual hardcoded checks in Style crew"
+deliverable: "Only Editorial Service calls remain"
+acceptance_criteria:
+  - Zero occurrences of legacy rule arrays
+  - Uses comprehensive validation with platform context
+validation_commands:
+  - "rg 'forbidden_phrases|required_elements|style_patterns' kolegium/ai_writing_flow/src -n"
+dependencies:
+  - "2.2.1, 2.2.2A"
+risks:
+  - "Edge-case heuristics lost; ensure acceptable suggestions"
+```
 ##### Task 2.2.5: End-to-End Kolegium Testing (1 day) ⏱️ 8h
+```yaml
+objective: "E2E tests for Kolegium path using Editorial Service"
+deliverable: "Green suite covering typical and error scenarios"
+acceptance_criteria:
+  - E2E end-to-end passes locally with live Editorial
+  - Skips cleanly when dependency unavailable
+validation_commands:
+  - "pytest -q kolegium/ai_writing_flow/tests -k integration -v"
+dependencies:
+  - "2.2.1–2.2.4"
+risks:
+  - "Environment coupling; add robust skip logic"
+```
 
 #### **WEEK 7-8: Topic Manager Implementation**
 
 ##### Task 2.3.1A: Topic Manager FastAPI Foundation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Create Topic Manager service skeleton on :8041"
+deliverable: "FastAPI app with /health and basic endpoints stubs"
+acceptance_criteria:
+  - Service starts; /health returns 200 with metadata
+validation_commands:
+  - "curl -s http://localhost:8041/health"
+test_requirements:
+  unit_tests:
+    - test_app_starts
+dependencies:
+  - "Docker compose profile for topic-manager"
+risks:
+  - "Scope creep; keep minimal stub"
+```
 ##### Task 2.3.1B: Topic Database Schema Design (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Define Pydantic models and storage schema for topics"
+deliverable: "Models with validation and persistence adapter interface"
+acceptance_criteria:
+  - Models: Topic, Suggestion, Assignment
+  - CRUD-ready structure
+validation_commands:
+  - "pytest -q topic-manager/tests/test_models.py"
+dependencies:
+  - "2.3.1A"
+risks:
+  - "Future analytics fields; version schema"
+```
 ##### Task 2.3.1C: Topic CRUD Operations (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Implement CRUD endpoints with in-memory or sqlite backend"
+deliverable: "POST/GET/PUT/DELETE for topics"
+acceptance_criteria:
+  - CRUD works with validation and 4xx/5xx handling
+validation_commands:
+  - "pytest -q topic-manager/tests/test_crud.py"
+dependencies:
+  - "2.3.1B"
+risks:
+  - "Migration path to real DB later"
+```
 ##### Task 2.3.1D: Topic Manager Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Add unit/integration tests for Topic Manager basics"
+deliverable: "Green baseline test suite"
+acceptance_criteria:
+  - >85% coverage on models and CRUD
+validation_commands:
+  - "pytest -q topic-manager/tests -q"
+dependencies:
+  - "2.3.1A–C"
+risks:
+  - "Flaky tests on async endpoints; use httpx.AsyncClient"
+```
 ```python
 # topic-manager/src/main.py
 from fastapi import FastAPI
@@ -3503,14 +3746,141 @@ test_requirements:
       - test_suggestion_diversity()
 ```
 ##### Task 2.3.4A: Platform Matching Logic (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Match topics to platforms based on attributes and historical fit"
+deliverable: "Scorer that outputs suggested platforms per topic"
+acceptance_criteria:
+  - Deterministic output for given seed data
+validation_commands:
+  - "python - <<'PY'\nfrom topic_manager.matching import suggest_platforms; print(suggest_platforms({"keywords":["AI"]}))\nPY"
+dependencies:
+  - "2.3.1B"
+risks:
+  - "Bias in simple heuristics; document limits"
+```
 ##### Task 2.3.4B: Content-Platform Optimization (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Produce platform-specific hints (length, structure, CTA)"
+deliverable: "Adapter returning optimization hints per platform"
+acceptance_criteria:
+  - Hints include max_length, sections, tone
+validation_commands:
+  - "pytest -q topic-manager/tests/test_platform_hints.py"
+dependencies:
+  - "2.3.4A"
+risks:
+  - "Keep hints data-driven in future"
+```
 ##### Task 2.3.4C: Assignment Algorithm Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Test assignment correctness and stability"
+deliverable: "Deterministic tests over seed dataset"
+acceptance_criteria:
+  - Same inputs → same outputs
+validation_commands:
+  - "pytest -q topic-manager/tests/test_assignment.py"
+dependencies:
+  - "2.3.4A–B"
+risks:
+  - "Edge inputs; add guards"
+```
 ##### Task 2.3.4D: Algorithm Performance Optimization (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Optimize matching/assignment to sub-10ms per topic"
+deliverable: "Micro-benchmarks and simple caching"
+acceptance_criteria:
+  - P95 < 10ms for 100 topics
+validation_commands:
+  - "pytest -q topic-manager/tests/test_perf.py"
+dependencies:
+  - "2.3.4C"
+risks:
+  - "Premature optimization; keep scope tight"
+```
 ##### Task 2.3.5: Topic Database Integration Testing (1.5 days) ⏱️ 12h
+```yaml
+objective: "Verify Topic Manager end-to-end flow with persistence"
+deliverable: "Integration tests for CRUD→suggest→assign pipeline"
+acceptance_criteria:
+  - Complete flow passes with >80% coverage
+validation_commands:
+  - "pytest -q topic-manager/tests/integration -v"
+dependencies:
+  - "2.3.1A–D, 2.3.4A–D"
+risks:
+  - "DB state flakiness; use isolated DB per test"
+```
+
+##### Task 2.3.6: Topic Manager Persistence & Volume (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+```yaml
+objective: "Add recommended lightweight DB and volume to Topic Manager"
+deliverable: "SQLite-backed persistence with Docker volume and migration scaffold"
+acceptance_criteria:
+  - SQLite file stored under mounted volume (e.g., /data/topics.sqlite)
+  - Basic migration script present (init schema, simple upgrade path)
+  - CRUD endpoints operate on DB, not in-memory
+  - Health endpoint reflects DB connectivity status
+validation_commands:
+  - "docker compose up -d topic-manager && curl -s http://localhost:8041/health | jq '.status'"
+  - "docker compose exec topic-manager ls -l /data && docker compose exec topic-manager sqlite3 /data/topics.sqlite '.tables'"
+  - "pytest -q topic-manager/tests -k db -v"
+test_requirements:
+  integration_tests:
+    - test_db_init_and_schema
+    - test_crud_persists_to_sqlite
+    - test_health_reports_db
+dependencies:
+  - "2.3.1A–D (service & models ready)"
+risks:
+  - "File-locking on some hosts; consider WAL mode"
+notes:
+  docker_compose_snippet: |
+    topic-manager:
+      build: ./topic-manager
+      volumes:
+        - topic_manager_data:/data
+      environment:
+        - SERVICE_PORT=8041
+        - TM_DB_PATH=/data/topics.sqlite
+      ports:
+        - "8041:8041"
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:8041/health"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 10s
+      networks: [vector-wave]
+
+    volumes:
+      topic_manager_data:
+        # local named volume to persist SQLite file
+        driver: local
+```
 
 #### **WEEK 9: Auto-Scraping Integration**
 
 ##### Task 2.4.1-2.4.4: Topic Scrapers (6 days) ⏱️ 48h
+```yaml
+objective: "Implement HN/Reddit/Twitter/LinkedIn scrapers with relevance scoring"
+deliverable: "Four scrapers with common interface and tests"
+acceptance_criteria:
+  - Each scraper returns normalized topics with source metadata
+  - Relevance score in [0,1]
+  - Backoff + rate limiting where needed
+validation_commands:
+  - "pytest -q topic-manager/tests/scrapers -v"
+test_requirements:
+  unit_tests:
+    - test_normalization
+    - test_relevance_bounds
+  integration_tests:
+    - test_live_endpoint_smoke (skipped by default)
+dependencies:
+  - "Topic Manager service running"
+risks:
+  - "Third-party API changes; wrap with adapters"
+```
 ```python
 # topic-manager/src/scrapers/base_scraper.py
 from abc import ABC, abstractmethod
@@ -3813,16 +4183,136 @@ async def generate_platform_content(topic: Dict, platform: str, config: Platform
 ```
 
 ##### Task 3.1.2A: Platform-Specific Content Adapters (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Adapter layer to format content per-platform pre-publish"
+deliverable: "Adapters for linkedin/twitter/newsletter with unit tests"
+acceptance_criteria:
+  - Output shape matches publishing orchestrator contract
+validation_commands:
+  - "pytest -q publishing-orchestrator/tests/test_adapters.py"
+dependencies:
+  - "3.1.1"
+risks:
+  - "Drift vs platform APIs; keep pure formatting here"
+```
 ##### Task 3.1.2B: Content Variation Generation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Generate multiple variations per platform with constraints"
+deliverable: "Variation generator with knobs (length, tone, CTA)"
+acceptance_criteria:
+  - At least 3 variations generated per platform request
+validation_commands:
+  - "pytest -q publishing-orchestrator/tests/test_variations.py"
+dependencies:
+  - "3.1.2A"
+risks:
+  - "Token cost; provide caps"
+```
 ##### Task 3.1.2C: Multi-Platform Validation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Validate each variation via Editorial Service before scheduling"
+deliverable: "Batch validation call and aggregation"
+acceptance_criteria:
+  - Failed variations excluded with reason
+validation_commands:
+  - "pytest -q publishing-orchestrator/tests/test_validation_pipeline.py"
+dependencies:
+  - "2.1.1, 3.1.2A–B"
+risks:
+  - "Throughput; batch with concurrency limits"
+```
 ##### Task 3.1.2D: Content Generation Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Tests for adapters, variations and validation glue"
+deliverable: "Test suite with fixtures and golden samples"
+acceptance_criteria:
+  - >85% coverage across adapters/variations/validation
+validation_commands:
+  - "pytest -q publishing-orchestrator/tests -q"
+dependencies:
+  - "3.1.2A–C"
+risks:
+  - "Golden drift; pin fixtures"
+```
 
 ##### Task 3.1.3A: Scheduling Logic Foundation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Base scheduler with queue and status tracking"
+deliverable: "In-memory scheduler with pluggable backends"
+acceptance_criteria:
+  - Enqueue, dequeue, cancel, status
+validation_commands:
+  - "pytest -q publishing-orchestrator/tests/test_scheduler.py"
+dependencies:
+  - "3.1.2D"
+risks:
+  - "Timezones; standardize on UTC"
+```
 ##### Task 3.1.3B: Optimal Time Slot Algorithm (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Heuristic to pick best time slot per platform"
+deliverable: "Scorer using historical windows and constraints"
+acceptance_criteria:
+  - Deterministic outputs for given seed data
+validation_commands:
+  - "pytest -q publishing-orchestrator/tests/test_timeslots.py"
+dependencies:
+  - "3.1.3A"
+risks:
+  - "Limited historical data; allow overrides"
+```
 ##### Task 3.1.3C: Platform Schedule Coordination (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Coordinate different platform rules and rate-limits"
+deliverable: "Coordinator layer mapping to adapters"
+acceptance_criteria:
+  - No conflicts; respects per-platform windows
+validation_commands:
+  - "pytest -q publishing-orchestrator/tests/test_coordination.py"
+dependencies:
+  - "3.1.3A–B"
+risks:
+  - "Clock skew; buffer windows"
+```
 ##### Task 3.1.3D: Scheduling Integration Testing (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Integration tests from content to scheduled jobs"
+deliverable: "End-to-end tests asserting job readiness"
+acceptance_criteria:
+  - Flow produces scheduled job IDs per platform
+validation_commands:
+  - "pytest -q publishing-orchestrator/tests/test_end_to_end_schedule.py"
+dependencies:
+  - "3.1.3A–C"
+risks:
+  - "Flakiness due to time; freeze time in tests"
+```
 ##### Task 3.1.4: Platform Adapter Coordination (1 day) ⏱️ 8h
+```yaml
+objective: "Glue adapters, scheduler and validation into orchestrated pipeline"
+deliverable: "Coordinated publish path with status endpoints"
+acceptance_criteria:
+  - /publish returns processing with platform job map
+validation_commands:
+  - "curl -s -X POST http://localhost:8080/publish -d @tests/data/sample_publication.json | jq '.'"
+dependencies:
+  - "3.1.2A–D, 3.1.3A–D"
+risks:
+  - "Partial failures; return per-platform statuses"
+```
 ##### Task 3.1.5: Publication Status Tracking (1 day) ⏱️ 8h
+```yaml
+objective: "Track publication status per platform with retries and errors"
+deliverable: "Status store + GET endpoint"
+acceptance_criteria:
+  - Status: queued|scheduled|published|failed with timestamps
+validation_commands:
+  - "curl -s http://localhost:8080/publication/{id} | jq '.'"
+dependencies:
+  - "3.1.4"
+risks:
+  - "State reconciliation with external APIs"
+```
 
 #### **WEEK 12: LinkedIn Special Handling & Analytics Placeholder**
 
