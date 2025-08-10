@@ -3943,6 +3943,25 @@ notes:
         - topic_manager_data:/data
       environment:
         - SERVICE_PORT=8041
+```
+
+##### Task 2.7A: CLI Playbooks for Kolegium (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+```yaml
+objective: "Provide CLI scripts to run Style/Audience/Writer/Quality playbooks"
+deliverable: "Minimal CLI wrappers that accept input and print JSON outputs"
+acceptance_criteria:
+  - `python -m kolegium.playbooks.style --draft ... --platform ...` works
+  - `python -m kolegium.playbooks.audience --topic ... --platform ...` works
+  - Proper exit codes: 0 on success, non‑zero on failure
+  - Structured JSON printed to stdout
+validation_commands:
+  - "python -m kolegium.playbooks.style --help"
+  - "python -m kolegium.playbooks.audience --help"
+  - "python - <<'PY'\nfrom subprocess import run, PIPE; r=run(['python','-m','kolegium.playbooks.style','--draft','x','--platform','linkedin'], stdout=PIPE); print(r.returncode, len(r.stdout))\nPY"
+dependencies:
+  - "2.2.4 Style Crew Replacement"
+risks:
+  - "Interface drift; keep arguments minimal and documented"
         - TM_DB_PATH=/data/topics.sqlite
       ports:
         - "8041:8041"
