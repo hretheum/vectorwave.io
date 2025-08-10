@@ -14,6 +14,7 @@ import logging
 
 from ..models import DraftContent
 from ..clients.editorial_client import EditorialServiceClient
+from ..clients.editorial_utils import aggregate_rules
 
 logger = logging.getLogger(__name__)
 
@@ -201,7 +202,7 @@ class WriterCrew:
             self._editorial_service_available = False
     
     @tool("Validate Content with Editorial Service")
-    def validate_selective(self, content: str, platform: str = "general", checkpoint: str = "writing") -> str:
+    def validate_selective(self, content: str, platform: str = "general", checkpoint: str = "mid-writing") -> str:
         """
         Validate content using Editorial Service selective validation
         Uses 3-4 most critical rules for human-assisted workflow
@@ -253,6 +254,10 @@ class WriterCrew:
                     )
                 )
             
+            try:
+                result["rule_summary"] = aggregate_rules(result)
+            except Exception:
+                pass
             return json.dumps(result, indent=2)
             
         except Exception as e:

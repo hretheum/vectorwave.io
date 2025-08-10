@@ -202,6 +202,7 @@ class EditorialServiceClient:
             "content": content,
             "platform": platform,
             "mode": "selective",
+            "checkpoint": checkpoint,
             "context": {
                 "checkpoint": checkpoint,
                 **(context or {})

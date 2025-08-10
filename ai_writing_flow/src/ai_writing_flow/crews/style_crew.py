@@ -12,6 +12,7 @@ import logging
 
 from ..models import StyleValidation
 from ..clients.editorial_client import EditorialServiceClient
+from ..clients.editorial_utils import aggregate_rules
 
 # Disable CrewAI memory logs
 os.environ["CREWAI_STORAGE_LOG_ENABLED"] = "false"
@@ -93,10 +94,15 @@ class StyleCrew:
                         future.set_exception(e)
                 
                 asyncio.create_task(run_validation())
-                return future.result(timeout=30)
+                result = future.result(timeout=30)
+                try:
+                    result["rule_summary"] = aggregate_rules(result)
+                except Exception:
+                    pass
+                return result
             else:
                 # Create new loop if none exists
-                return asyncio.run(
+                result = asyncio.run(
                     self.editorial_client.validate_comprehensive(
                         content=draft,
                         platform=platform,
@@ -104,6 +110,11 @@ class StyleCrew:
                         context={"validation_type": "style", "agent": "style_crew"}
                     )
                 )
+                try:
+                    result["rule_summary"] = aggregate_rules(result)
+                except Exception:
+                    pass
+                return result
         except Exception as e:
             logger.error(f"Editorial Service validation failed: {e}")
             return {

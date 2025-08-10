@@ -15,6 +15,7 @@ import asyncio
 
 from ..models import AudienceAlignment
 from ..clients.editorial_client import EditorialServiceClient
+from ..clients.editorial_utils import aggregate_rules
 
 # Disable CrewAI memory logs
 os.environ["CREWAI_STORAGE_LOG_ENABLED"] = "false"
@@ -287,6 +288,11 @@ class AudienceCrew:
             # Add platform-specific insights
             platform_insights = self._get_platform_insights(platform, result)
             result["platform_insights"] = platform_insights
+            # Add aggregated rule summary
+            try:
+                result["rule_summary"] = aggregate_rules(result)
+            except Exception:
+                pass
             
             return json.dumps(result, indent=2)
             
