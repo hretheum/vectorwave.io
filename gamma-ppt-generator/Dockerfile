@@ -26,5 +26,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 # Expose port
 EXPOSE 8003
 
-# Run the service
-CMD ["python", "-m", "src.main"]
+# Set Python path and run the service
+ENV PYTHONPATH=/app
+CMD ["python", "src/main.py"]

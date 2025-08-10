@@ -15,6 +15,7 @@ import logging
 
 from ..models import QualityAssessment
 from ..clients.editorial_client import EditorialServiceClient
+from ..clients.editorial_utils import aggregate_rules
 
 # Disable CrewAI memory logs
 os.environ["CREWAI_STORAGE_LOG_ENABLED"] = "false"
@@ -141,6 +142,11 @@ class QualityCrew:
             
             # Add quality-specific insights
             result["quality_assessment"] = self._assess_quality_factors(content, result)
+            # Aggregate rule summary (critical count, weighted score)
+            try:
+                result["rule_summary"] = aggregate_rules(result)
+            except Exception:
+                pass
             
             return json.dumps(result, indent=2)
             

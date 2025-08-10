@@ -278,7 +278,7 @@ async def generate_presentation(
         
         # Update service stats
         service_state["generation_count"] += 1
-        service_state["total_cost"] += generation_result.cost
+        service_state["total_cost"] += generation_result.cost or 0.0
         
         response = GammaGenerationResponse(
             generation_id=generation_id,

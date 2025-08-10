@@ -204,7 +204,7 @@ class GammaAPIClient:
             # Prepare request data for Gamma API
             gamma_request = self._prepare_gamma_request(request_data)
             
-            logger.info(f"🎨 Sending generation request to Gamma.app: {gamma_request['topic']['title']}")
+            logger.info(f"🎨 Sending generation request to Gamma.app: {request_data['topic']['title']}")
             
             async with session.post(
                 f"{self.base_url}/generations",
