@@ -46,3 +46,34 @@ async def test_style_validation_threshold_param():
             assert out.compliance_score <= 100
             # With threshold 80 and at least one low violation, is_compliant might be below threshold
             assert isinstance(out.is_compliant, bool)
+
+
+@pytest.mark.asyncio
+async def test_style_validation_contract_and_threshold():
+    if StyleCrew is None:
+        pytest.skip("crewai not available")
+    # Case 1: no violations -> compliant
+    crew = StyleCrew(min_compliance_score=70)
+    with patch.object(crew, 'check_service_health', return_value={"available": True, "total_rules": 100}):
+        with patch.object(crew, 'validate_style_comprehensive', return_value={
+            "violations": [],
+            "suggestions": ["Looks good"],
+            "rules_applied": [{"id": "r1"}],
+        }):
+            out = crew.execute("text", {"platform": "linkedin"})
+            assert isinstance(out.is_compliant, bool)
+            assert out.is_compliant is True
+            assert isinstance(out.violations, list)
+            assert isinstance(out.forbidden_phrases, list)
+            assert isinstance(out.suggestions, list)
+            assert isinstance(out.compliance_score, (int, float))
+
+    # Case 2: medium violation -> not compliant with high threshold
+    crew2 = StyleCrew(min_compliance_score=95)
+    with patch.object(crew2, 'check_service_health', return_value={"available": True, "total_rules": 100}):
+        with patch.object(crew2, 'validate_style_comprehensive', return_value={
+            "violations": [{"severity": "medium", "type": "style"}],
+            "suggestions": ["Tighten language"]
+        }):
+            out2 = crew2.execute("text", {"platform": "linkedin"})
+            assert out2.is_compliant is False
