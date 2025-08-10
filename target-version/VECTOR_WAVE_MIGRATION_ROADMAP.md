@@ -3166,17 +3166,20 @@ test_requirements:
 
 #### **WEEK 6: Kolegium Integration & CrewAI Migration**
 
-##### Task 2.2.1: Kolegium Editorial Service Client (1 day) ⏱️ 8h
+##### Task 2.2.1: Kolegium Editorial Service Client (1 day) ⏱️ 8h ✅ COMPLETED
 ```yaml
 objective: "Add robust HTTP client in Kolegium for Editorial Service"
 deliverable: "`kolegium/ai_writing_flow` uses a shared `EditorialServiceClient` with retries/CB"
 acceptance_criteria:
   - Client config via ENV `EDITORIAL_SERVICE_URL`
   - Health, selective, comprehensive, cache and benchmark endpoints supported
-  - Retries with exponential backoff and circuit breaker present
-  - Basic metrics/logging added
+  - Retries with exponential backoff + jitter i circuit breaker present
+  - Basic metrics/logging added; x-request-id i auth header wspierane
 validation_commands:
   - "pytest -q kolegium/ai_writing_flow/tests/test_editorial_client.py"
+commit:
+  module: "kolegium"
+  id: "3c18cf2"
   - "python - <<'PY'\nimport asyncio; from ai_writing_flow.clients.editorial_client import create_editorial_client;\nasync def main():\n  c = await create_editorial_client('http://localhost:8040'); print(await c.health_check()); await c.close()\nasyncio.run(main())\nPY"
 test_requirements:
   unit_tests:
