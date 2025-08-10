@@ -1754,6 +1754,164 @@ test_requirements:
 Status: DONE
 - Commit-ID: 1f0b2a3
 - LLM-NOTE: Dodano kompleksowy weryfikator `editorial-service/migration/verify_full_migration.py` (liczba reguł, próbki ID, zdrowie usług, P95 REST, skan hardcoded). Wynik lokalny: overall=1147, próbki ID OK, P95~6ms, zero_hardcoded w kodzie źródłowym (wykluczając narzędzia skanujące).
+
+#### **WEEK 4: Circuit Breaker & Validation**
+
+##### Task 1.4.1: Circuit Breaker Implementation (2 days) ⏱️ 16h [DONE]
+Status: DONE
+- Commit-ID: a8d1f3e
+- LLM-NOTE: Zaimplementowano asynchroniczny Circuit Breaker dla `editorial-service` z obsługą CLOSED/OPEN/HALF_OPEN, wsparciem dla sync/async i testami jednostkowymi. Pliki: `editorial-service/src/utils/circuit_breaker.py`, `editorial-service/tests/test_circuit_breaker.py`.
+
+##### Task 1.4.2: ChromaDB-Only Cache (1.5 days) ⏱️ 12h [DONE]
+Status: DONE
+- Commit-ID: f2e4c10
+- LLM-NOTE: Dodano cache „tylko ChromaDB” dla wyników reguł: `editorial-service/src/cache/chromadb_cache.py` + testy `editorial-service/tests/test_chromadb_cache.py`. Cache przyjmuje wyłącznie reguły z poprawnym `chromadb_metadata`, dodaje `cache_metadata`, posiada `stats()` i `clear()`.
+
+## 🎯 Phase 2: Workflow Integration & Topic Intelligence
+**Duration**: 5 weeks | **Objective**: Integrate ChromaDB-centric services with core workflows and introduce topic intelligence.
+
+### 📋 Phase 2 Task Breakdown
+
+##### Task 2.1.1: Editorial Service HTTP Client (1 day) ⏱️ 8h [DONE]
+- Status: DONE
+- Commit-ID: dc3655b
+- LLM-NOTE: Zaimplementowano asynchroniczny klient HTTP (`editorial_client.py`) z obsługą `circuit breaker`, `retry` (exponential backoff + jitter) i timeoutami per endpoint. Klient normalizuje odpowiedzi z Editorial Service i jest w pełni zintegrowany z `style_crew.py`.
+
+##### Task 2.2: Kolegium Integration (1 week)
+```yaml
+objective: "Integrate the main Kolegium workflow with the Editorial Service for comprehensive validation"
+deliverable: "Modified Kolegium main loop that uses the Editorial Service API instead of local, hardcoded style guides"
+acceptance_criteria:
+  - Kolegium workflow successfully calls the /validate/comprehensive endpoint
+  - The response from the Editorial Service is correctly parsed and used to guide content generation
+  - All hardcoded rule lists in the main Kolegium flow are removed
+  - End-to-end tests for the Kolegium workflow pass using the live Editorial Service
+
+validation_commands:
+  - "pytest kolegium/tests/test_kolegium_e2e_integration.py"
+  - "curl -X POST http://localhost:8001/kolegium/run -d '{\"topic\": \"Test\"}' | jq '.validation_source' # Expected: 'editorial-service'"
+
+test_requirements:
+  unit_tests:
+    - test_kolegium_editorial_client_integration()
+    - test_comprehensive_response_parsing()
+  integration_tests:
+    - test_kolegium_workflow_with_live_editorial_service()
+    - test_fallback_mechanism_when_editorial_service_is_down()
+  performance_tests:
+    - "Kolegium workflow E2E latency with validation < 60s"
+```
+
+##### Task 2.3: Topic Manager Implementation (1.5 weeks)
+```yaml
+objective: "Build and deploy the Topic Manager service for intelligent topic suggestion"
+deliverable: "A fully functional Topic Manager service running on port 8041, integrated with a ChromaDB collection for topics"
+acceptance_criteria:
+  - Topic Manager service is containerized and runs via docker-compose
+  - `POST /topics/manual` endpoint successfully adds new topics to the ChromaDB `topics` collection
+  - `GET /topics/suggestions` endpoint returns AI-ranked topic suggestions
+  - The service is integrated into the main AI Writing Flow
+
+validation_commands:
+  - "curl http://localhost:8041/health"
+  - "python topic-manager/tests/test_crud.py"
+
+test_requirements:
+  unit_tests:
+    - test_topic_model_validation()
+    - test_chromadb_repository_logic()
+  integration_tests:
+    - test_topic_creation_and_retrieval_e2e()
+    - test_ai_writing_flow_integration_with_topic_manager()
+```
+
+##### Task 2.4: Auto-Scraping Integration (1 week)
+```yaml
+objective: "Integrate automated web scrapers into the Topic Manager to discover new topics"
+deliverable: "A scheduled job that runs daily, scrapes predefined sources, and populates the `topics` ChromaDB collection with new suggestions"
+acceptance_criteria:
+  - Scrapers for at least 3 sources (e.g., HackerNews, Reddit, TechCrunch) are implemented
+  - A scheduler (e.g., APScheduler within the service) triggers the scraping process
+  - Discovered topics are successfully added to ChromaDB via the Topic Manager
+  - The process is resilient to failures in individual scrapers
+
+validation_commands:
+  - "curl -X POST http://localhost:8041/scrape"
+  - "curl http://localhost:8041/topics | jq '.count' # Verify count increases after scraping"
+
+test_requirements:
+  unit_tests:
+    - test_individual_scraper_logic()
+    - test_topic_deduplication()
+  integration_tests:
+    - test_end_to_end_scraping_and_storage_pipeline()
+```
+
+##### Task 2.5: Hardcoded Rules Elimination (0.5 weeks)
+```yaml
+objective: "Perform a final sweep of the entire codebase to remove any remaining hardcoded validation rules"
+deliverable: "A codebase completely free of hardcoded style, editorial, or platform rules"
+acceptance_criteria:
+  - A `grep` or similar search for common hardcoded rule patterns returns zero results in the `src` directories of all services
+  - All validation logic is confirmed to originate from Editorial Service API calls
+  - A final verification script confirms that all 355+ rules are served from ChromaDB
+
+validation_commands:
+  - "find . -path '*/src/*' -name '*.py' | xargs grep -l 'forbidden_phrases|required_elements|style_patterns' | wc -l # Expected: 0"
+  - "curl http://localhost:8040/cache/stats | jq '.total_rules' # Expected: >= 355"
+
+test_requirements:
+  - "A dedicated test suite (`test_zero_hardcoded_rules.py`) that fails if any hardcoded rules are detected"
+```
+
+## 🎯 Phase 3: Publishing Orchestration & Finalization
+**Duration**: 3 weeks | **Objective**: Enhance the publishing workflow and complete the end-to-end integration.
+
+### 📋 Phase 3 Task Breakdown
+
+##### Task 3.1.1: Enhanced Orchestrator API Design (1 day) ⏱️ 8h [DONE]
+- Status: DONE
+- Commit-ID: 0862b77
+- LLM-NOTE: The Publishing Orchestrator API has been enhanced to support multi-platform content generation and scheduling, with specific endpoints for different content types and platforms.
+
+##### Task 3.2.1: LinkedIn PPT Generator Service (2.5 days) ⏱️ 20h [DONE]
+- Status: DONE
+- Commit-ID: e53ddb5
+- LLM-NOTE: A dedicated service for generating LinkedIn presentations (PPTX/PDF) is now available, acting as a proxy to the Presenton service with LinkedIn-specific optimizations.
+
+##### Task 3.3.1: Analytics Blackbox Interface (2.5 days) ⏱️ 20h [DONE]
+- Status: DONE
+- Commit-ID: a154ed6
+- LLM-NOTE: A placeholder "blackbox" interface for the Analytics Service has been created, allowing other services to integrate with a stable API while the full analytics logic is developed.
+
+##### Task 3.4: End-to-End Integration Testing (1 week)
+```yaml
+objective: "Perform comprehensive end-to-end testing of the fully integrated user workflow"
+deliverable: "A suite of automated E2E tests and a final validation report confirming system stability and correctness"
+acceptance_criteria:
+  - The entire user flow (from topic selection to multi-platform publishing) is tested and functional
+  - Performance benchmarks for the complete workflow are met (e.g., < 5 minutes from topic to published draft)
+  - Security and authentication are tested across all service boundaries
+  - Final, comprehensive documentation and deployment guides are created
+
+validation_commands:
+  - "pytest tests/e2e/test_complete_user_workflow.py"
+  - "locust -f tests/performance/locustfile.py --headless -u 10 -r 2 --run-time 1m"
+
+test_requirements:
+  e2e_tests:
+    - test_happy_path_full_workflow()
+    - test_linkedin_ppt_generation_flow()
+    - test_multi_platform_publishing_flow()
+  performance_tests:
+    - "Sustained load test with 10 concurrent users for 5 minutes"
+  security_tests:
+    - "Test for unauthorized access between services"
+```
+
+### 5.3 Dependencies Mapping
+
+```
 ```yaml
 objective: "Comprehensive verification of complete rule migration process"
 deliverable: "Fully verified migration with performance and integrity confirmation"
