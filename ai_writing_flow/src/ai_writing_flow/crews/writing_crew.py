@@ -92,7 +92,8 @@ class WritingCrew:
 
     class CrewExecutionState(BaseModel):
         flow_id: str = Field(default_factory=lambda: f"flow_{uuid.uuid4().hex[:8]}")
-        status: "WritingCrew.ExecutionStatus" = Field(default=ExecutionStatus.PENDING)
+        # Use string default to avoid class scope resolution issues during definition time
+        status: "WritingCrew.ExecutionStatus" = Field(default="pending")
         current_stage: Optional["WritingCrew.Stage"] = None
         stages_completed: List["WritingCrew.Stage"] = Field(default_factory=list)
         started_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
