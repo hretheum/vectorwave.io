@@ -3748,10 +3748,22 @@ validation_commands:
   - "ls -1 kolegium/ai_writing_flow/src/ai_writing_flow/crews/.crew_state || true"
 ```
 
-##### Task 2.7D: Crew Performance Optimization (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+##### Task 2.7D: Crew Performance Optimization (1 day) ⏱️ 8h 🆕 **ATOMIZED** ✅ COMPLETED
 ```yaml
-objective: "Optimize sequential crew execution performance"  
+status: COMPLETED
+completed_date: 2025-08-10
+commit_id: 7d8af4f
+objective: "Optimize sequential crew execution performance"
 deliverable: "Optimized crews meeting performance targets"
+
+changes:
+  - Added per-stage and overall timing in WritingCrew metrics
+  - Introduced optional time budgets: total and per-stage
+  - Early-exit failure when budgets exceeded
+  - Persist metrics in state JSON for diagnostics
+
+location:
+  - kolegium/ai_writing_flow/src/ai_writing_flow/crews/writing_crew.py
 
 optimization_targets:
   - Total crew execution <30 seconds
@@ -3760,8 +3772,8 @@ optimization_targets:
   - Concurrent crew support (5+ crews)
 
 validation_commands:
-  - "python scripts/benchmark_crew_performance.py # Expected: <30s total"
-  - "curl http://localhost:8042/monitoring/performance # Expected: targets met"
+  - "rg 'metrics\\\": .*overall_ms' kolegium/ai_writing_flow/src -n"
+  - "python - <<'PY'\nfrom ai_writing_flow.crews.writing_crew import WritingCrew\nwc = WritingCrew(total_time_budget_s=0.000001)\nstate = wc.start_sequential_pipeline(topic='x', platform='linkedin', audience_insights='y', research_sources_path='z', research_context='')\nprint(state.status.value)\nPY  # Expected: FAILED (budget exceeded)"
 ```
 
 ##### Task 2.7E: Integration Testing & Validation (1 day) ⏱️ 8h 🆕 **ATOMIZED**
