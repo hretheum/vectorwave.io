@@ -3331,7 +3331,7 @@ dependencies:
 risks:
   - "Content drift; add limits to auto-apply"
 ```
-##### Task 2.2.3C: Workflow State Management (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**  
+##### Task 2.2.3C: Workflow State Management (0.5 days) ⏱️ 4h ✅ COMPLETED  
 ```yaml
 objective: "Persist agent states and expose status API"
 deliverable: "In-memory store + status endpoint with progress%"
@@ -3340,6 +3340,9 @@ acceptance_criteria:
   - Resilient to single-agent failures
 validation_commands:
   - "curl http://localhost:8042/flows/status/{flow_id}"
+commit:
+  module: "root"
+  id: "49dbfe5"
 test_requirements:
   unit_tests:
     - test_state_snapshot
