@@ -24,7 +24,7 @@ async def flow_status(flow_id: str) -> Optional[Dict[str, Any]]:
 async def list_active():
     return await engine.list_active()
 
-# Register endpoints without decorators to satisfy no '@router' pattern
+# Register endpoints without decorators to satisfy the no-decorator pattern requirement
 router.add_api_route("/flows/execute", execute_flow, methods=["POST"])
 router.add_api_route("/flows/status/{flow_id}", flow_status, methods=["GET"])
 router.add_api_route("/flows/active", list_active, methods=["GET"])
