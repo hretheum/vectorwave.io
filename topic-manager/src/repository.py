@@ -19,7 +19,8 @@ class TopicRepository:
     def get(self, topic_id: str) -> Optional[TopicModel]: ...
     def update(self, topic: TopicModel) -> bool: ...
     def delete(self, topic_id: str) -> bool: ...
-    def list(self, limit: int = 100, offset: int = 0, q: Optional[str] = None, content_type: Optional[str] = None) -> List[TopicModel]: ...
+    def list(self, limit: int = 100, offset: int = 0, q: Optional[str] = None, content_type: Optional[str] = None, sort_by: Optional[str] = None, order: str = "asc") -> List[TopicModel]: ...
+    def count(self, q: Optional[str] = None, content_type: Optional[str] = None) -> int: ...
 
 
 class InMemoryTopicRepository(TopicRepository):
@@ -42,14 +43,27 @@ class InMemoryTopicRepository(TopicRepository):
     def delete(self, topic_id: str) -> bool:
         return self._store.pop(topic_id, None) is not None
 
-    def list(self, limit: int = 100, offset: int = 0, q: Optional[str] = None, content_type: Optional[str] = None) -> List[TopicModel]:
+    def list(self, limit: int = 100, offset: int = 0, q: Optional[str] = None, content_type: Optional[str] = None, sort_by: Optional[str] = None, order: str = "asc") -> List[TopicModel]:
         vals = list(self._store.values())
         if q:
             ql = q.lower()
             vals = [t for t in vals if ql in t.title.lower() or ql in t.description.lower() or any(ql in k.lower() for k in t.keywords)]
         if content_type:
             vals = [t for t in vals if t.content_type.lower() == content_type.lower()]
+        # Sorting (whitelisted fields)
+        reverse = (order or "asc").lower() == "desc"
+        if sort_by in {"title", "content_type", "topic_id"}:
+            vals.sort(key=lambda t: getattr(t, sort_by), reverse=reverse)
         return vals[offset: offset + limit]
+
+    def count(self, q: Optional[str] = None, content_type: Optional[str] = None) -> int:
+        vals = list(self._store.values())
+        if q:
+            ql = q.lower()
+            vals = [t for t in vals if ql in t.title.lower() or ql in t.description.lower() or any(ql in k.lower() for k in t.keywords)]
+        if content_type:
+            vals = [t for t in vals if t.content_type.lower() == content_type.lower()]
+        return len(vals)
 
 
 class SQLiteTopicRepository(TopicRepository):
@@ -132,7 +146,7 @@ class SQLiteTopicRepository(TopicRepository):
             self._conn.commit()
             return cur.rowcount > 0
 
-    def list(self, limit: int = 100, offset: int = 0, q: Optional[str] = None, content_type: Optional[str] = None) -> List[TopicModel]:
+    def list(self, limit: int = 100, offset: int = 0, q: Optional[str] = None, content_type: Optional[str] = None, sort_by: Optional[str] = None, order: str = "asc") -> List[TopicModel]:
         sql = "SELECT topic_id, title, description, keywords, content_type FROM topics"
         args: Tuple = tuple()
         clauses = []
@@ -145,7 +159,15 @@ class SQLiteTopicRepository(TopicRepository):
             args += (content_type.lower(),)
         if clauses:
             sql += " WHERE " + " AND ".join(clauses)
-        sql += " ORDER BY topic_id LIMIT ? OFFSET ?"
+        # Whitelist sort fields to prevent injection
+        col = {
+            None: "topic_id",
+            "topic_id": "topic_id",
+            "title": "title",
+            "content_type": "content_type",
+        }.get((sort_by or None), "topic_id")
+        ord_dir = "DESC" if (order or "asc").lower() == "desc" else "ASC"
+        sql += f" ORDER BY {col} {ord_dir} LIMIT ? OFFSET ?"
         args += (limit, offset)
         cur = self._conn.execute(sql, args)
         rows = cur.fetchall()
@@ -155,3 +177,19 @@ class SQLiteTopicRepository(TopicRepository):
             )
             for r in rows
         ]
+
+    def count(self, q: Optional[str] = None, content_type: Optional[str] = None) -> int:
+        sql = "SELECT COUNT(1) FROM topics"
+        args: Tuple = tuple()
+        clauses = []
+        if q:
+            clauses.append("(LOWER(title) LIKE ? OR LOWER(description) LIKE ? OR LOWER(keywords) LIKE ?)")
+            ql = f"%{q.lower()}%"
+            args += (ql, ql, ql)
+        if content_type:
+            clauses.append("LOWER(content_type) = ?")
+            args += (content_type.lower(),)
+        if clauses:
+            sql += " WHERE " + " AND ".join(clauses)
+        cur = self._conn.execute(sql, args)
+        return int(cur.fetchone()[0])

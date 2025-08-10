@@ -1,4 +1,6 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Dict, Optional, Any
 
@@ -22,6 +24,8 @@ class Suggestion(BaseModel):
 
 
 TOPICS: Dict[str, Topic] = {}
+DB_PATH: Optional[str] = None
+REPO = None
 try:
     from repository import SQLiteTopicRepository, TopicModel
     import os
@@ -31,9 +35,45 @@ except Exception:
     REPO = None
 
 
+class ErrorResponse(BaseModel):
+    code: str
+    detail: Any
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc: RequestValidationError):
+    return JSONResponse(status_code=422, content=ErrorResponse(code="validation_error", detail=exc.errors()).model_dump())
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc: HTTPException):
+    # Normalize error envelope
+    detail = exc.detail
+    if isinstance(detail, dict) and "code" in detail:
+        payload = detail
+    else:
+        # Map common codes
+        default_code = "not_found" if exc.status_code == 404 else "http_error"
+        payload = ErrorResponse(code=default_code, detail=detail).model_dump()
+    return JSONResponse(status_code=exc.status_code, content=payload)
+
+
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "service": "topic-manager", "version": "1.0.0"}
+    db_connected = False
+    if REPO is not None:
+        try:
+            _ = REPO.list(limit=1, offset=0)
+            db_connected = True
+        except Exception:
+            db_connected = False
+    return {
+        "status": "healthy",
+        "service": "topic-manager",
+        "version": "1.0.0",
+        "db_connected": db_connected,
+        "db_path": DB_PATH or "N/A",
+    }
 
 
 @app.post("/topics/manual")
@@ -65,14 +105,14 @@ async def get_topic_suggestions(limit: int = 10) -> Dict[str, List[Suggestion]]:
 async def get_topic(topic_id: str):
     t = TOPICS.get(topic_id) or (REPO.get(topic_id) if REPO else None)
     if not t:
-        return {"error": "not_found"}
+        raise HTTPException(status_code=404, detail="not_found")
     return t
 
 
 @app.put("/topics/{topic_id}")
 async def update_topic(topic_id: str, topic: Topic):
     if topic_id not in TOPICS and not (REPO and REPO.get(topic_id)):
-        return {"error": "not_found"}
+        raise HTTPException(status_code=404, detail="not_found")
     # Preserve ID
     topic.topic_id = topic_id
     TOPICS[topic_id] = topic
@@ -90,11 +130,11 @@ async def delete_topic(topic_id: str):
         return {"status": "deleted", "topic_id": topic_id}
     if REPO and REPO.delete(topic_id):
         return {"status": "deleted", "topic_id": topic_id}
-    return {"error": "not_found"}
+    raise HTTPException(status_code=404, detail="not_found")
 
 
 @app.get("/topics")
-async def list_topics(limit: int = Query(20, ge=1, le=200), offset: int = Query(0, ge=0), q: Optional[str] = None, content_type: Optional[str] = None):
+async def list_topics(limit: int = Query(20, ge=1, le=200), offset: int = Query(0, ge=0), q: Optional[str] = None, content_type: Optional[str] = None, sort_by: Optional[str] = Query(None, pattern="^(topic_id|title|content_type)$"), order: str = Query("asc", pattern="^(asc|desc)$")):
     # Combine in-memory and repo for now; in future switch to repo-only when persistence enabled
     items = list(TOPICS.values())
     if REPO:
@@ -107,13 +147,15 @@ async def list_topics(limit: int = Query(20, ge=1, le=200), offset: int = Query(
                 content_type=t.content_type,
                 platform_assignment=None,
             )
-            for t in REPO.list(limit=limit, offset=offset, q=q, content_type=content_type)
+            for t in REPO.list(limit=limit, offset=offset, q=q, content_type=content_type, sort_by=sort_by, order=order)
         ]
+        total = REPO.count(q=q, content_type=content_type)
     else:
         if q:
             ql = q.lower()
             items = [t for t in items if ql in t.title.lower() or ql in t.description.lower() or any(ql in k.lower() for k in t.keywords)]
         if content_type:
             items = [t for t in items if t.content_type.lower() == content_type.lower()]
+        total = len(items)
         items = items[offset: offset + limit]
-    return {"items": [i.model_dump() for i in items], "count": len(items)}
+    return {"items": [i.model_dump() for i in items], "count": len(items), "total": total, "limit": limit, "offset": offset}
