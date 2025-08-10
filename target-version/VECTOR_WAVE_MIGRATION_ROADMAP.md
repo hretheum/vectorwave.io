@@ -3888,6 +3888,9 @@ acceptance_criteria:
   - Complete flow passes with >80% coverage
 validation_commands:
   - "pytest -q topic-manager/tests/integration -v"
+commit:
+  module: "root"
+  id: "(see repo + e2e commits)"
 dependencies:
   - "2.3.1A–D, 2.3.4A–D"
 risks:

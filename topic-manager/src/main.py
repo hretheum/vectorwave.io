@@ -22,6 +22,11 @@ class Suggestion(BaseModel):
 
 
 TOPICS: Dict[str, Topic] = {}
+try:
+    from repository import SQLiteTopicRepository, TopicModel
+    REPO = SQLiteTopicRepository(":memory:")
+except Exception:
+    REPO = None
 
 
 @app.get("/health")
@@ -34,6 +39,8 @@ async def add_manual_topic(topic: Topic):
     topic_id = f"t_{len(TOPICS)+1:06d}"
     topic.topic_id = topic_id
     TOPICS[topic_id] = topic
+    if REPO:
+        REPO.create(TopicModel(topic_id=topic_id, title=topic.title, description=topic.description, keywords=topic.keywords, content_type=topic.content_type))
     return {"status": "created", "topic_id": topic_id}
 
 
@@ -54,7 +61,7 @@ async def get_topic_suggestions(limit: int = 10) -> Dict[str, List[Suggestion]]:
 
 @app.get("/topics/{topic_id}")
 async def get_topic(topic_id: str):
-    t = TOPICS.get(topic_id)
+    t = TOPICS.get(topic_id) or (REPO.get(topic_id) if REPO else None)
     if not t:
         return {"error": "not_found"}
     return t
@@ -62,11 +69,13 @@ async def get_topic(topic_id: str):
 
 @app.put("/topics/{topic_id}")
 async def update_topic(topic_id: str, topic: Topic):
-    if topic_id not in TOPICS:
+    if topic_id not in TOPICS and not (REPO and REPO.get(topic_id)):
         return {"error": "not_found"}
     # Preserve ID
     topic.topic_id = topic_id
     TOPICS[topic_id] = topic
+    if REPO:
+        REPO.update(TopicModel(topic_id=topic_id, title=topic.title, description=topic.description, keywords=topic.keywords, content_type=topic.content_type))
     return {"status": "updated", "topic_id": topic_id}
 
 
@@ -74,5 +83,9 @@ async def update_topic(topic_id: str, topic: Topic):
 async def delete_topic(topic_id: str):
     if topic_id in TOPICS:
         del TOPICS[topic_id]
+        if REPO:
+            REPO.delete(topic_id)
+        return {"status": "deleted", "topic_id": topic_id}
+    if REPO and REPO.delete(topic_id):
         return {"status": "deleted", "topic_id": topic_id}
     return {"error": "not_found"}
