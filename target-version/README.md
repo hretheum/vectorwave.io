@@ -15,6 +15,7 @@ This folder contains the **complete target architecture** for Vector Wave system
 - **[CHROMADB_SCHEMA_SPECIFICATION.md](./CHROMADB_SCHEMA_SPECIFICATION.md)** - Database schema, collections, migration from hardcoded rules  
 - **[COMPLETE_API_SPECIFICATIONS.md](./COMPLETE_API_SPECIFICATIONS.md)** - All API endpoints, authentication, integration patterns
 - **[CREWAI_INTEGRATION_ARCHITECTURE.md](./CREWAI_INTEGRATION_ARCHITECTURE.md)** - **NEW** CrewAI agents + ChromaDB integration, tools implementation
+- **[../docs/DEPENDENCIES_MAP.md](../docs/DEPENDENCIES_MAP.md)** - Cross-service dependency map and ports
 
 ### Implementation Strategy
 - **[VECTOR_WAVE_MIGRATION_ROADMAP.md](./VECTOR_WAVE_MIGRATION_ROADMAP.md)** - 3-phase migration plan, 47 atomic tasks, rollback strategies

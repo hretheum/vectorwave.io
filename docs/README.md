@@ -17,6 +17,7 @@ Vector Wave maintains a clean, organized documentation ecosystem aligned with ta
   - CrewAI integration patterns (Linear Flow)
   - ChromaDB schema and Editorial Service design
   - Migration roadmap with validation scripts
+  - Service dependencies map: **[DEPENDENCIES_MAP.md](DEPENDENCIES_MAP.md)**
 
 ### **🔌 For Production Integration**
 - **[integration/PRODUCTION_SYSTEMS.md](integration/PRODUCTION_SYSTEMS.md)** - Production system coordination

@@ -36,6 +36,11 @@ Projekt jest w pełni skonteneryzowany. Do uruchomienia całego środowiska dewe
     curl -s http://localhost:8041/health | jq '{embeddings_ready,chromadb}'
     ```
 
+## 🔗 Mapa zależności i porty
+
+- **Mapa zależności usług**: [docs/DEPENDENCIES_MAP.md](docs/DEPENDENCIES_MAP.md)
+- **Rejestr portów**: [docs/integration/PORT_ALLOCATION.md](docs/integration/PORT_ALLOCATION.md)
+
 ## 🏗️ Struktura Serwisów
 
 Projekt składa się z kilku kluczowych mikroserwisów i submodułów Git. Każdy z nich posiada własne `README.md` z szczegółową dokumentacją.
