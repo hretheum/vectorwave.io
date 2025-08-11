@@ -269,13 +269,32 @@ async def health():
             db_connected = True
         except Exception:
             db_connected = False
+    # Best-effort integration signals
+    embeddings_ready = False
+    embeddings_provider: Optional[str] = None
+    try:
+        prov = await _get_embeddings()
+        if prov is not None:
+            embeddings_ready = True
+            embeddings_provider = prov.__class__.__name__
+    except Exception:
+        embeddings_ready = False
+    chroma_status: Optional[Dict[str, Any]] = None
+    try:
+        chroma = await _get_chroma()
+        if chroma is not None:
+            chroma_status = await chroma.heartbeat()
+    except Exception:
+        chroma_status = {"status": "unknown"}
     return {
         "status": "healthy",
         "service": "topic-manager",
         "version": "1.0.0",
         "db_connected": db_connected,
         "db_path": DB_PATH or "N/A",
-        "embeddings_ready": False,
+        "embeddings_ready": embeddings_ready,
+        "embeddings_provider": embeddings_provider,
+        "chromadb": chroma_status,
     }
 
 
