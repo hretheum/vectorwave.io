@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TriagePolicy",
+  "type": "object",
+  "required": ["version", "lookback_hours", "limits", "thresholds", "promote"],
+  "properties": {
+    "version": {"type": "integer", "minimum": 1},
+    "lookback_hours": {"type": "integer", "minimum": 1},
+    "limits": {
+      "type": "object",
+      "required": ["max_total", "max_per_source"],
+      "properties": {
+        "max_total": {"type": "integer", "minimum": 1},
+        "max_per_source": {
+          "type": "object",
+          "additionalProperties": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "keywords": {
+      "type": "object",
+      "properties": {
+        "include": {"type": "array", "items": {"type": "string"}},
+        "exclude": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "thresholds": {
+      "type": "object",
+      "required": ["profile_fit", "novelty_sim_jaccard", "title_min_len"],
+      "properties": {
+        "profile_fit": {"type": "number", "minimum": 0, "maximum": 1},
+        "novelty_sim_jaccard": {"type": "number", "minimum": 0, "maximum": 1},
+        "title_min_len": {"type": "integer", "minimum": 1}
+      }
+    },
+    "dedup": {
+      "type": "object",
+      "properties": {
+        "local_fuzzy_jaccard": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "weights": {"type": "object"},
+    "scoring": {"type": "object"},
+    "promote": {
+      "type": "object",
+      "required": ["top_k"],
+      "properties": {
+        "top_k": {"type": "integer", "minimum": 1},
+        "idempotency_key": {"type": "string"}
+      }
+    },
+    "dry_run": {"type": "boolean"}
+  },
+  "additionalProperties": true
+}

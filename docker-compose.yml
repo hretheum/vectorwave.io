@@ -8,10 +8,11 @@ networks:
 
 volumes:
   chroma_data:
+  topic_manager_data:
 
 services:
   chromadb:
-    image: chromadb/chroma:0.4.15
+    image: chromadb/chroma:0.5.3
     environment:
       - CHROMA_SERVER_HOST=0.0.0.0
       - CHROMA_SERVER_HTTP_PORT=8000
@@ -59,6 +60,9 @@ services:
     build: ./crewai-orchestrator
     environment:
       - EDITORIAL_SERVICE_URL=http://editorial-service:8040
+      - HARVESTER_URL=http://harvester:8043
+      - TRIAGE_POLICY_PATH=/app/config/triage_policy.yaml
+      - TRIAGE_POLICY_SCHEMA_PATH=/app/config/triage_policy.schema.json
     depends_on:
       editorial-service:
         condition: service_started
@@ -81,6 +85,8 @@ services:
       - EMBEDDINGS_PROVIDER=${EMBEDDINGS_PROVIDER:-openai}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_EMBEDDING_MODEL=${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      - TOPIC_MANAGER_DB=/data/topics.db
+      - INDEX_REINDEX_CRON=*/10 * * * *
     ports:
       - "8041:8041"
     healthcheck:
@@ -90,6 +96,8 @@ services:
       retries: 3
       start_period: 10s
     networks: [vector-wave]
+    volumes:
+      - topic_manager_data:/data
 
   publishing-orchestrator:
     profiles: ["publishing"]
@@ -154,6 +162,9 @@ services:
       - TOPIC_MANAGER_URL=http://topic-manager:8041
       - CHROMADB_HOST=chromadb
       - CHROMADB_PORT=8000
+      - HARVEST_FETCH_LIMIT=${HARVEST_FETCH_LIMIT:-50}
+      - SELECTIVE_PROFILE_THRESHOLD=${SELECTIVE_PROFILE_THRESHOLD:-0.7}
+      - SELECTIVE_NOVELTY_THRESHOLD=${SELECTIVE_NOVELTY_THRESHOLD:-0.8}
     depends_on:
       - chromadb
       - editorial-service
@@ -167,3 +178,4 @@ services:
       retries: 3
       start_period: 40s
     restart: unless-stopped
+

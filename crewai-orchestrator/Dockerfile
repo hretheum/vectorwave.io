@@ -5,6 +5,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src/ ./src/
+COPY config/ ./config/
 EXPOSE 8042
 
 # Default Editorial Service URL for local Docker Desktop
