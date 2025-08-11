@@ -193,7 +193,7 @@ curl http://localhost:8040/cache/stats | jq '.total_rules'
 
 ### 📋 Phase 2 Task Breakdown
 
-##### Task 2.2: Kolegium Integration (1 week)
+##### Task 2.2: Kolegium Integration (1 week) — COMPLETED
 ```yaml
 objective: "Integrate the main Kolegium workflow with the Editorial Service for comprehensive validation"
 deliverable: "Modified Kolegium main loop that uses the Editorial Service API instead of local, hardcoded style guides"
@@ -206,6 +206,12 @@ acceptance_criteria:
 validation_commands:
   - "pytest kolegium/tests/test_kolegium_e2e_integration.py"
   - "curl -X POST http://localhost:8001/kolegium/run -d '{\"topic\": \"Test\"}' | jq '.validation_source' # Expected: 'editorial-service'"
+
+meta:
+  status: COMPLETED
+  completed_date: 2025-08-11
+  commit_ids:
+    - 81abd92  # refactor(kolegium): remove legacy hardcoded styleguide data; deprecate styleguide_loader; remove context usage
 
 test_requirements:
   unit_tests:
