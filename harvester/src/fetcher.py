@@ -49,22 +49,41 @@ class ArXivFetcher:
 
         Uses Atom XML feed. Categories targeted: cs.AI, cs.LG, cs.CV.
         """
-        params = {
-            "search_query": "cat:cs.AI+OR+cat:cs.LG+OR+cat:cs.CV",
-            "sortBy": "submittedDate",
-            "sortOrder": "descending",
-            "max_results": max(1, limit),
+        headers = {
+            "User-Agent": "vector-wave-harvester/1.0 (+https://vector-wave.local; contact: dev@vector-wave.local)",
+            "Accept": "application/atom+xml, application/xml;q=0.9, */*;q=0.8",
         }
+        search_variants = [
+            ("cat:cs.AI+OR+cat:cs.LG+OR+cat:cs.CV", "submittedDate"),
+            ("cat:cs.AI+OR+cat:cs.LG+OR+cat:cs.CV", "lastUpdatedDate"),
+            ("cat:cs.AI", "submittedDate"),
+            ("cat:cs.LG", "submittedDate"),
+            ("cat:cs.CV", "submittedDate"),
+            ("all:ai", "submittedDate"),
+            ("ti:ai", "submittedDate"),
+        ]
+
+        xml_text: Optional[str] = None
         try:
-            headers = {
-                "User-Agent": "vector-wave-harvester/1.0 (+https://vector-wave.local; contact: dev@vector-wave.local)",
-                "Accept": "application/atom+xml, application/xml;q=0.9, */*;q=0.8",
-            }
             async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, headers=headers) as client:
-                r = await client.get(self.BASE_URL, params=params)
-                r.raise_for_status()
-                xml_text = r.text
+                for query, sort_by in search_variants:
+                    params = {
+                        "search_query": query,
+                        "sortBy": sort_by,
+                        "sortOrder": "descending",
+                        "max_results": max(1, limit),
+                    }
+                    r = await client.get(self.BASE_URL, params=params)
+                    r.raise_for_status()
+                    txt = r.text
+                    # Fast check: look for any <entry>
+                    if "<entry" in txt:
+                        xml_text = txt
+                        break
+                    # Otherwise, try the next variant
         except httpx.HTTPError:
+            return []
+        if not xml_text:
             return []
 
         try:
