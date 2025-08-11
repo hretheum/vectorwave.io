@@ -1,40 +1,29 @@
 name: Hardcoded Rules Check
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
+    branches: [ main ]
+  push:
     branches: [ main ]
 
 jobs:
-  hardcoded-rules:
+  scan:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          # No external deps needed for the script; ensure jq present for validation step
-          sudo apt-get update && sudo apt-get install -y jq
-      - name: Run hardcoded rules detector
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+      - name: Run hardcoded rules detection
         run: |
           python scripts/discover_hardcoded_rules.py || true
-          test -f editorial-service/migration/output/rules_catalog.json || echo '{"files":[],"total_hits":0}' > editorial-service/migration/output/rules_catalog.json
-          cat editorial-service/migration/output/rules_catalog.json | jq '.total_hits'
-      - name: Fail if any hardcoded rules found
-        run: |
-          python - <<'PY'
-import json,sys
-p='editorial-service/migration/output/rules_catalog.json'
-with open(p) as f:
-    data=json.load(f)
-if data.get('total_hits',0)>0:
-    print(f"Hardcoded rules detected: {data['total_hits']}")
-    sys.exit(1)
-print('No hardcoded rules detected')
-PY
+          rg -n 'forbidden_phrases|required_elements|style_patterns|default_rules|banned_words|weasel_words' kolegium/ -g '!**/{tests,mocks,backup,historical}/**' | tee /tmp/hits.txt || true
+          if [ -s /tmp/hits.txt ]; then
+            echo "Hardcoded rules detected:" >&2
+            cat /tmp/hits.txt >&2
+            exit 1
+          fi
