@@ -189,6 +189,10 @@ validation_commands:
   - "curl -sSf http://localhost:8043/health"
   - "curl -X POST http://localhost:8043/harvest/trigger"
   - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source\":\"product-hunt\"}' --min-count 5"
+meta:
+  status: COMPLETED
+  commit_id: a62a8b7
+  notes: "ProductHuntFetcher integrated (GraphQL v2); Developer Token z .env; retry+backoff; równoległe w engine; zero-vector embeddings persistence"
 ```
 
 
