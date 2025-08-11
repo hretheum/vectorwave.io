@@ -19,7 +19,7 @@ Create a comprehensive user interface layer that supports both AI Writing Flow (
 
 ### **Technology Stack**
 ```yaml
-frontend_framework: "Next.js 14 (App Router)"
+frontend_framework: "Next.js 15 (App Router)"
 ui_library: "React 18 + TypeScript"
 styling: "Tailwind CSS + Headless UI"
 state_management: "Zustand + React Query"
