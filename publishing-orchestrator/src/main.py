@@ -12,9 +12,15 @@ import asyncio
 import httpx
 import logging
 from datetime import datetime, timedelta
+import os
 from enum import Enum
-from .adapters import PLATFORM_ADAPTERS
-from .variations import generate_variations
+# Support running as script or package
+try:
+    from .adapters import PLATFORM_ADAPTERS  # type: ignore
+    from .variations import generate_variations  # type: ignore
+except Exception:
+    from adapters import PLATFORM_ADAPTERS  # type: ignore
+    from variations import generate_variations  # type: ignore
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
