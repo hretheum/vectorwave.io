@@ -224,7 +224,7 @@ test_requirements:
     - "Kolegium workflow E2E latency with validation < 60s"
 ```
 
-##### Task 2.3: Topic Manager Implementation (1.5 weeks)
+##### Task 2.3: Topic Manager Implementation (1.5 weeks) — COMPLETED
 ```yaml
 objective: "Build and deploy the Topic Manager service for intelligent topic suggestion"
 deliverable: "A fully functional Topic Manager service running on port 8041, integrated with a ChromaDB collection for topics"
@@ -245,6 +245,16 @@ test_requirements:
   integration_tests:
     - test_topic_creation_and_retrieval_e2e()
     - test_ai_writing_flow_integration_with_topic_manager()
+
+meta:
+  status: COMPLETED
+  completed_date: 2025-08-11
+  commit_ids:
+    - dce27a1  # feat(topic-manager): vector topics index + HTTP client
+    - 880488a  # feat(topic-manager): integrate real embeddings provider
+    - d5fd9bb  # chore(topic-manager): docker-compose env; enriched /health
+    - 8e972bc  # fix(topic-manager): Idempotency-Key header parsing
+    - 7253a84  # test(topic-manager): S2S contract tests for novelty/suggestion
 ```
 
 ##### Task 2.5: Hardcoded Rules Elimination (0.5 weeks)
