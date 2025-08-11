@@ -309,7 +309,7 @@ meta:
     - f398d76  # iterate real raw_trends items, update status to promoted
 ```
 
-##### Task 4.1.7: Final Integration & Monitoring (1 day) ⏱️ 8h — IN PROGRESS
+##### Task 4.1.7: Final Integration & Monitoring (1 day) ⏱️ 8h — COMPLETED
 ```yaml
 objective: "Fully integrate the Harvester service and add monitoring"
 deliverable: "A stable, observable Harvester service"
@@ -320,7 +320,14 @@ acceptance_criteria:
   - The main `VECTOR_WAVE_TARGET_SYSTEM_ARCHITECTURE.md` diagram is updated
 
 validation_commands:
-  - "curl http://localhost:8043/harvest/status | jq '.last_run.status'"
+  - "curl http://localhost:8043/harvest/status | jq '.last_run.status,.next_run_at'"
+  - "curl http://localhost:8043/health | jq '{status,dependencies,schedule}'"
+
+meta:
+  status: COMPLETED
+  completed_date: 2025-08-11
+  commit_ids:
+    - dac7c3c  # health probes + schedule/next_run_at exposure
 ```
 
 ## 🎯 Phase 5: Finalization & Hardening
