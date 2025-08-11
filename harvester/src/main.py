@@ -142,8 +142,61 @@ async def selective_preview(summary: str) -> Dict[str, Any]:
                 novelty_score = 1.0 - novelty_score
         except Exception:
             pass
-    decision = "PROMOTE" if (prof_score >= 0.7 and novelty_score >= 0.8) else "REJECT"
+    pth = settings.SELECTIVE_PROFILE_THRESHOLD
+    nth = settings.SELECTIVE_NOVELTY_THRESHOLD
+    decision = "PROMOTE" if (prof_score >= pth and novelty_score >= nth) else "REJECT"
     return {"profile_fit_score": prof_score, "novelty_score": novelty_score, "decision": decision}
+
+@app.post("/triage/selective")
+async def selective_triage(summary: str, content_type: str = "POST") -> Dict[str, Any]:
+    """Full selective triage: scoring + novelty + optional suggestion create with Idempotency-Key.
+
+    Returns decision and, on PROMOTE, the created/duplicate topic info.
+    """
+    editorial_url = f"{settings.EDITORIAL_SERVICE_URL}/profile/score"
+    novelty_url = f"{settings.TOPIC_MANAGER_URL}/topics/novelty-check"
+    suggest_url = f"{settings.TOPIC_MANAGER_URL}/topics/suggestion"
+    headers_tm = {}
+    if settings.TOPIC_MANAGER_TOKEN:
+        headers_tm["Authorization"] = f"Bearer {settings.TOPIC_MANAGER_TOKEN}"
+    async with httpx.AsyncClient(timeout=12.0) as client:
+        prof_score = 0.0
+        try:
+            r = await client.post(editorial_url, json={"content_summary": summary})
+            if r.status_code == 200:
+                prof_score = float(r.json().get("profile_fit_score") or 0.0)
+        except Exception:
+            pass
+        novelty_sim = 0.0
+        try:
+            r2 = await client.post(novelty_url, json={"title": summary, "summary": summary}, headers=headers_tm)
+            if r2.status_code == 200:
+                novelty_sim = float(r2.json().get("similarity_score") or 0.0)
+        except Exception:
+            pass
+        novelty_score = 1.0 - novelty_sim
+        pth = settings.SELECTIVE_PROFILE_THRESHOLD
+        nth = settings.SELECTIVE_NOVELTY_THRESHOLD
+        decision = "PROMOTE" if (prof_score >= pth and novelty_score >= nth) else "REJECT"
+        result: Dict[str, Any] = {"profile_fit_score": prof_score, "novelty_score": novelty_score, "decision": decision}
+        if decision == "PROMOTE":
+            # Promote with idempotency
+            idem = f"triage_{hash(summary) & 0xffffffff:x}"
+            sugg_payload = {
+                "title": summary,
+                "summary": summary,
+                "keywords": ["ai", "trend"],
+                "content_type": content_type,
+            }
+            try:
+                r3 = await client.post(suggest_url, json=sugg_payload, headers={**headers_tm, "Idempotency-Key": idem})
+                if r3.status_code == 200:
+                    result["suggestion_result"] = r3.json()
+                else:
+                    result["suggestion_error"] = {"status": r3.status_code, "body": r3.text}
+            except Exception as e:
+                result["suggestion_error"] = {"error": str(e)}
+        return result
 
 @app.get("/harvest/status")
 async def get_status():

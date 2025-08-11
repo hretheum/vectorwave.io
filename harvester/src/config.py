@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     NEWS_DATA_API_KEY: str | None = None
     PRODUCT_HUNT_DEVELOPER_TOKEN: str | None = None
     TOPIC_MANAGER_TOKEN: str | None = None
+
+    # Selective triage thresholds
+    SELECTIVE_PROFILE_THRESHOLD: float = 0.7
+    SELECTIVE_NOVELTY_THRESHOLD: float = 0.8
     # GITHUB_API_KEY: str | None = None
 
 settings = Settings()
