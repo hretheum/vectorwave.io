@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     DEV_TO_API_KEY: str | None = None
     NEWS_DATA_API_KEY: str | None = None
     PRODUCT_HUNT_DEVELOPER_TOKEN: str | None = None
+    TOPIC_MANAGER_TOKEN: str | None = None
     # GITHUB_API_KEY: str | None = None
 
 settings = Settings()

@@ -113,6 +113,38 @@ async def trigger_harvest():
         HARVEST_ERRORS.labels(src).inc()
     return run_status
 
+@app.post("/triage/selective-preview")
+async def selective_preview(summary: str) -> Dict[str, Any]:
+    """Lightweight selective triage preview: calls profile score and novelty check, returns decision only.
+
+    This does not create topics. It’s a dry-run to verify Phase 2 contracts.
+    """
+    # Editorial profile score
+    editorial_url = f"{settings.EDITORIAL_SERVICE_URL}/profile/score"
+    novelty_url = f"{settings.TOPIC_MANAGER_URL}/topics/novelty-check"
+    headers_tm = {}
+    if settings.TOPIC_MANAGER_TOKEN:
+        headers_tm["Authorization"] = f"Bearer {settings.TOPIC_MANAGER_TOKEN}"
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        prof_score = 0.0
+        try:
+            r = await client.post(editorial_url, json={"content_summary": summary})
+            if r.status_code == 200:
+                prof_score = float(r.json().get("profile_fit_score") or 0.0)
+        except Exception:
+            pass
+        novelty_score = 0.0
+        try:
+            r2 = await client.post(novelty_url, json={"title": summary, "summary": summary}, headers=headers_tm)
+            if r2.status_code == 200:
+                novelty_score = float(r2.json().get("similarity_score") or 0.0)
+                # Convert to novelty (the endpoint returns similarity vs existing)
+                novelty_score = 1.0 - novelty_score
+        except Exception:
+            pass
+    decision = "PROMOTE" if (prof_score >= 0.7 and novelty_score >= 0.8) else "REJECT"
+    return {"profile_fit_score": prof_score, "novelty_score": novelty_score, "decision": decision}
+
 @app.get("/harvest/status")
 async def get_status():
     # Return last run snapshot
