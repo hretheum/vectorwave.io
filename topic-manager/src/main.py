@@ -291,7 +291,7 @@ async def novelty_check(req: NoveltyCheckRequest, _: bool = Depends(_auth_depend
 @app.post("/topics/suggestion")
 async def ingest_suggestion(
     req: SuggestionIngestRequest,
-    idempotency_key: Optional[str] = Header(None, convert_underscores=False),
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
     _: bool = Depends(_auth_dependency),
 ) -> SuggestionIngestResponse:
     if not idempotency_key:
