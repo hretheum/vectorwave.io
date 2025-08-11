@@ -16,7 +16,7 @@ Projekt jest w pełni skonteneryzowany. Do uruchomienia całego środowiska dewe
     ```bash
     docker compose up --build -d
     ```
-    Ta komenda uruchomi kluczowe serwisy: `chromadb`, `redis`, `editorial-service` i `crewai-orchestrator`.
+    Ta komenda uruchomi kluczowe serwisy: `chromadb`, `redis`, `editorial-service`, `topic-manager` i `crewai-orchestrator`.
 
 2.  **Uruchomienie serwisów opcjonalnych (z profilami):**
     ```bash
@@ -33,6 +33,7 @@ Projekt jest w pełni skonteneryzowany. Do uruchomienia całego środowiska dewe
     curl -s http://localhost:8000/api/v1/heartbeat && echo ""
     curl -s http://localhost:8040/health | jq .status
     curl -s http://localhost:8042/health | jq .status
+    curl -s http://localhost:8041/health | jq '{embeddings_ready,chromadb}'
     ```
 
 ## 🏗️ Struktura Serwisów

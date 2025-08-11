@@ -939,6 +939,43 @@ POST /topics/manual
 ```
 
 ### 2.2 Topic Suggestions & Discovery
+### 2.3 Vector Topics Index (ChromaDB)
+
+#### GET /topics/index/info
+Purpose: Returns vector index readiness and counts
+```json
+{
+  "collection": "topics_index",
+  "ready": true,
+  "total_indexed": 123,
+  "chromadb_status": {"status": "healthy", "latency_ms": 5.2}
+}
+```
+
+#### POST /topics/index/reindex
+Purpose: Reindex all topics into vector index using configured embeddings
+```json
+{ "indexed": 42 }
+```
+
+#### GET /topics/search
+Purpose: Vector search over indexed topics
+Query params: `q` (string), `limit` (int, default 5)
+```json
+{
+  "query": "ai agents",
+  "items": [
+    {"topic_id": "t_000001", "score": 0.82, "distance": 0.18, "metadata": {"title": "AI Agents"}}
+  ],
+  "count": 1,
+  "took_ms": 12.7
+}
+```
+
+Notes:
+- Uses real embeddings when `OPENAI_API_KEY` is set. Falls back to deterministic lightweight embedding otherwise.
+- Index name: `topics_index`.
+
 
 #### GET /topics/suggestions
 **Purpose**: Get AI-powered topic suggestions with platform assignments
