@@ -292,6 +292,7 @@ class NewsDataFetcher:
             # NewsData uses 'page' cursor as token, not integer; omit for first page
             "size": max(1, min(limit, 50)),
         }
+        data = {}
         try:
             async with httpx.AsyncClient(timeout=20.0) as client:
                 delay = 0.5
@@ -307,7 +308,7 @@ class NewsDataFetcher:
                         await asyncio.sleep(delay)
                         delay *= 2
 
-        results = data.get("results") or []
+        results = (data or {}).get("results") or []
         items: List[RawTrendItem] = []
         for it in results:
             title = it.get("title") or "(no title)"
