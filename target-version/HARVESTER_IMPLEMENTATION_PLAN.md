@@ -162,6 +162,10 @@ validation_commands:
   - "curl -sSf http://localhost:8043/health"
   - "curl -X POST http://localhost:8043/harvest/trigger"
   - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source\":\"newsdata-io\"}' --min-count 5"
+meta:
+  status: COMPLETED
+  commit_id: 4ffe08a
+  notes: "NewsDataFetcher integrated; API key via .env; parameter fixes for first page (size, omit numeric page); zero-vector embeddings persistence"
 ```
 
 ##### ~~Task 1.3.6: Implement GitHub Fetcher (2h)~~
