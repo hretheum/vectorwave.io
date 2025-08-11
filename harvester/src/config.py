@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     HARVEST_SCHEDULE_CRON: str = "0 */6 * * *" # Every 6 hours
 
     # API Keys
+    DEV_TO_API_KEY: str | None = None
     # GITHUB_API_KEY: str | None = None
 
 settings = Settings()

@@ -2,6 +2,7 @@ from typing import List, Dict, Optional
 import httpx
 from datetime import datetime
 from .models import RawTrendItem
+from .config import settings
 import asyncio
 import xml.etree.ElementTree as ET
 
@@ -166,12 +167,14 @@ class FetcherEngine:
     def __init__(self) -> None:
         self.hn = HackerNewsFetcher()
         self.arxiv = ArXivFetcher()
+        self.devto = DevToFetcher()
 
     async def run(self) -> List[RawTrendItem]:
         # Run all sources in parallel and merge results
         results = await asyncio.gather(
             self.hn.fetch(limit=5),
             self.arxiv.fetch(limit=5),
+            self.devto.fetch(limit=5),
             return_exceptions=True,
         )
         merged: List[RawTrendItem] = []
@@ -180,3 +183,60 @@ class FetcherEngine:
                 continue
             merged.extend(res)
         return merged
+
+
+class DevToFetcher:
+    BASE_URL = "https://dev.to/api/articles"
+
+    async def fetch(self, limit: int = 5) -> List[RawTrendItem]:
+        """Fetch recent AI-related articles from Dev.to using API key if provided.
+
+        Filters by tags commonly used for AI topics.
+        """
+        headers = {}
+        if settings.DEV_TO_API_KEY:
+            headers["api-key"] = settings.DEV_TO_API_KEY
+        params_list = [
+            {"tag": "ai", "top": 7},
+            {"tag": "machinelearning", "top": 7},
+            {"tag": "llm", "top": 7},
+        ]
+
+        articles: List[RawTrendItem] = []
+        try:
+            async with httpx.AsyncClient(timeout=20.0, headers=headers) as client:
+                for params in params_list:
+                    r = await client.get(self.BASE_URL, params=params)
+                    r.raise_for_status()
+                    data = r.json()
+                    for a in data:
+                        title = a.get("title") or "(no title)"
+                        url = a.get("url") or a.get("canonical_url")
+                        author = (a.get("user") or {}).get("name")
+                        published = a.get("published_at") or a.get("created_at")
+                        published_dt = None
+                        if published:
+                            try:
+                                published_dt = datetime.fromisoformat(published.replace("Z", "+00:00"))
+                            except Exception:
+                                published_dt = None
+                        tags = a.get("tags") or []
+                        if isinstance(tags, str):
+                            tags = [t.strip() for t in tags.split(",") if t.strip()]
+                        summary = a.get("description") or a.get("excerpt")
+                        articles.append(
+                            RawTrendItem(
+                                title=title,
+                                summary=summary,
+                                url=url,
+                                source="dev-to",
+                                keywords=tags or ["devto"],
+                                author=author,
+                                published_at=published_dt,
+                            )
+                        )
+                        if len(articles) >= limit:
+                            return articles[:limit]
+            return articles[:limit]
+        except httpx.HTTPError:
+            return []
