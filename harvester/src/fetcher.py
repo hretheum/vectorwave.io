@@ -168,6 +168,7 @@ class FetcherEngine:
         self.hn = HackerNewsFetcher()
         self.arxiv = ArXivFetcher()
         self.devto = DevToFetcher()
+        self.newsdata = NewsDataFetcher()
 
     async def run(self) -> List[RawTrendItem]:
         # Run all sources in parallel and merge results
@@ -175,6 +176,7 @@ class FetcherEngine:
             self.hn.fetch(limit=5),
             self.arxiv.fetch(limit=5),
             self.devto.fetch(limit=5),
+            self.newsdata.fetch(limit=5),
             return_exceptions=True,
         )
         merged: List[RawTrendItem] = []
@@ -240,3 +242,70 @@ class DevToFetcher:
             return articles[:limit]
         except httpx.HTTPError:
             return []
+
+
+class NewsDataFetcher:
+    BASE_URL = "https://newsdata.io/api/1/news"
+
+    async def fetch(self, limit: int = 5) -> List[RawTrendItem]:
+        """Fetch AI-related news from NewsData.io using API key from env.
+
+        We query English language, AI keywords, and tech categories.
+        """
+        api_key = settings.NEWS_DATA_API_KEY
+        if not api_key:
+            return []
+        params = {
+            "apikey": api_key,
+            "q": "(artificial intelligence) OR ai OR machine learning",
+            "language": "en",
+            "category": "technology,science",
+            "page": 1,
+            "page_size": max(1, min(limit, 50)),
+        }
+        try:
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                r = await client.get(self.BASE_URL, params=params)
+                r.raise_for_status()
+                data = r.json()
+        except httpx.HTTPError:
+            return []
+
+        results = data.get("results") or []
+        items: List[RawTrendItem] = []
+        for it in results:
+            title = it.get("title") or "(no title)"
+            summary = it.get("description") or it.get("content")
+            url = it.get("link")
+            author = it.get("creator")
+            if isinstance(author, list):
+                author = ", ".join([a for a in author if a]) or None
+            pub = it.get("pubDate") or it.get("published_at")
+            published_dt = None
+            if pub:
+                try:
+                    published_dt = datetime.fromisoformat(pub.replace("Z", "+00:00"))
+                except Exception:
+                    published_dt = None
+            keywords = []
+            cats = it.get("category") or []
+            if isinstance(cats, list):
+                keywords.extend(cats)
+            # tags/keywords field name varies; include if present
+            tags = it.get("keywords") or it.get("tags")
+            if isinstance(tags, list):
+                keywords.extend(tags)
+            items.append(
+                RawTrendItem(
+                    title=title,
+                    summary=summary,
+                    url=url,
+                    source="newsdata-io",
+                    keywords=keywords or ["newsdata"],
+                    author=author,
+                    published_at=published_dt,
+                )
+            )
+            if len(items) >= limit:
+                break
+        return items

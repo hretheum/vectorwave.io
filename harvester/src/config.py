@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 
     # API Keys
     DEV_TO_API_KEY: str | None = None
+    NEWS_DATA_API_KEY: str | None = None
     # GITHUB_API_KEY: str | None = None
 
 settings = Settings()
