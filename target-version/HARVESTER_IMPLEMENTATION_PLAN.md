@@ -14,7 +14,7 @@ The plan is designed to deliver a working, data-fetching prototype as quickly as
 
 **Goal:** To have a containerized service that can be manually triggered to fetch real data from key APIs and store it in a dedicated ChromaDB collection.
 
-### Task 1.1: Harvester Service Foundation (0.5 days) ⏱️ 4h
+### Task 1.1: Harvester Service Foundation (0.5 days) ⏱️ 4h ✅ COMPLETED
 ```yaml
 objective: "Create the Trend-Harvester microservice foundation with a container-first approach"
 deliverable: "A running, skeletal FastAPI service on port 8043, integrated into the main docker-compose file under the 'harvester' profile"
@@ -26,6 +26,10 @@ acceptance_criteria:
 validation_commands:
   - "docker compose --profile harvester up -d --build"
   - "curl http://localhost:8043/health"
+
+meta:
+  commit_id: 848dacb
+  notes: "Service foundation built and validated via compose profile"
 ```
 
 ### Task 1.2: [USER ACTION REQUIRED] Provide API Keys & Tokens (0.5 days) ⏱️ 4h
@@ -38,7 +42,7 @@ acceptance_criteria:
 api_list:
   - **GitHub:** For tracking open-source projects. ([Docs](https://docs.github.com/en/rest/authentication/creating-a-personal-access-token))
   - **Product Hunt:** For discovering new tech products. ([Docs](https://api.producthunt.com/v2/docs))
-  - **Dev.to:** For developer articles and tutorials. ([Docs](https://developers.forem.com/api/v1))
+  - **Dev.to:** For developer articles and tutorials. ([Docs](https://dev.to/guilhermecheng/how-to-use-devto-api-4p65))
   - **NewsData.io:** For global news aggregation. ([Docs](https://newsdata.io/docs))
   - **TOPIC_MANAGER_TOKEN:** A secret Bearer token for authenticating with the Topic Manager service.
 
@@ -49,7 +53,7 @@ note: "Hacker News and ArXiv do not require API keys."
 
 This task is decomposed into smaller, incremental steps to allow for testing and validation of each API integration individually.
 
-##### Task 1.3.1: Fetcher & Storage Foundation (0.5 days) ⏱️ 4h
+##### Task 1.3.1: Fetcher & Storage Foundation (0.5 days) ⏱️ 4h ✅ COMPLETED
 ```yaml
 objective: "Create the foundational components for the data ingestion pipeline"
 deliverable: "A `Fetcher Engine` structure, a `Storage Service` to connect to ChromaDB, and a standardized `RawTrendItem` Pydantic model"
@@ -64,9 +68,16 @@ validation_commands:
   - "docker compose --profile harvester up -d --build harvester"
   - "curl -sSf http://localhost:8043/health | jq '.status' # Expected: healthy"
   - "pytest -q harvester/tests/test_storage_service.py"
+
+meta:
+  commit_id: 3200811
+  notes: "FetcherEngine + StorageService wired into /harvest/trigger; requirements updated; container validated"
 ```
 
 ##### Task 1.3.2: Implement Hacker News Fetcher (2h)
+
+dokumentacja: https://github.com/HackerNews/API
+
 ```yaml
 objective: "Implement the first data source integration for Hacker News"
 deliverable: "A functional `HackerNewsFetcher` module integrated into the Fetcher Engine"
@@ -82,9 +93,16 @@ validation_commands:
   - "curl -sSf http://localhost:8043/health"
   - "curl -X POST http://localhost:8043/harvest/trigger"
   - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source\":\"hacker-news\"}' --min-count 5"
+meta:
+  status: COMPLETED
+  commit_id: 08b0bc2
+  notes: "Fetcher uses official HN API; persistence via Chroma REST add endpoint"
 ```
 
 ##### Task 1.3.3: Implement ArXiv Fetcher (2h)
+
+dokumentacja: https://info.arxiv.org/help/api/user-manual.html#Quickstart
+
 ```yaml
 objective: "Add support for fetching scientific papers from ArXiv"
 deliverable: "A functional `ArXivFetcher` module integrated into the Fetcher Engine"
@@ -99,9 +117,16 @@ validation_commands:
   - "curl -sSf http://localhost:8043/health"
   - "curl -X POST http://localhost:8043/harvest/trigger"
   - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source\":\"arxiv\"}' --min-count 5"
+meta:
+  status: COMPLETED
+  commit_id: 756bc5e
+  notes: "ArXivFetcher integrated; parallel with HN; zero-vector embeddings persistence via StorageService"
 ```
 
 ##### Task 1.3.4: Implement Dev.to Fetcher (2h)
+
+dokumentacja: https://developers.forem.com/api
+
 ```yaml
 objective: "Add support for fetching developer articles from Dev.to"
 deliverable: "A functional `DevToFetcher` module integrated into the Fetcher Engine"
@@ -135,22 +160,8 @@ validation_commands:
   - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source\":\"newsdata-io\"}' --min-count 5"
 ```
 
-##### Task 1.3.6: Implement GitHub Fetcher (2h)
-```yaml
-objective: "Add support for discovering trending open-source projects from GitHub"
-deliverable: "A functional `GitHubFetcher` module integrated into the Fetcher Engine"
-acceptance_criteria:
-  - The fetcher uses the GitHub Search API to find recently created repositories with a high number of stars, tagged with 'ai' or 'llm'.
-  - The fetcher correctly uses the provided Personal Access Token for authentication.
-  - The main pipeline now includes GitHub as a data source.
-  - Validation is performed against the freshly rebuilt harvester container.
-
-validation_commands:
-  - "docker compose --profile harvester up -d --build harvester"
-  - "curl -sSf http://localhost:8043/health"
-  - "curl -X POST http://localhost:8043/harvest/trigger"
-  - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source\":\"github\"}' --min-count 5"
-```
+##### ~~Task 1.3.6: Implement GitHub Fetcher (2h)~~
+NIE REALIZUJEMY TEJ INTEGRACJI
 
 ##### Task 1.3.7: Implement Product Hunt Fetcher (2h)
 
