@@ -24,6 +24,9 @@ export default function NavBar() {
         <Link href="/topics" className={linkCls('/topics')}>Topics</Link>
         <Link href="/editor" className={linkCls('/editor')}>Editor</Link>
         <Link href="/publishing" className={linkCls('/publishing')}>Publishing</Link>
+        <Link href="/publishing/recent" className={linkCls('/publishing/recent')}>Recent</Link>
+        <Link href="/queue" className={linkCls('/queue')}>Queue</Link>
+        <Link href="/system/health" className={linkCls('/system/health')}>Health</Link>
       </div>
     </nav>
   )
