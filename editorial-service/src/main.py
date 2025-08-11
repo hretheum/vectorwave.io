@@ -24,6 +24,8 @@ from .application.services.validation_strategy_factory import (
 )
 from .infrastructure.repositories.mock_rule_repository import MockRuleRepository
 from .infrastructure.repositories import ChromaDBRuleRepository
+from chromadb import HttpClient  # type: ignore
+from chromadb.config import Settings as ChromaSettings  # type: ignore
 from .domain.entities.validation_request import (
     ValidationMode as DomainValidationMode,
     CheckpointType as DomainCheckpointType,
@@ -164,6 +166,15 @@ class CheckpointStatusResponse(BaseModel):
 class CheckpointInterveneRequest(BaseModel):
     content: Optional[str] = None
     finalize: Optional[bool] = False
+
+
+# --- Profile Scoring API ---
+class ProfileScoreRequest(BaseModel):
+    content_summary: str
+
+class ProfileScoreResponse(BaseModel):
+    profile_fit_score: float
+    matching_rules: List[str]
 
 async def get_redis_client():
     """Get Redis client for service discovery and caching.
@@ -678,6 +689,41 @@ async def health_check():
 async def metrics():
     """Prometheus metrics endpoint"""
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+@app.post("/profile/score", response_model=ProfileScoreResponse)
+async def profile_score(req: ProfileScoreRequest) -> ProfileScoreResponse:
+    """Score content summary against style editorial rules using ChromaDB distances.
+
+    Score = 1.0 - distance for the most relevant rule (clamped to [0,1]).
+    Returns up to 3 matching rule descriptions.
+    """
+    try:
+        client = HttpClient(
+            host=os.getenv('CHROMADB_HOST', 'chromadb'),
+            port=int(os.getenv('CHROMADB_PORT', '8000')),
+            settings=ChromaSettings(allow_reset=True),
+        )
+        col = client.get_or_create_collection(name="style_editorial_rules")
+        res = col.query(
+            query_texts=[req.content_summary],
+            n_results=3,
+            include=["distances", "documents", "metadatas"],
+        )
+        distances_groups = res.get("distances") or []
+        docs_groups = res.get("documents") or []
+        top_distance = 1.0
+        matching_rules: List[str] = []
+        if distances_groups and isinstance(distances_groups, list) and distances_groups[0]:
+            top_distance = float(distances_groups[0][0])
+        if docs_groups and isinstance(docs_groups, list) and docs_groups[0]:
+            for d in docs_groups[0][:3]:
+                if isinstance(d, str) and d.strip():
+                    matching_rules.append(d.strip())
+        score = max(0.0, min(1.0, 1.0 - float(top_distance)))
+        return ProfileScoreResponse(profile_fit_score=score, matching_rules=matching_rules)
+    except Exception as e:
+        logger.warning("profile_score_failed", error=str(e))
+        return ProfileScoreResponse(profile_fit_score=0.0, matching_rules=[])
 
 @app.get("/info", response_model=ServiceInfo)
 async def service_info_endpoint():
