@@ -42,7 +42,7 @@ class HackerNewsFetcher:
 
 
 class ArXivFetcher:
-    BASE_URL = "http://export.arxiv.org/api/query"
+    BASE_URL = "https://export.arxiv.org/api/query"
 
     async def fetch(self, limit: int = 5) -> List[RawTrendItem]:
         """Fetch recent AI-related papers from ArXiv and normalize them.
@@ -56,7 +56,7 @@ class ArXivFetcher:
             "max_results": max(1, limit),
         }
         try:
-            async with httpx.AsyncClient(timeout=20.0) as client:
+            async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
                 r = await client.get(self.BASE_URL, params=params)
                 r.raise_for_status()
                 xml_text = r.text
