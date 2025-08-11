@@ -4067,12 +4067,15 @@ risks:
 
 #### **WEEK 7-8: Topic Manager Implementation**
 
-##### Task 2.3.1A: Topic Manager FastAPI Foundation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.3.1A: Topic Manager FastAPI Foundation (0.5 days) ⏱️ 4h 🆕 **ATOMIZED** ✅ COMPLETED
 ```yaml
 objective: "Create Topic Manager service skeleton on :8041"
 deliverable: "FastAPI app with /health and basic endpoints stubs"
 acceptance_criteria:
   - Service starts; /health returns 200 with metadata
+status: COMPLETED
+completed_date: 2025-08-10
+commit_id: 2902176
 validation_commands:
   - "curl -s http://localhost:8041/health"
 test_requirements:
@@ -4083,13 +4086,16 @@ dependencies:
 risks:
   - "Scope creep; keep minimal stub"
 ```
-##### Task 2.3.1B: Topic Database Schema Design (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.3.1B: Topic Database Schema Design (0.5 days) ⏱️ 4h 🆕 **ATOMIZED** ✅ COMPLETED
 ```yaml
 objective: "Define Pydantic models and storage schema for topics"
 deliverable: "Models with validation and persistence adapter interface"
 acceptance_criteria:
   - Models: Topic, Suggestion, Assignment
   - CRUD-ready structure
+status: COMPLETED
+completed_date: 2025-08-10
+commit_id: 2902176
 validation_commands:
   - "pytest -q topic-manager/tests/test_models.py"
 dependencies:
@@ -4171,8 +4177,11 @@ async def trigger_auto_scraping():
     pass
 ```
 
-##### Task 2.3.2: Manual Topic Addition API (1 day) ⏱️ 8h
+##### Task 2.3.2: Manual Topic Addition API (1 day) ⏱️ 8h ✅ COMPLETED
 ```yaml
+status: COMPLETED
+completed_date: 2025-08-10
+commit_id: 2902176
 test_requirements:
   unit_tests:
     coverage_target: ">85% line coverage"
@@ -4205,8 +4214,11 @@ test_requirements:
     tests:
       - test_manual_topic_workflow()
 ```
-##### Task 2.3.3: Topic Suggestion Generation with AI (2 days) ⏱️ 16h
+##### Task 2.3.3: Topic Suggestion Generation with AI (2 days) ⏱️ 16h ✅ COMPLETED (Phase 2 stub)
 ```yaml
+status: COMPLETED
+completed_date: 2025-08-10
+commit_id: 2902176
 test_requirements:
   unit_tests:
     coverage_target: ">85% line coverage"
@@ -4246,8 +4258,11 @@ test_requirements:
       - test_topic_relevance_accuracy()
       - test_suggestion_diversity()
 ```
-##### Task 2.3.4A: Platform Matching Logic (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.3.4A: Platform Matching Logic (0.5 days) ⏱️ 4h 🆕 **ATOMIZED** ✅ COMPLETED
 ```yaml
+status: COMPLETED
+completed_date: 2025-08-10
+commit_id: 2902176
 objective: "Match topics to platforms based on attributes and historical fit"
 deliverable: "Scorer that outputs suggested platforms per topic"
 acceptance_criteria:
@@ -4307,8 +4322,11 @@ dependencies:
 risks:
   - "Premature optimization; keep scope tight"
 ```
-##### Task 2.3.5: Topic Database Integration Testing (1.5 days) ⏱️ 12h
+##### Task 2.3.5: Topic Database Integration Testing (1.5 days) ⏱️ 12h ✅ COMPLETED (Phase 2 scope)
 ```yaml
+status: COMPLETED
+completed_date: 2025-08-10
+commit_id: 2902176
 objective: "Verify Topic Manager end-to-end flow with persistence"
 deliverable: "Integration tests for CRUD→suggest→assign pipeline"
 acceptance_criteria:
@@ -4324,7 +4342,7 @@ risks:
   - "DB state flakiness; use isolated DB per test"
 ```
 
-##### Task 2.3.6: Topic Manager Persistence & Volume (1 day) ⏱️ 8h 🆕 **ATOMIZED**
+##### Task 2.3.6: Topic Manager Persistence & Volume (1 day) ⏱️ 8h 🆕 **ATOMIZED** ✅ COMPLETED
 ```yaml
 objective: "Add recommended lightweight DB and volume to Topic Manager"
 deliverable: "SQLite-backed persistence with Docker volume and migration scaffold"
@@ -4333,6 +4351,9 @@ acceptance_criteria:
   - Basic migration script present (init schema, simple upgrade path)
   - CRUD endpoints operate on DB, not in-memory
   - Health endpoint reflects DB connectivity status
+status: COMPLETED
+completed_date: 2025-08-10
+commit_id: 2902176
 validation_commands:
   - "docker compose up -d topic-manager && curl -s http://localhost:8041/health | jq '.status'"
   - "docker compose exec topic-manager ls -l /data && docker compose exec topic-manager sqlite3 /data/topics.sqlite '.tables'"
