@@ -3,10 +3,10 @@ Enhanced Publishing Orchestrator API
 Multi-platform content publishing with Editorial Service integration
 """
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Body
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any, Union, Tuple
 import uuid
 import asyncio
 import httpx
@@ -94,10 +94,15 @@ publications_store: Dict[str, Dict[str, Any]] = {}
 analytics_events: List[Dict[str, Any]] = []
 preferences_store: Dict[str, Dict[str, Any]] = {}
 
-# Service URLs
-AI_WRITING_FLOW_URL = "http://localhost:8001"
-LINKEDIN_PPT_GENERATOR_URL = "http://localhost:8002"
-EDITORIAL_SERVICE_URL = "http://localhost:8040"
+# Service URLs (overridable via env for docker/local)
+AI_WRITING_FLOW_URL = os.getenv("AI_WRITING_FLOW_URL", "http://localhost:8001")
+EDITORIAL_SERVICE_URL = os.getenv("EDITORIAL_SERVICE_URL", "http://localhost:8040")
+
+# Presentation services
+# Prefer docker DNS names when running via compose; fall back to localhost when standalone
+GAMMA_PPT_URL = os.getenv("GAMMA_PPT_URL", "http://localhost:8003")
+PRESENTON_URL = os.getenv("PRESENTON_URL", "http://localhost:8089")
+LINKEDIN_PPT_GENERATOR_URL = os.getenv("LINKEDIN_PPT_GENERATOR_URL", "http://localhost:8002")
 
 @app.get("/health")
 async def health_check():
@@ -167,27 +172,81 @@ async def call_ai_writing_flow(topic: TopicRequest, platform: str) -> Dict[str, 
         }
 
 async def generate_linkedin_presentation(content: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """Generate LinkedIn presentation if content is suitable"""
+    """Generate LinkedIn presentation using best available service (Gamma → Presenton → LinkedIn-PPT)."""
     try:
-        # Check if content is suitable for presentation
         if not should_generate_presentation(content):
             return None
-            
+
+        # Decide which service to use
+        service, reason = await choose_presentation_service(content.get("content", ""))
+        logger.info(f"Presentation service selected: {service} ({reason})")
+
         async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{LINKEDIN_PPT_GENERATOR_URL}/generate",
+            if service == "gamma":
+                payload = {
+                    "topic": {
+                        "title": (content.get("topic") or {}).get("title") or "LinkedIn Presentation",
+                        "description": (content.get("topic") or {}).get("description") or "",
+                        "keywords": (content.get("topic") or {}).get("keywords") or [],
+                        "target_audience": (content.get("topic") or {}).get("target_audience") or "linkedin"
+                    },
+                    "slides_count": 5,
+                    "language": "en",
+                    "output_formats": ["pdf", "pptx"],
+                    "custom_instructions": "Optimize for LinkedIn document post with concise bullets"
+                }
+                r = await client.post(f"{GAMMA_PPT_URL}/generate/presentation", json=payload, timeout=90.0)
+                r.raise_for_status()
+                data = r.json()
+                return {
+                    "ppt_url": (data.get("download_urls") or {}).get("pptx"),
+                    "pdf_url": (data.get("download_urls") or {}).get("pdf"),
+                    "provider": "gamma",
+                    "preview_url": data.get("preview_url"),
+                }
+
+            if service == "presenton":
+                prompt = build_presenton_prompt(content)
+                r = await client.post(
+                    f"{PRESENTON_URL}/generate",
+                    json={
+                        "prompt": prompt,
+                        "slides_count": 5,
+                        "template": "default",
+                        "topic_title": (content.get("topic") or {}).get("title") or "LinkedIn Presentation"
+                    },
+                    timeout=90.0
+                )
+                r.raise_for_status()
+                data = r.json()
+                return {"ppt_url": data.get("pptx_url"), "pdf_url": data.get("pdf_url"), "provider": "presenton"}
+
+            # Fallback: legacy LinkedIn PPT wrapper (proxied to Presenton)
+            r = await client.post(
+                f"{LINKEDIN_PPT_GENERATOR_URL}/generate-linkedin-ppt",
                 json={
-                    "topic": content.get("topic", {}),
-                    "content": content.get("content", ""),
-                    "slides_count": 5
+                    "topic_title": (content.get("topic") or {}).get("title") or "LinkedIn Presentation",
+                    "topic_description": (content.get("topic") or {}).get("description") or "",
+                    "slides_count": 5,
+                    "template": "default"
                 },
-                timeout=60.0
+                timeout=90.0
             )
-            response.raise_for_status()
-            return response.json()
+            r.raise_for_status()
+            data = r.json()
+            return {"ppt_url": data.get("pptx_url"), "pdf_url": data.get("pdf_url"), "provider": "linkedin-ppt"}
     except Exception as e:
         logger.error(f"LinkedIn presentation generation failed: {e}")
         return None
+
+def build_presenton_prompt(content: Dict[str, Any]) -> str:
+    topic = (content.get("topic") or {})
+    parts = [
+        topic.get("title") or "LinkedIn Presentation",
+        topic.get("description") or "",
+        "Create concise, business-ready slides for LinkedIn document post."
+    ]
+    return ". ".join([p for p in parts if p])
 
 def should_generate_presentation(content: Dict[str, Any]) -> bool:
     """Determine if content should have a LinkedIn presentation"""
@@ -197,6 +256,36 @@ def should_generate_presentation(content: Dict[str, Any]) -> bool:
         any(keyword in content_text.lower() for keyword in 
             ["architecture", "system", "framework", "process", "strategy"])
     )
+
+async def check_service_health(url: str, path: str = "/health") -> bool:
+    try:
+        async with httpx.AsyncClient(timeout=1.5) as client:
+            r = await client.get(f"{url}{path}")
+            return r.status_code == 200
+    except Exception:
+        return False
+
+async def choose_presentation_service(content_text: str) -> Tuple[str, str]:
+    """Choose between gamma, presenton, and linkedin-ppt based on health and heuristics."""
+    # Health checks in priority order
+    gamma_ok, presenton_ok, li_ppt_ok = await asyncio.gather(
+        check_service_health(GAMMA_PPT_URL),
+        check_service_health(PRESENTON_URL),
+        check_service_health(LINKEDIN_PPT_GENERATOR_URL)
+    )
+
+    # Heuristic: long technical content → gamma preferred
+    is_technical = any(k in (content_text or "").lower() for k in ["architecture", "system", "design", "strategy", "framework"])
+
+    if gamma_ok and is_technical:
+        return "gamma", "gamma available and content appears technical"
+    if presenton_ok:
+        return "presenton", "presenton available (fast local)"
+    if gamma_ok:
+        return "gamma", "presenton unavailable; gamma available"
+    if li_ppt_ok:
+        return "linkedin-ppt", "both gamma/presenton unavailable; linkedin-ppt wrapper available"
+    return "none", "no presentation services available"
 
 async def validate_with_editorial_service(content: str, platform: str) -> Dict[str, Any]:
     """Validate content with Editorial Service"""
@@ -337,14 +426,19 @@ async def orchestrate_publication(request: PublicationRequest,
             content_variations[platform.value] = content
             success_count += 1
             
-            # Special LinkedIn handling
+            # Special LinkedIn handling (presentation generation via Gamma/Presenton)
             if platform == PlatformType.LINKEDIN and should_generate_presentation(content):
-                presentation = await generate_linkedin_presentation(content)
+                presentation = await generate_linkedin_presentation({
+                    **content,
+                    "topic": request.topic.dict() if hasattr(request, "topic") else {}
+                })
                 if presentation:
                     content_variations[platform.value]["presentation"] = presentation
                     # Attach asset references for manual upload
                     assets = content_variations[platform.value].setdefault("linkedin_manual_upload", {}).setdefault("assets", {})
-                    assets.update({k: v for k, v in presentation.items() if isinstance(v, (str,))})
+                    for key in ("ppt_url", "pdf_url", "preview_url"):
+                        if presentation.get(key):
+                            assets[key] = presentation[key]
             
             # Schedule publication
             job_id = await schedule_platform_publication(
@@ -389,6 +483,47 @@ async def orchestrate_publication(request: PublicationRequest,
         error_count=len(errors),
         errors=errors
     )
+
+
+# --- Presentation services discovery and recommendations ---
+
+@app.get("/presentation-options")
+async def presentation_options():
+    gamma_ok, presenton_ok, li_ppt_ok = await asyncio.gather(
+        check_service_health(GAMMA_PPT_URL),
+        check_service_health(PRESENTON_URL),
+        check_service_health(LINKEDIN_PPT_GENERATOR_URL)
+    )
+    return {
+        "services": {
+            "gamma": {"url": GAMMA_PPT_URL, "healthy": gamma_ok},
+            "presenton": {"url": PRESENTON_URL, "healthy": presenton_ok},
+            "linkedin_ppt": {"url": LINKEDIN_PPT_GENERATOR_URL, "healthy": li_ppt_ok},
+        }
+    }
+
+
+class RecommendationRequest(BaseModel):
+    content_sample: str = Field("", description="Sample content to analyze")
+    prefer_cost_savings: bool = Field(False, description="Prefer cheaper local generation")
+
+
+@app.post("/presentation-services/recommend")
+async def recommend_presentation_service(payload: RecommendationRequest = Body(...)):
+    # If user prefers cost savings, bias toward Presenton when healthy
+    if payload.prefer_cost_savings:
+        presenton_ok = await check_service_health(PRESENTON_URL)
+        if presenton_ok:
+            return {"recommended": "presenton", "reason": "cost_savings_preference", "url": PRESENTON_URL}
+
+    service, reason = await choose_presentation_service(payload.content_sample)
+    url = {
+        "gamma": GAMMA_PPT_URL,
+        "presenton": PRESENTON_URL,
+        "linkedin-ppt": LINKEDIN_PPT_GENERATOR_URL,
+        "none": None,
+    }.get(service)
+    return {"recommended": service, "reason": reason, "url": url}
 
 
 class AnalyticsEvent(BaseModel):

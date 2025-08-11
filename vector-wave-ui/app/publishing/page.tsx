@@ -107,6 +107,33 @@ export default async function PublishingPage() {
         </form>
       </div>
       <p className="text-sm text-gray-500 mt-3">Calls orchestrator at localhost:8080</p>
+  <div className="mt-6 border-t pt-4">
+    <h3 className="font-semibold mb-2">Presentation services</h3>
+    <div className="flex gap-2">
+      <button
+        className="px-3 py-1 border rounded"
+        onClick={async () => {
+          const opts = await fetchJSON<any>('http://localhost:8080/presentation-options', { cache: 'no-store' as any })
+          alert('Presentation services: ' + JSON.stringify(opts))
+        }}
+      >
+        Check options
+      </button>
+      <button
+        className="px-3 py-1 border rounded"
+        onClick={async () => {
+          const rec = await fetchJSON<any>('http://localhost:8080/presentation-services/recommend', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content_sample: 'System architecture strategy for LinkedIn', prefer_cost_savings: false })
+          } as any)
+          alert('Recommendation: ' + JSON.stringify(rec))
+        }}
+      >
+        Recommend service
+      </button>
+    </div>
+  </div>
     </main>
   )
 }
