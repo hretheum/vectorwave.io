@@ -5,7 +5,10 @@ from pydantic import BaseModel
 from typing import List, Dict, Optional, Any, Tuple
 import asyncio
 import os
+from dotenv import load_dotenv
 
+# Load env once at startup (safe if missing)
+load_dotenv()
 app = FastAPI(title="Topic Manager", version="1.0.0")
 
 
@@ -81,6 +84,7 @@ class TopicsSearchResponse(BaseModel):
 
 _CHROMA = None
 _INDEX_COLLECTION = "topics_index"
+_EMBEDDINGS = None
 
 async def _get_chroma():
     global _CHROMA
@@ -94,6 +98,16 @@ async def _get_chroma():
         except Exception:
             _CHROMA = None
     return _CHROMA
+
+async def _get_embeddings():
+    global _EMBEDDINGS
+    if _EMBEDDINGS is None:
+        try:
+            from infrastructure.embeddings import resolve_provider  # type: ignore
+            _EMBEDDINGS = resolve_provider()
+        except Exception:
+            _EMBEDDINGS = None
+    return _EMBEDDINGS
 
 def _cheap_embedding(text: str, dim: int = 64) -> List[float]:
     # Deterministic, cheap bag-of-chars embedding (for environments without real embedding provider)
@@ -152,7 +166,14 @@ async def topics_index_reindex(limit: int = 200) -> Dict[str, Any]:
         {"topic_id": t.topic_id, "title": t.title, "content_type": t.content_type}
         for t in items
     ]
-    embs = [_cheap_embedding(d) for d in docs]
+    provider = await _get_embeddings()
+    if provider:
+        try:
+            embs = await provider.embed_texts(docs)
+        except Exception:
+            embs = [_cheap_embedding(d) for d in docs]
+    else:
+        embs = [_cheap_embedding(d) for d in docs]
     added = await chroma.add(_INDEX_COLLECTION, ids=ids, documents=docs, metadatas=metas, embeddings=embs)
     if not added:
         raise HTTPException(status_code=500, detail={"code": "chromadb_add_failed", "detail": "Batch add failed"})
@@ -167,7 +188,14 @@ async def topics_search(q: str = Query(..., min_length=2), limit: int = Query(5,
     if not ok:
         raise HTTPException(status_code=500, detail={"code": "chromadb_collection_error", "detail": "Cannot ensure topics_index"})
     start = asyncio.get_event_loop().time()
-    qvec = [_cheap_embedding(q)]
+    provider = await _get_embeddings()
+    if provider:
+        try:
+            qvec = await provider.embed_texts([q])
+        except Exception:
+            qvec = [_cheap_embedding(q)]
+    else:
+        qvec = [_cheap_embedding(q)]
     res = await chroma.query(_INDEX_COLLECTION, query_embeddings=qvec, n_results=limit)
     took_ms = round((asyncio.get_event_loop().time() - start) * 1000.0, 2)
     # Normalize response
@@ -459,11 +487,18 @@ async def ingest_suggestion(
     # Best-effort: add to vector index if available
     try:
         chroma = await _get_chroma()
+        provider = await _get_embeddings()
         if chroma:
             ok = await chroma.ensure_collection(_INDEX_COLLECTION)
             if ok:
                 doc = f"{new_topic.title}\n{new_topic.description}\n{' '.join(new_topic.keywords)}"
-                emb = [_cheap_embedding(doc)]
+                if provider:
+                    try:
+                        emb = await provider.embed_texts([doc])
+                    except Exception:
+                        emb = [_cheap_embedding(doc)]
+                else:
+                    emb = [_cheap_embedding(doc)]
                 await chroma.add(_INDEX_COLLECTION, ids=[topic_id], documents=[doc], metadatas=[{"topic_id": topic_id, "title": new_topic.title}], embeddings=emb)
     except Exception:
         pass
