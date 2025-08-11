@@ -141,6 +141,10 @@ validation_commands:
   - "curl -sSf http://localhost:8043/health"
   - "curl -X POST http://localhost:8043/harvest/trigger"
   - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source\":\"dev-to\"}' --min-count 5"
+meta:
+  status: COMPLETED
+  commit_id: c660643
+  notes: "DevToFetcher integrated; API key via .env (env_file compose); parallel in engine; zero-vector embeddings persistence"
 ```
 
 ##### Task 1.3.5: Implement NewsData.io Fetcher (2h)
