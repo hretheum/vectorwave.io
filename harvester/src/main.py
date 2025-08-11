@@ -1,5 +1,11 @@
 # Placeholder for main application logic
 from fastapi import FastAPI
+from pydantic import BaseModel
+from typing import List, Dict, Any
+from .config import settings
+from .fetcher import FetcherEngine
+from .storage import StorageService, RawTrendItem
+import httpx
 from contextlib import asynccontextmanager
 import logging
 
@@ -29,16 +35,19 @@ async def health_check():
     return {
         "status": "healthy",
         "dependencies": {
-            "chromadb": "connected",
-            "editorial_service": "connected",
-            "topic_manager": "connected"
+            "chromadb": f"{settings.CHROMADB_HOST}:{settings.CHROMADB_PORT}",
+            "editorial_service": settings.EDITORIAL_SERVICE_URL,
+            "topic_manager": settings.TOPIC_MANAGER_URL
         }
     }
 
 @app.post("/harvest/trigger")
 async def trigger_harvest():
-    # In a real implementation, this would start a background task
-    return {"status": "Harvesting process triggered successfully."}
+    engine = FetcherEngine()
+    storage = StorageService(settings.CHROMADB_HOST, settings.CHROMADB_PORT, settings.CHROMADB_COLLECTION)
+    items = await engine.run()
+    saved = await storage.save_items([RawTrendItem(i) for i in items])
+    return {"status": "ok", "fetched": len(items), "saved": saved}
 
 @app.get("/harvest/status")
 async def get_status():
