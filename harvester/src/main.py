@@ -55,19 +55,37 @@ async def lifespan(app: FastAPI):
         # 1) Fetch and save
         status = await trigger_harvest()  # type: ignore
         fetched = int(status.get("fetched", 0) or 0)
-        # 2) Selective triage + promote (best-effort)
+        # 2) Read candidates from raw_trends
+        storage = StorageService(settings.CHROMADB_HOST, settings.CHROMADB_PORT, settings.CHROMADB_COLLECTION)
+        candidates = []
+        try:
+            candidates = await storage.list_candidates(limit=min(max(fetched, 50), 500))
+        except Exception:
+            candidates = []
+        # 3) Selective triage + promote for each candidate
         promoted = 0
         triage_errors = 0
-        sample = min(fetched, 10)
-        for _ in range(sample):
+        promoted_ids: list[str] = []
+        async with httpx.AsyncClient(timeout=12.0) as _:
+            for cand in candidates:
+                summary = cand.get("document") or (cand.get("metadata") or {}).get("title") or ""
+                if not summary:
+                    continue
+                try:
+                    r = await selective_triage(summary=summary, content_type="POST")  # type: ignore
+                    if r.get("decision") == "PROMOTE":
+                        promoted += 1
+                        promoted_ids.append(cand.get("id"))
+                except Exception:
+                    triage_errors += 1
+        # 4) Update status promoted in raw_trends
+        if promoted_ids:
             try:
-                r = await selective_triage(summary="AI trend candidate", content_type="POST")  # type: ignore
-                if r.get("decision") == "PROMOTE":
-                    promoted += 1
+                await storage.update_status(promoted_ids, status="promoted")
             except Exception:
-                triage_errors += 1
+                pass
         # Update last_run snapshot
-        status.update({"promoted": promoted, "triage_errors": triage_errors})
+        status.update({"promoted": promoted, "triage_errors": triage_errors, "promoted_ids_count": len(promoted_ids)})
         app.state.last_run = status
         logger.info("harvest_cycle_completed", extra={"event": "harvest_cycle_completed", "data": status})
 
