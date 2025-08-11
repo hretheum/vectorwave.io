@@ -19,3 +19,8 @@
 [submodule "publisher"]
 	path = publisher
 	url = git@github.com:hretheum/vector-wave-publisher.git
+
+[submodule "knowledge-base/knowledge-base/data/crewai-docs"]
+	path = knowledge-base/knowledge-base/data/crewai-docs
+	url = https://github.com/crewAIInc/crewAI.git
+	branch = master
