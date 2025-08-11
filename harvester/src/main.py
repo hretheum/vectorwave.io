@@ -59,6 +59,24 @@ HARVEST_ITEMS = Counter("harvest_items_total", "Total items fetched", ["source"]
 HARVEST_SAVED = Counter("harvest_saved_total", "Total items saved to Chroma", registry=REGISTRY)
 HARVEST_DURATION = Histogram("harvest_duration_seconds", "Harvest duration in seconds", registry=REGISTRY)
 HARVEST_ERRORS = Counter("harvest_source_errors_total", "Total source errors", ["source"], registry=REGISTRY)
+HARVEST_EXT_CALLS = Counter(
+    "harvest_external_calls_total",
+    "External HTTP calls by service/endpoint/result",
+    ["service", "endpoint", "result"],
+    registry=REGISTRY,
+)
+HARVEST_EXT_ERRORS = Counter(
+    "harvest_external_errors_total",
+    "External HTTP errors by service/endpoint",
+    ["service", "endpoint"],
+    registry=REGISTRY,
+)
+HARVEST_EXT_LATENCY = Histogram(
+    "harvest_external_call_seconds",
+    "Latency of external HTTP calls",
+    ["service", "endpoint"],
+    registry=REGISTRY,
+)
 
 @app.get("/health")
 async def health_check():
@@ -125,23 +143,31 @@ async def selective_preview(summary: str) -> Dict[str, Any]:
     headers_tm = {}
     if settings.TOPIC_MANAGER_TOKEN:
         headers_tm["Authorization"] = f"Bearer {settings.TOPIC_MANAGER_TOKEN}"
+    corr_id = f"triage-{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}"
     async with httpx.AsyncClient(timeout=10.0) as client:
         prof_score = 0.0
         try:
-            r = await client.post(editorial_url, json={"content_summary": summary})
+            with HARVEST_EXT_LATENCY.labels("editorial", "/profile/score").time():
+                r = await client.post(editorial_url, json={"content_summary": summary}, headers={"X-Request-Id": corr_id})
             if r.status_code == 200:
+                HARVEST_EXT_CALLS.labels("editorial", "/profile/score", "ok").inc()
                 prof_score = float(r.json().get("profile_fit_score") or 0.0)
+            else:
+                HARVEST_EXT_CALLS.labels("editorial", "/profile/score", str(r.status_code)).inc()
         except Exception:
-            pass
+            HARVEST_EXT_ERRORS.labels("editorial", "/profile/score").inc()
         novelty_score = 0.0
         try:
-            r2 = await client.post(novelty_url, json={"title": summary, "summary": summary}, headers=headers_tm)
+            with HARVEST_EXT_LATENCY.labels("topic-manager", "/topics/novelty-check").time():
+                r2 = await client.post(novelty_url, json={"title": summary, "summary": summary}, headers={**headers_tm, "X-Request-Id": corr_id})
             if r2.status_code == 200:
+                HARVEST_EXT_CALLS.labels("topic-manager", "/topics/novelty-check", "ok").inc()
                 novelty_score = float(r2.json().get("similarity_score") or 0.0)
-                # Convert to novelty (the endpoint returns similarity vs existing)
                 novelty_score = 1.0 - novelty_score
+            else:
+                HARVEST_EXT_CALLS.labels("topic-manager", "/topics/novelty-check", str(r2.status_code)).inc()
         except Exception:
-            pass
+            HARVEST_EXT_ERRORS.labels("topic-manager", "/topics/novelty-check").inc()
     pth = settings.SELECTIVE_PROFILE_THRESHOLD
     nth = settings.SELECTIVE_NOVELTY_THRESHOLD
     decision = "PROMOTE" if (prof_score >= pth and novelty_score >= nth) else "REJECT"
@@ -159,21 +185,30 @@ async def selective_triage(summary: str, content_type: str = "POST") -> Dict[str
     headers_tm = {}
     if settings.TOPIC_MANAGER_TOKEN:
         headers_tm["Authorization"] = f"Bearer {settings.TOPIC_MANAGER_TOKEN}"
+    corr_id = f"triage-{datetime.utcnow().strftime('%Y%m%d%H%M%S%f')}"
     async with httpx.AsyncClient(timeout=12.0) as client:
         prof_score = 0.0
         try:
-            r = await client.post(editorial_url, json={"content_summary": summary})
+            with HARVEST_EXT_LATENCY.labels("editorial", "/profile/score").time():
+                r = await client.post(editorial_url, json={"content_summary": summary}, headers={"X-Request-Id": corr_id})
             if r.status_code == 200:
+                HARVEST_EXT_CALLS.labels("editorial", "/profile/score", "ok").inc()
                 prof_score = float(r.json().get("profile_fit_score") or 0.0)
+            else:
+                HARVEST_EXT_CALLS.labels("editorial", "/profile/score", str(r.status_code)).inc()
         except Exception:
-            pass
+            HARVEST_EXT_ERRORS.labels("editorial", "/profile/score").inc()
         novelty_sim = 0.0
         try:
-            r2 = await client.post(novelty_url, json={"title": summary, "summary": summary}, headers=headers_tm)
+            with HARVEST_EXT_LATENCY.labels("topic-manager", "/topics/novelty-check").time():
+                r2 = await client.post(novelty_url, json={"title": summary, "summary": summary}, headers={**headers_tm, "X-Request-Id": corr_id})
             if r2.status_code == 200:
+                HARVEST_EXT_CALLS.labels("topic-manager", "/topics/novelty-check", "ok").inc()
                 novelty_sim = float(r2.json().get("similarity_score") or 0.0)
+            else:
+                HARVEST_EXT_CALLS.labels("topic-manager", "/topics/novelty-check", str(r2.status_code)).inc()
         except Exception:
-            pass
+            HARVEST_EXT_ERRORS.labels("topic-manager", "/topics/novelty-check").inc()
         novelty_score = 1.0 - novelty_sim
         pth = settings.SELECTIVE_PROFILE_THRESHOLD
         nth = settings.SELECTIVE_NOVELTY_THRESHOLD
@@ -189,12 +224,16 @@ async def selective_triage(summary: str, content_type: str = "POST") -> Dict[str
                 "content_type": content_type,
             }
             try:
-                r3 = await client.post(suggest_url, json=sugg_payload, headers={**headers_tm, "Idempotency-Key": idem})
+                with HARVEST_EXT_LATENCY.labels("topic-manager", "/topics/suggestion").time():
+                    r3 = await client.post(suggest_url, json=sugg_payload, headers={**headers_tm, "Idempotency-Key": idem, "X-Request-Id": corr_id})
                 if r3.status_code == 200:
+                    HARVEST_EXT_CALLS.labels("topic-manager", "/topics/suggestion", "ok").inc()
                     result["suggestion_result"] = r3.json()
                 else:
+                    HARVEST_EXT_CALLS.labels("topic-manager", "/topics/suggestion", str(r3.status_code)).inc()
                     result["suggestion_error"] = {"status": r3.status_code, "body": r3.text}
             except Exception as e:
+                HARVEST_EXT_ERRORS.labels("topic-manager", "/topics/suggestion").inc()
                 result["suggestion_error"] = {"error": str(e)}
         return result
 

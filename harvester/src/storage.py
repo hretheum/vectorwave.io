@@ -52,7 +52,9 @@ class StorageService:
                     "published_at": it.published_at.isoformat() if it.published_at else None,
                 })
                 ids.append(f"{it.source}_{uuid.uuid4().hex[:12]}")
-            payload = {"documents": documents, "metadatas": metadatas, "ids": ids}
+            # Provide dummy embeddings to work with Chroma when no embedding function is configured
+            embeddings = [[0.0, 0.0, 0.0] for _ in ids]
+            payload = {"documents": documents, "metadatas": metadatas, "ids": ids, "embeddings": embeddings}
             r = await client.post(f"http://{self._host}:{self._port}/api/v1/collections/{col_id}/add", json=payload)
             r.raise_for_status()
             return len(ids)
