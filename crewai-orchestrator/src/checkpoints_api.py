@@ -1,7 +1,7 @@
 import os
 from fastapi import APIRouter
 from pydantic import BaseModel
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from agent_clients import CrewAIAgentClients
 from checkpoint_manager import CheckpointManager
@@ -33,8 +33,12 @@ async def intervene(checkpoint_id: str, req: InterveneRequest) -> Dict[str, Any]
 async def list_checkpoints() -> Dict[str, Any]:
     return await manager.list_active()
 
+async def get_checkpoint_history(checkpoint_id: str) -> List[Dict[str, Any]]:
+    return await manager.get_history(checkpoint_id)
+
 # Register endpoints
 router.add_api_route("/checkpoints/create", create_checkpoint, methods=["POST"])
 router.add_api_route("/checkpoints/status/{checkpoint_id}", get_checkpoint_status, methods=["GET"])
 router.add_api_route("/checkpoints/{checkpoint_id}/intervene", intervene, methods=["POST"])
 router.add_api_route("/checkpoints/active", list_checkpoints, methods=["GET"])
+router.add_api_route("/checkpoints/history/{checkpoint_id}", get_checkpoint_history, methods=["GET"])

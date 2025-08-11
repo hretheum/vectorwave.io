@@ -63,6 +63,7 @@ services:
       - HARVESTER_URL=http://harvester:8043
       - TRIAGE_POLICY_PATH=/app/config/triage_policy.yaml
       - TRIAGE_POLICY_SCHEMA_PATH=/app/config/triage_policy.schema.json
+      - REDIS_URL=redis://redis:6379
     depends_on:
       editorial-service:
         condition: service_started

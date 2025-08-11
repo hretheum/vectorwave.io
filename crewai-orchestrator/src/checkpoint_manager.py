@@ -4,7 +4,10 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List, Tuple
+import os
+import json
+import redis.asyncio as aioredis
 
 from agent_clients import CrewAIAgentClients
 
@@ -41,6 +44,29 @@ class CheckpointManager:
     def __init__(self, clients: CrewAIAgentClients) -> None:
         self.clients = clients
         self.active: Dict[str, CheckpointState] = {}
+        self.redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
+        self.redis: aioredis.Redis | None = None
+
+    async def _get_redis(self) -> aioredis.Redis | None:
+        if self.redis is not None:
+            return self.redis
+        try:
+            self.redis = aioredis.from_url(self.redis_url)
+            # sanity ping
+            await self.redis.ping()
+            return self.redis
+        except Exception:
+            self.redis = None
+            return None
+
+    def _rk_state(self, checkpoint_id: str) -> str:
+        return f"vw:orch:chk:{checkpoint_id}:state"
+
+    def _rk_events(self, checkpoint_id: str) -> str:
+        return f"vw:orch:chk:{checkpoint_id}:events"
+
+    def _rk_flow(self, flow_id: str) -> str:
+        return f"vw:orch:flow:{flow_id}:checkpoints"
 
     async def create(self, content: str, platform: str, checkpoint: str, user_notes: Optional[str] = None) -> str:
         ctype = self._parse_checkpoint(checkpoint)
@@ -55,6 +81,10 @@ class CheckpointManager:
         )
         self.active[chk_id] = state
 
+        # Best-effort persist to Redis and add event
+        await self._persist_state(state)
+        await self._append_event(chk_id, "created", {"checkpoint": ctype.value, "platform": platform})
+
         async def _run():
             try:
                 # Map checkpoint to a responsible agent for selective validation
@@ -65,10 +95,14 @@ class CheckpointManager:
                 state.result = result
                 state.status = CheckpointStatus.WAITING_USER
                 state.updated_at = time.time()
+                await self._persist_state(state)
+                await self._append_event(chk_id, "validated", {"rule_count": result.get("rule_count")})
             except Exception as e:
                 state.status = CheckpointStatus.FAILED
                 state.error_message = str(e)
                 state.updated_at = time.time()
+                await self._persist_state(state)
+                await self._append_event(chk_id, "failed", {"error": str(e)})
 
         asyncio.create_task(_run())
         return chk_id
@@ -94,15 +128,21 @@ class CheckpointManager:
             else:
                 state.content = f"{state.content}\n\n[USER_NOTE]: {user_input}"
             state.updated_at = time.time()
+            await self._persist_state(state)
+            await self._append_event(checkpoint_id, "intervene", {"user_input": user_input})
 
         if finalize:
             state.status = CheckpointStatus.COMPLETED
             state.updated_at = time.time()
+            await self._persist_state(state)
+            await self._append_event(checkpoint_id, "finalized", {})
             return {"status": state.status, "checkpoint_id": state.checkpoint_id}
 
         # Re-validate after intervention
         state.status = CheckpointStatus.RUNNING
         state.updated_at = time.time()
+        await self._persist_state(state)
+        await self._append_event(checkpoint_id, "revalidating", {})
 
         async def _revalidate():
             try:
@@ -112,10 +152,14 @@ class CheckpointManager:
                 state.result = result
                 state.status = CheckpointStatus.WAITING_USER
                 state.updated_at = time.time()
+                await self._persist_state(state)
+                await self._append_event(checkpoint_id, "revalidated", {"rule_count": result.get("rule_count")})
             except Exception as e:
                 state.status = CheckpointStatus.FAILED
                 state.error_message = str(e)
                 state.updated_at = time.time()
+                await self._persist_state(state)
+                await self._append_event(checkpoint_id, "failed", {"error": str(e)})
 
         asyncio.create_task(_revalidate())
         return {"status": "revalidating", "checkpoint_id": state.checkpoint_id}
@@ -144,6 +188,52 @@ class CheckpointManager:
             }
             for cid, st in self.active.items()
         }
+
+    async def get_history(self, checkpoint_id: str) -> List[Dict[str, Any]]:
+        r = await self._get_redis()
+        if not r:
+            return []
+        key = self._rk_events(checkpoint_id)
+        items = await r.lrange(key, 0, -1)
+        out: List[Dict[str, Any]] = []
+        for raw in items:
+            try:
+                out.append(json.loads(raw))
+            except Exception:
+                continue
+        return out
+
+    async def _persist_state(self, state: CheckpointState) -> None:
+        r = await self._get_redis()
+        if not r:
+            return
+        await r.hset(
+            self._rk_state(state.checkpoint_id),
+            mapping={
+                "checkpoint": state.checkpoint.value,
+                "platform": state.platform,
+                "status": state.status.value,
+                "content": state.content,
+                "result": json.dumps(state.result) if state.result is not None else "null",
+                "created_at": str(state.created_at),
+                "updated_at": str(state.updated_at),
+                "error_message": state.error_message or "",
+            },
+        )
+        # 24h TTL
+        await r.expire(self._rk_state(state.checkpoint_id), 60 * 60 * 24)
+
+    async def _append_event(self, checkpoint_id: str, event_type: str, data: Dict[str, Any]) -> None:
+        r = await self._get_redis()
+        if not r:
+            return
+        evt = {
+            "ts": time.time(),
+            "type": event_type,
+            "data": data,
+        }
+        await r.rpush(self._rk_events(checkpoint_id), json.dumps(evt))
+        await r.expire(self._rk_events(checkpoint_id), 60 * 60 * 24)
 
     def _parse_checkpoint(self, checkpoint: str) -> CheckpointType:
         mapping = {
