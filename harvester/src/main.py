@@ -10,7 +10,7 @@ import httpx
 from contextlib import asynccontextmanager
 import asyncio as _asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 from prometheus_client import Counter, Gauge, Histogram, CollectorRegistry, generate_latest, CONTENT_TYPE_LATEST
 from fastapi import Response, Query
@@ -50,6 +50,9 @@ async def lifespan(app: FastAPI):
             interval_min = int(cron.split()[0].replace("*/", ""))
     except Exception:
         interval_min = 30
+    # Expose schedule in app state
+    app.state.interval_min = interval_min
+    app.state.next_run_at = (datetime.utcnow() + timedelta(minutes=interval_min)).isoformat() + "Z"
 
     async def _run_full_cycle():
         # 1) Fetch and save
@@ -95,6 +98,8 @@ async def lifespan(app: FastAPI):
                 await _run_full_cycle()
             except Exception:
                 pass
+            # Compute next run before sleeping
+            app.state.next_run_at = (datetime.utcnow() + timedelta(minutes=interval_min)).isoformat() + "Z"
             await _asyncio.sleep(max(300, interval_min * 60))
     _asyncio.create_task(_loop())
     yield
@@ -136,15 +141,47 @@ HARVEST_EXT_LATENCY = Histogram(
 
 @app.get("/health")
 async def health_check():
-    # Lightweight health with static dependencies info
+    # Probe dependencies best-effort
+    deps = {
+        "chromadb": {"url": f"http://{settings.CHROMADB_HOST}:{settings.CHROMADB_PORT}", "healthy": False},
+        "editorial_service": {"url": settings.EDITORIAL_SERVICE_URL, "healthy": False},
+        "topic_manager": {"url": settings.TOPIC_MANAGER_URL, "healthy": False},
+    }
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            # Chroma heartbeat v1/v2
+            try:
+                r = await client.get(f"http://{settings.CHROMADB_HOST}:{settings.CHROMADB_PORT}/api/v1/heartbeat")
+                deps["chromadb"]["healthy"] = (r.status_code == 200)
+            except Exception:
+                try:
+                    r = await client.get(f"http://{settings.CHROMADB_HOST}:{settings.CHROMADB_PORT}/api/v2/heartbeat")
+                    deps["chromadb"]["healthy"] = (r.status_code == 200)
+                except Exception:
+                    deps["chromadb"]["healthy"] = False
+            # Editorial Service
+            try:
+                r2 = await client.get(f"{settings.EDITORIAL_SERVICE_URL}/health")
+                deps["editorial_service"]["healthy"] = (r2.status_code == 200)
+            except Exception:
+                deps["editorial_service"]["healthy"] = False
+            # Topic Manager
+            try:
+                r3 = await client.get(f"{settings.TOPIC_MANAGER_URL}/health")
+                deps["topic_manager"]["healthy"] = (r3.status_code == 200)
+            except Exception:
+                deps["topic_manager"]["healthy"] = False
+    except Exception:
+        pass
+    overall = all(v.get("healthy") for v in deps.values())
     return {
-        "status": "healthy",
-        "dependencies": {
-            "chromadb": f"{settings.CHROMADB_HOST}:{settings.CHROMADB_PORT}",
-            "editorial_service": settings.EDITORIAL_SERVICE_URL,
-            "topic_manager": settings.TOPIC_MANAGER_URL,
-            "sources": ["hacker-news", "arxiv", "dev-to", "newsdata-io"],
+        "status": "healthy" if overall else "degraded",
+        "dependencies": deps,
+        "schedule": {
+            "interval_minutes": getattr(app.state, "interval_min", None),
+            "next_run_at": getattr(app.state, "next_run_at", None),
         },
+        "sources": ["hacker-news", "arxiv", "dev-to", "newsdata-io", "product-hunt"],
     }
 
 @app.post("/harvest/trigger")
@@ -297,8 +334,11 @@ async def selective_triage(summary: str, content_type: str = "POST") -> Dict[str
 
 @app.get("/harvest/status")
 async def get_status():
-    # Return last run snapshot
-    return {"last_run": getattr(app.state, "last_run", {"status": "not_run_yet"})}
+    # Return last run snapshot and next run
+    return {
+        "last_run": getattr(app.state, "last_run", {"status": "not_run_yet"}),
+        "next_run_at": getattr(app.state, "next_run_at", None),
+    }
 
 @app.get("/metrics")
 async def metrics() -> Response:
