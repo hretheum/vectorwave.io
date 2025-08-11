@@ -11,6 +11,8 @@ from contextlib import asynccontextmanager
 import logging
 from datetime import datetime
 import json
+from prometheus_client import Counter, Gauge, Histogram, CollectorRegistry, generate_latest, CONTENT_TYPE_LATEST
+from fastapi import Response
 
 # Configure logging (structured JSON lines)
 logger = logging.getLogger("harvester")
@@ -50,6 +52,14 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Prometheus metrics
+REGISTRY = CollectorRegistry()
+HARVEST_COUNTER = Counter("harvest_runs_total", "Total harvest runs", registry=REGISTRY)
+HARVEST_ITEMS = Counter("harvest_items_total", "Total items fetched", ["source"], registry=REGISTRY)
+HARVEST_SAVED = Counter("harvest_saved_total", "Total items saved to Chroma", registry=REGISTRY)
+HARVEST_DURATION = Histogram("harvest_duration_seconds", "Harvest duration in seconds", registry=REGISTRY)
+HARVEST_ERRORS = Counter("harvest_source_errors_total", "Total source errors", ["source"], registry=REGISTRY)
+
 @app.get("/health")
 async def health_check():
     # Lightweight health with static dependencies info
@@ -68,11 +78,14 @@ async def trigger_harvest():
     engine = FetcherEngine()
     storage = StorageService(settings.CHROMADB_HOST, settings.CHROMADB_PORT, settings.CHROMADB_COLLECTION)
     started_at = datetime.utcnow()
-    items, errors = await engine.run()
+    HARVEST_COUNTER.inc()
+    with HARVEST_DURATION.time():
+        items, errors = await engine.run()
     # per-source counts
     per_source: Dict[str, int] = {}
     for it in items:
         per_source[it.source] = per_source.get(it.source, 0) + 1
+        HARVEST_ITEMS.labels(it.source).inc()
     saved = 0
     try:
         saved = await storage.save_items(items)
@@ -94,12 +107,21 @@ async def trigger_harvest():
     }
     app.state.last_run = run_status
     logger.info("harvest_completed", extra={"event": "harvest_completed", "data": run_status})
+    # Metrics for saved and source errors
+    HARVEST_SAVED.inc(saved)
+    for src, err in errors.items():
+        HARVEST_ERRORS.labels(src).inc()
     return run_status
 
 @app.get("/harvest/status")
 async def get_status():
     # Return last run snapshot
     return {"last_run": getattr(app.state, "last_run", {"status": "not_run_yet"})}
+
+@app.get("/metrics")
+async def metrics() -> Response:
+    data = generate_latest(REGISTRY)
+    return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
 if __name__ == "__main__":
     import uvicorn
