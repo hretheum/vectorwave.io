@@ -5,9 +5,9 @@ This service exposes orchestration endpoints for the Vector Wave platform.
 ## Key endpoints
 
 - `GET /health` – healthcheck
-- `POST /triage/seed` – batch pre-screening and promotion of topics using triage policy
-- `GET /triage/policy` – get current applied policy (from `TRIAGE_POLICY_PATH`)
-- `POST /triage/policy` – update policy (validated if `TRIAGE_POLICY_SCHEMA_PATH` is available)
+- `POST /triage/seed` and `POST /api/triage/seed` – batch pre-screening and promotion of topics using triage policy
+- `GET /triage/policy` and `GET /api/triage/policy` – get current applied policy (from `TRIAGE_POLICY_PATH`)
+- `POST /triage/policy` and `POST /api/triage/policy` – update policy (validated if `TRIAGE_POLICY_SCHEMA_PATH` is available)
 
 ## Configuration
 
@@ -22,16 +22,16 @@ These are already set in the root `docker-compose.yml`.
 
 ## Example: modifying the triage policy
 
-1. Fetch current policy:
+1. Fetch current policy (alias under `/api` also works):
 
 ```bash
-curl -s http://localhost:8042/triage/policy | yq -P
+curl -s http://localhost:8042/api/triage/policy | yq -P
 ```
 
 2. Update policy (validated against `config/triage_policy.schema.json` if present):
 
 ```bash
-curl -s -X POST http://localhost:8042/triage/policy \
+curl -s -X POST http://localhost:8042/api/triage/policy \
   -H 'Content-Type: application/json' \
   -d '{
     "version": 1,
@@ -45,13 +45,13 @@ curl -s -X POST http://localhost:8042/triage/policy \
 3. Run seeding with the currently stored policy (or override inline):
 
 ```bash
-curl -s -X POST http://localhost:8042/triage/seed -H 'Content-Type: application/json' -d '{}'
+curl -s -X POST http://localhost:8042/api/triage/seed -H 'Content-Type: application/json' -d '{}'
 ```
 
 or with overrides:
 
 ```bash
-curl -s -X POST http://localhost:8042/triage/seed \
+curl -s -X POST http://localhost:8042/api/triage/seed \
   -H 'Content-Type: application/json' \
   -d '{
     "policy_overrides": {"thresholds": {"profile_fit": 0.8}}
@@ -61,4 +61,5 @@ curl -s -X POST http://localhost:8042/triage/seed \
 ## Notes
 
 - If `TRIAGE_POLICY_SCHEMA_PATH` is missing in the container, policy validation will be skipped.
-- The service uses direct HTTP to ChromaDB to fetch raw trends.
+- The service uses direct HTTP to ChromaDB to fetch raw trends (via Harvester selection flow).
+- Compose injects: `EDITORIAL_SERVICE_URL`, `HARVESTER_URL`, `TRIAGE_POLICY_PATH`, `TRIAGE_POLICY_SCHEMA_PATH`.

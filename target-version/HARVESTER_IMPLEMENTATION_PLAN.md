@@ -243,7 +243,7 @@ meta:
 
 **Goal:** To implement the AI-driven decision-making layer and fully automate the workflow.
 
-### Task 3.1: Triage Crew Implementation (2 days) ⏱️ 16h
+### Task 3.1: Triage Crew Implementation (2 days) ⏱️ 16h — COMPLETED
 ```yaml
 objective: "Implement the `Triage Crew` of AI agents for automated assessment, using the formal integration contract"
 deliverable: "A functional CrewAI team within the Harvester that processes items from the `raw_trends` collection"
@@ -259,7 +259,7 @@ validation_commands:
   - "pytest harvester/tests/test_triage_crew.py"
 ```
 
-### Task 3.2: Topic Promotion & Scheduling (1.5 days) ⏱️ 12h
+### Task 3.2: Topic Promotion & Scheduling (1.5 days) ⏱️ 12h — PARTIAL
 ```yaml
 objective: "Implement the final step of the workflow: promoting topics and scheduling the process"
 deliverable: "A complete, scheduled workflow that automatically discovers, triages, and promotes new topics"
@@ -273,7 +273,7 @@ validation_commands:
   - "docker compose logs harvester | grep 'Harvest cycle completed. Promoted X topics.'"
 ```
 
-### Task 3.3: Final Integration & Monitoring (1 day) ⏱️ 8h
+### Task 3.3: Final Integration & Monitoring (1 day) ⏱️ 8h — IN PROGRESS
 ```yaml
 objective: "Fully integrate the Harvester service and add monitoring"
 deliverable: "A stable, observable Harvester service"

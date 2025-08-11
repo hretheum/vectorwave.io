@@ -1914,7 +1914,7 @@ validation_commands:
   - "python harvester/scripts/test_storage.py --item-count 10"
 ```
 
-##### Task 4.1.5: Triage Crew Implementation (2 days) ⏱️ 16h
+##### Task 4.1.5: Triage Crew Implementation (2 days) ⏱️ 16h — COMPLETED
 ```yaml
 objective: "Implement the `Triage Crew` of AI agents for automated assessment"
 deliverable: "A functional CrewAI team within the Harvester that can process items from the `raw_trends` collection"
@@ -1934,6 +1934,7 @@ objective: "Implement the final step of the workflow: promoting topics and sched
 deliverable: "A complete, scheduled workflow that automatically discovers, triages, and promotes new topics"
 acceptance_criteria:
   - Items marked `PROMOTE` by the Triage Crew are sent to the `POST /topics/suggestion` endpoint of the Topic Manager
+  - CrewAI Orchestrator exposes triage policy + seeding endpoints: `GET/POST /api/triage/policy`, `POST /api/triage/seed`
   - The status of the item in the `raw_trends` collection is updated to `promoted`
   - The entire process is scheduled to run automatically using APScheduler (e.g., every 6 hours)
   - A `POST /harvest/trigger` endpoint is available for manual triggering

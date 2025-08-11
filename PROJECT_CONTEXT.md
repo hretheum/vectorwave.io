@@ -1,6 +1,6 @@
 # PROJECT CONTEXT - Vector Wave AI Kolegium
 
-## 🚨 AKTUALNY STAN PROJEKTU (2025-08-09) - PHASE 2/3 MIGRATION COMPLETED
+## 🚨 AKTUALNY STAN PROJEKTU (2025-08-11) - PHASE 2/3 MIGRATION COMPLETED, PHASE 4 W TOKU
 
 ### ✅ STATUS: PRODUCTION READY - Phase 7 COMPLETED + MULTI-CHANNEL PUBLISHER FAZA 2 (100%)
 - **Current Phase**: ✅ PHASE 7 - PRODUCTION OPTIMIZATION & MONITORING
@@ -94,13 +94,14 @@
   - **Task 3.3.1**: Analytics Blackbox Interface (a154ed6) - Future-ready analytics API
 
 #### 🏗️ NOWA ARCHITEKTURA PO MIGRACJI
-- **Editorial Service (port 8040)**: ChromaDB-centric validation, zero hardcoded rules
-- **Topic Manager (port 8041)**: AI-powered topic intelligence with semantic search
+- **Editorial Service (port 8040)**: ChromaDB-centric validation, zero hardcoded rules; `POST /profile/score`
+- **Topic Manager (port 8041)**: AI-powered topic intelligence with semantic search; `POST /topics/novelty-check`, `POST /topics/suggestion`, wektorowy indeks topics
 - **LinkedIn PPT Generator (port 8002)**: Presenton proxy z LinkedIn-specific optimization
 - **Publishing Orchestrator (port 8050)**: Multi-platform publishing coordination
 - **Analytics Blackbox (port 8081)**: Extensible analytics interface for future integrations
 - **Presenton Service (port 8089)**: PowerPoint/PDF generation engine
-- **CrewAI Integration**: All crews connected via HTTP clients, eliminating hardcoded dependencies
+- **CrewAI Orchestrator (port 8042)**: Triage policy i seeding: `GET/POST /api/triage/policy`, `POST /api/triage/seed`
+- **Trend Harvester (port 8043)**: Ingest `raw_trends` i selective triage: `POST /triage/selective[-preview]`
 - **Circuit Breaker Patterns**: Implemented across all service integrations for resilience
 
 #### 📊 MIGRATION SUCCESS METRICS
