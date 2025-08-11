@@ -258,10 +258,10 @@ class NewsDataFetcher:
         # NewsData expects 'apikey' and supports 'q', 'language', 'category', 'page', 'size'
         params = {
             "apikey": api_key,
-            "q": "artificial intelligence OR ai OR machine learning",
+            "q": "(artificial intelligence) OR (machine learning) OR AI",
             "language": "en",
             "category": "technology,science",
-            "page": 1,
+            # NewsData uses 'page' cursor as token, not integer; omit for first page
             "size": max(1, min(limit, 50)),
         }
         try:
