@@ -32,23 +32,29 @@ app = FastAPI(
 
 @app.get("/health")
 async def health_check():
-    # In a real implementation, this would check dependencies
+    # Lightweight health with static dependencies info
     return {
         "status": "healthy",
         "dependencies": {
             "chromadb": f"{settings.CHROMADB_HOST}:{settings.CHROMADB_PORT}",
             "editorial_service": settings.EDITORIAL_SERVICE_URL,
-            "topic_manager": settings.TOPIC_MANAGER_URL
-        }
+            "topic_manager": settings.TOPIC_MANAGER_URL,
+            "sources": ["hacker-news", "arxiv", "dev-to", "newsdata-io"],
+        },
     }
 
 @app.post("/harvest/trigger")
 async def trigger_harvest():
     engine = FetcherEngine()
     storage = StorageService(settings.CHROMADB_HOST, settings.CHROMADB_PORT, settings.CHROMADB_COLLECTION)
-    items = await engine.run()
-    saved = await storage.save_items(items)
-    return {"status": "ok", "fetched": len(items), "saved": saved}
+    items, errors = await engine.run()
+    saved = 0
+    try:
+        saved = await storage.save_items(items)
+    except Exception as e:
+        # Isolate Chroma failure, still return 200 with diagnostics
+        logger.error("Chroma save failed: %s", e)
+    return {"status": "ok", "fetched": len(items), "saved": saved, "source_errors": errors}
 
 @app.get("/harvest/status")
 async def get_status():

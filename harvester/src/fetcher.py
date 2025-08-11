@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 import httpx
 from datetime import datetime
 from .models import RawTrendItem
@@ -11,9 +11,17 @@ class HackerNewsFetcher:
     BASE_URL = "https://hacker-news.firebaseio.com/v0"
 
     async def _get_json(self, client: httpx.AsyncClient, path: str) -> Optional[Dict]:
-        r = await client.get(f"{self.BASE_URL}/{path}")
-        r.raise_for_status()
-        return r.json()
+        delay = 0.5
+        for attempt in range(3):
+            try:
+                r = await client.get(f"{self.BASE_URL}/{path}")
+                r.raise_for_status()
+                return r.json()
+            except httpx.HTTPError:
+                if attempt == 2:
+                    raise
+                await asyncio.sleep(delay)
+                delay *= 2
 
     async def fetch(self, limit: int = 5) -> List[RawTrendItem]:
         async with httpx.AsyncClient(timeout=15.0) as client:
@@ -68,20 +76,28 @@ class ArXivFetcher:
         try:
             async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, headers=headers) as client:
                 for query, sort_by in search_variants:
-                    params = {
-                        "search_query": query,
-                        "sortBy": sort_by,
-                        "sortOrder": "descending",
-                        "max_results": max(1, limit),
-                    }
-                    r = await client.get(self.BASE_URL, params=params)
-                    r.raise_for_status()
-                    txt = r.text
-                    # Fast check: look for any <entry>
-                    if "<entry" in txt:
-                        xml_text = txt
-                        break
-                    # Otherwise, try the next variant
+                    delay = 0.5
+                    for attempt in range(3):
+                        try:
+                            params = {
+                                "search_query": query,
+                                "sortBy": sort_by,
+                                "sortOrder": "descending",
+                                "max_results": max(1, limit),
+                            }
+                            r = await client.get(self.BASE_URL, params=params)
+                            r.raise_for_status()
+                            txt = r.text
+                            if "<entry" in txt:
+                                xml_text = txt
+                                break
+                            # No entries; try next variant
+                            break
+                        except httpx.HTTPError:
+                            if attempt == 2:
+                                break
+                            await asyncio.sleep(delay)
+                            delay *= 2
         except httpx.HTTPError:
             return []
         if not xml_text:
@@ -170,21 +186,23 @@ class FetcherEngine:
         self.devto = DevToFetcher()
         self.newsdata = NewsDataFetcher()
 
-    async def run(self) -> List[RawTrendItem]:
-        # Run all sources in parallel and merge results
-        results = await asyncio.gather(
-            self.hn.fetch(limit=5),
-            self.arxiv.fetch(limit=5),
-            self.devto.fetch(limit=5),
-            self.newsdata.fetch(limit=5),
-            return_exceptions=True,
-        )
+    async def run(self) -> Tuple[List[RawTrendItem], Dict[str, str]]:
+        # Run all sources in parallel and merge results, collect errors per source
+        tasks = [
+            ("hacker-news", self.hn.fetch(limit=5)),
+            ("arxiv", self.arxiv.fetch(limit=5)),
+            ("dev-to", self.devto.fetch(limit=5)),
+            ("newsdata-io", self.newsdata.fetch(limit=5)),
+        ]
+        results = await asyncio.gather(*(t for _, t in tasks), return_exceptions=True)
         merged: List[RawTrendItem] = []
-        for res in results:
+        errors: Dict[str, str] = {}
+        for (name, _), res in zip(tasks, results):
             if isinstance(res, Exception):
+                errors[name] = f"{type(res).__name__}: {res}"
                 continue
             merged.extend(res)
-        return merged
+        return merged, errors
 
 
 class DevToFetcher:
@@ -208,9 +226,19 @@ class DevToFetcher:
         try:
             async with httpx.AsyncClient(timeout=20.0, headers=headers) as client:
                 for params in params_list:
-                    r = await client.get(self.BASE_URL, params=params)
-                    r.raise_for_status()
-                    data = r.json()
+                    delay = 0.5
+                    for attempt in range(3):
+                        try:
+                            r = await client.get(self.BASE_URL, params=params)
+                            r.raise_for_status()
+                            data = r.json()
+                            break
+                        except httpx.HTTPError:
+                            if attempt == 2:
+                                data = []
+                                break
+                            await asyncio.sleep(delay)
+                            delay *= 2
                     for a in data:
                         title = a.get("title") or "(no title)"
                         url = a.get("url") or a.get("canonical_url")
@@ -266,11 +294,18 @@ class NewsDataFetcher:
         }
         try:
             async with httpx.AsyncClient(timeout=20.0) as client:
-                r = await client.get(self.BASE_URL, params=params)
-                r.raise_for_status()
-                data = r.json()
-        except httpx.HTTPError:
-            return []
+                delay = 0.5
+                for attempt in range(3):
+                    try:
+                        r = await client.get(self.BASE_URL, params=params)
+                        r.raise_for_status()
+                        data = r.json()
+                        break
+                    except httpx.HTTPError:
+                        if attempt == 2:
+                            return []
+                        await asyncio.sleep(delay)
+                        delay *= 2
 
         results = data.get("results") or []
         items: List[RawTrendItem] = []
