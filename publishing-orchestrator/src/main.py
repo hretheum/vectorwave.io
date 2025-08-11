@@ -6,7 +6,7 @@ Multi-platform content publishing with Editorial Service integration
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 import uuid
 import asyncio
 import httpx
@@ -91,6 +91,8 @@ class PublicationStatusResponse(BaseModel):
 
 # In-memory storage for demo (in production would use Redis/DB)
 publications_store: Dict[str, Dict[str, Any]] = {}
+analytics_events: List[Dict[str, Any]] = []
+preferences_store: Dict[str, Dict[str, Any]] = {}
 
 # Service URLs
 AI_WRITING_FLOW_URL = "http://localhost:8001"
@@ -121,12 +123,23 @@ async def get_metrics():
         for platform in pub.get("platform_content", {}):
             platform_usage[platform] = platform_usage.get(platform, 0) + 1
     
+    # Presentor readiness (best-effort, quick check)
+    presentor_ready = False
+    try:
+        async with httpx.AsyncClient(timeout=1.0) as client:
+            r = await client.get(f"{LINKEDIN_PPT_GENERATOR_URL}/health")
+            presentor_ready = r.status_code == 200
+    except Exception:
+        presentor_ready = False
+
     return {
         "total_publications": total_publications,
         "successful_publications": successful_publications,
         "failed_publications": failed_publications,
         "success_rate": successful_publications / total_publications if total_publications > 0 else 0,
         "platform_usage": platform_usage,
+        "analytics_events": len(analytics_events),
+        "presentor_ready": presentor_ready,
         "service": "publishing-orchestrator"
     }
 
@@ -180,7 +193,7 @@ def should_generate_presentation(content: Dict[str, Any]) -> bool:
     """Determine if content should have a LinkedIn presentation"""
     content_text = content.get("content", "")
     return (
-        len(content_text.split()) > 500 and  # Long enough content
+        len(content_text.split()) > 400 and  # Long enough content
         any(keyword in content_text.lower() for keyword in 
             ["architecture", "system", "framework", "process", "strategy"])
     )
@@ -260,6 +273,17 @@ async def generate_platform_content(topic: TopicRequest, platform: str,
     adapter = PLATFORM_ADAPTERS.get(platform, lambda c, t: {"content": c})
     formatted = adapter(content.get("content", ""), topic.dict())
     content.update(formatted)
+
+    # For LinkedIn, include manual upload package info (placeholder)
+    if platform == PlatformType.LINKEDIN.value:
+        content["linkedin_manual_upload"] = {
+            "checklist": [
+                "Review content and validation suggestions",
+                "Upload presentation (if available) as document",
+                "Paste content, add hashtags, and schedule",
+            ],
+            "assets": {}
+        }
     
     generation_time = (datetime.now() - start_time).total_seconds()
     content["generation_time"] = generation_time
@@ -318,6 +342,9 @@ async def orchestrate_publication(request: PublicationRequest,
                 presentation = await generate_linkedin_presentation(content)
                 if presentation:
                     content_variations[platform.value]["presentation"] = presentation
+                    # Attach asset references for manual upload
+                    assets = content_variations[platform.value].setdefault("linkedin_manual_upload", {}).setdefault("assets", {})
+                    assets.update({k: v for k, v in presentation.items() if isinstance(v, (str,))})
             
             # Schedule publication
             job_id = await schedule_platform_publication(
@@ -362,6 +389,51 @@ async def orchestrate_publication(request: PublicationRequest,
         error_count=len(errors),
         errors=errors
     )
+
+
+class AnalyticsEvent(BaseModel):
+    request_id: Optional[str] = None
+    publication_id: Optional[str] = None
+    platform: Optional[str] = None
+    status: Optional[str] = None  # scheduled|completed|failed
+    validation_score: Optional[Union[int, float]] = None
+    scheduled_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    error: Optional[str] = None
+
+
+@app.post("/analytics/track")
+async def analytics_track(event: AnalyticsEvent):
+    payload = event.model_dump()
+    payload["ts"] = datetime.now().isoformat()
+    analytics_events.append(payload)
+    return {"status": "tracked", "events": len(analytics_events)}
+
+
+@app.get("/analytics/events")
+async def analytics_list(limit: int = 50):
+    return {"events": analytics_events[-limit:], "total": len(analytics_events)}
+
+
+class PreferenceUpdate(BaseModel):
+    platform: str
+    hour: Optional[str] = None  # e.g., "11:00"
+    score: Optional[float] = 0.5
+
+
+@app.put("/preferences/{user_id}")
+async def preferences_put(user_id: str, pref: PreferenceUpdate):
+    user = preferences_store.setdefault(user_id, {"platforms": {}, "hours": {}})
+    if pref.platform:
+        user["platforms"][pref.platform] = max(0.0, min(1.0, float(pref.score or 0.0)))
+    if pref.hour:
+        user["hours"][pref.hour] = max(0.0, min(1.0, float(pref.score or 0.0)))
+    return {"status": "ok", "preferences": user}
+
+
+@app.get("/preferences/{user_id}")
+async def preferences_get(user_id: str):
+    return preferences_store.get(user_id, {"platforms": {}, "hours": {}})
 
 @app.get("/publication/{publication_id}", response_model=PublicationStatusResponse)
 async def get_publication_status(publication_id: str):
