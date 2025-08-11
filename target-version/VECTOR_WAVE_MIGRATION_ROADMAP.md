@@ -622,39 +622,51 @@ dependencies:
 risks:
   - "Edge-case heuristics lost; ensure acceptable suggestions"
 ```
-##### Task 2.8A: CLI Playbooks for Kolegium (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.8A: CLI Playbooks for Kolegium (0.5 days) ⏱️ 4h 🆕 **ATOMIZED** — COMPLETED
 ```yaml
-objective: "Provide CLI scripts to run Style/Audience/Writer/Quality playbooks"
-deliverable: "Minimal CLI wrappers that accept input and print JSON outputs"
+objective: "Provide CLI scripts to run Style/Audience/Writer/Quality/Research playbooks"
+deliverable: "CLI modules under kolegium.playbooks with argparse and JSON stdout"
 acceptance_criteria:
   - `python -m kolegium.playbooks.style --draft ... --platform ...` works
   - `python -m kolegium.playbooks.audience --topic ... --platform ...` works
-  - Proper exit codes: 0 on success, non‑zero on failure
+  - `python -m kolegium.playbooks.writer --topic ... --platform ... --audience-insights ... --research-summary ...` works
+  - `python -m kolegium.playbooks.quality --draft ... --platform ...` works
+  - `python -m kolegium.playbooks.research --topic ... --sources-path ...` works
+  - Proper exit codes: 0 on success, non‑zero on failure where applicable
   - Structured JSON printed to stdout
+
 validation_commands:
   - "python -m kolegium.playbooks.style --help"
   - "python -m kolegium.playbooks.audience --help"
-  - "python - <<'PY'\nfrom subprocess import run, PIPE; r=run(['python','-m','kolegium.playbooks.style','--draft','x','--platform','linkedin'], stdout=PIPE); print(r.returncode, len(r.stdout))\nPY"
-dependencies:
-  - "2.2.4 Style Crew Replacement"
-risks:
-  - "Interface drift; keep arguments minimal and documented"
+  - "python -m kolegium.playbooks.writer --help"
+  - "python -m kolegium.playbooks.quality --help"
+  - "python -m kolegium.playbooks.research --help"
+
+meta:
+  status: COMPLETED
+  completed_date: 2025-08-11
+  commit_ids:
+    - kolegium: cf95de0  # feat(playbooks): add CLI playbooks and README usage
 ```
 
-##### Task 2.8B: Kolegium E2E Smoke Runner (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
+##### Task 2.8B: Kolegium E2E Smoke Runner (0.5 days) ⏱️ 4h 🆕 **ATOMIZED** — COMPLETED
 ```yaml
 objective: "Add a smoke script to run Kolegium E2E only when local services are up"
 deliverable: "scripts/run_kolegium_e2e.sh with dependency checks and selective pytest run"
 acceptance_criteria:
   - Checks availability of Editorial Service (8040) and Orchestrator (8042)
-  - Runs only E2E tests: `test_e2e_kolegium_flow.py`
+  - Runs only E2E tests: `kolegium/ai_writing_flow/tests/test_e2e_kolegium_flow.py`
   - Exits 0 on success, non-zero on failures; prints brief summary
+
 validation_commands:
   - "bash scripts/run_kolegium_e2e.sh"
-dependencies:
-  - "2.2.5 End-to-End Kolegium Testing"
-risks:
-  - "Environment variability; ensure robust checks and timeouts"
+  - "EDITORIAL_URL=http://localhost:8040 ORCH_URL=http://localhost:8042 bash scripts/run_kolegium_e2e.sh"
+
+meta:
+  status: COMPLETED
+  completed_date: 2025-08-11
+  commit_ids:
+    - root: to-be-filled-after-commit
 ```
 
 #### **WEEK 10: Hardcoded Rules Elimination**

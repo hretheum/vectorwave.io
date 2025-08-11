@@ -26,6 +26,9 @@ Vector Wave maintains a clean, organized documentation ecosystem aligned with ta
   - Editorial Service shared validation architecture
   - Integration patterns and health monitoring
 
+#### Smoke runner
+- E2E Kolegium smoke: `scripts/run_kolegium_e2e.sh` (sprawdza zdrowie 8040/8042 i uruchamia tylko `kolegium/ai_writing_flow/tests/test_e2e_kolegium_flow.py`)
+
 - **[integration/PORT_ALLOCATION.md](integration/PORT_ALLOCATION.md)** - Infrastructure coordination
   - Complete port allocation registry
   - Conflict resolution (Editorial Service: 8040)
