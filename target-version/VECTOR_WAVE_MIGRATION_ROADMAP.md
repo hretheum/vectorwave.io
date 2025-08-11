@@ -286,7 +286,7 @@ meta:
 
 ### 📋 Phase 4 Task Breakdown
 
-##### Task 4.1.6: Topic Promotion and Scheduler (2 days) ⏱️ 16h — PARTIAL
+##### Task 4.1.6: Topic Promotion and Scheduler (2 days) ⏱️ 16h — COMPLETED
 ```yaml
 objective: "Implement the final step of the workflow: promoting topics and scheduling the process"
 deliverable: "A complete, scheduled workflow that automatically discovers, triages, and promotes new topics"
@@ -301,10 +301,12 @@ validation_commands:
   - "curl -X POST http://localhost:8043/harvest/trigger"
   - "docker compose logs harvester | grep 'Harvest cycle completed'"
 
-notes:
-  partial_reason: "Scheduler loop uruchamia pełny cykl (fetch->triage->promote) oraz promuje przez /topics/suggestion, ale triage pracuje na próbkach; brak aktualizacji statusu pojedynczych rekordów raw_trends i pełnej iteracji po dokumentach."
-  latest_commit_ids:
-    - e698c31  # add background full cycle loop in harvester
+meta:
+  status: COMPLETED
+  completed_date: 2025-08-11
+  commit_ids:
+    - e698c31  # background full cycle loop in harvester
+    - f398d76  # iterate real raw_trends items, update status to promoted
 ```
 
 ##### Task 4.1.7: Final Integration & Monitoring (1 day) ⏱️ 8h — IN PROGRESS
