@@ -185,6 +185,7 @@ class FetcherEngine:
         self.arxiv = ArXivFetcher()
         self.devto = DevToFetcher()
         self.newsdata = NewsDataFetcher()
+        self.producthunt = ProductHuntFetcher()
 
     async def run(self) -> Tuple[List[RawTrendItem], Dict[str, str]]:
         # Run all sources in parallel and merge results, collect errors per source
@@ -193,6 +194,7 @@ class FetcherEngine:
             ("arxiv", self.arxiv.fetch(limit=5)),
             ("dev-to", self.devto.fetch(limit=5)),
             ("newsdata-io", self.newsdata.fetch(limit=5)),
+            ("product-hunt", self.producthunt.fetch(limit=5)),
         ]
         results = await asyncio.gather(*(t for _, t in tasks), return_exceptions=True)
         merged: List[RawTrendItem] = []
@@ -341,6 +343,94 @@ class NewsDataFetcher:
                     url=url,
                     source="newsdata-io",
                     keywords=keywords or ["newsdata"],
+                    author=author,
+                    published_at=published_dt,
+                )
+            )
+            if len(items) >= limit:
+                break
+        return items
+
+
+class ProductHuntFetcher:
+    BASE_URL = "https://api.producthunt.com/v2/api/graphql"
+
+    QUERY = """
+    query TopPosts($first:Int!) {
+      posts(first: $first, order: RANKING) {
+        edges {
+          node {
+            name
+            tagline
+            url
+            description
+            createdAt
+            votesCount
+            reviewsCount
+            slug
+            topics(first: 5) { edges { node { name } } }
+            user { name }
+          }
+        }
+      }
+    }
+    """
+
+    async def fetch(self, limit: int = 5) -> List[RawTrendItem]:
+        token = settings.PRODUCT_HUNT_DEVELOPER_TOKEN
+        if not token:
+            return []
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+        payload = {"query": self.QUERY, "variables": {"first": max(1, limit)}}
+        data = {}
+        try:
+            async with httpx.AsyncClient(timeout=20.0, headers=headers) as client:
+                delay = 0.5
+                for attempt in range(3):
+                    try:
+                        r = await client.post(self.BASE_URL, json=payload)
+                        r.raise_for_status()
+                        data = r.json()
+                        break
+                    except httpx.HTTPError:
+                        if attempt == 2:
+                            return []
+                        await asyncio.sleep(delay)
+                        delay *= 2
+        except httpx.HTTPError:
+            return []
+
+        posts = (((data or {}).get("data") or {}).get("posts") or {}).get("edges") or []
+        items: List[RawTrendItem] = []
+        for edge in posts:
+            n = edge.get("node") or {}
+            title = n.get("name") or "(no title)"
+            summary = n.get("tagline") or n.get("description")
+            url = n.get("url")
+            author = (n.get("user") or {}).get("name")
+            published_dt = None
+            if n.get("createdAt"):
+                try:
+                    published_dt = datetime.fromisoformat(str(n["createdAt"]).replace("Z", "+00:00"))
+                except Exception:
+                    published_dt = None
+            topics = []
+            t = n.get("topics") or {}
+            for e in (t.get("edges") or []):
+                node = e.get("node") or {}
+                name = node.get("name")
+                if name:
+                    topics.append(name)
+            items.append(
+                RawTrendItem(
+                    title=title,
+                    summary=summary,
+                    url=url,
+                    source="product-hunt",
+                    keywords=topics or ["producthunt"],
                     author=author,
                     published_at=published_dt,
                 )
