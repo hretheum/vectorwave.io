@@ -2064,21 +2064,41 @@ validation_commands:
   - "curl http://localhost:8043/harvest/status | jq '.last_run.status'"
 ```
 
-##### Task 2.5: Hardcoded Rules Elimination (0.5 weeks)
+## 🎯 Phase 5: Finalization & Hardening
+**Duration**: 1 week | **Objective**: Eliminate remaining technical debt and prepare the system for production.
+
+### 📋 Phase 5 Task Breakdown
+
+##### Task 5.1: Hardcoded Rules Elimination (1.5 days) ⏱️ 12h 🆕
+This task replaces the original `Task 2.5` with a more detailed, atomized approach.
+
+##### Task 5.1.1: Hardcoded Rule Detection (0.5 days) ⏱️ 4h
 ```yaml
-objective: "Perform a final sweep of the entire codebase to remove any remaining hardcoded validation rules"
-deliverable: "A codebase completely free of hardcoded style, editorial, or platform rules"
+objective: "Perform a comprehensive, automated scan of the entire codebase to detect any remaining hardcoded validation rules"
+deliverable: "A detailed report (`hardcoded_rules_report.json`) listing all files and line numbers containing hardcoded rule patterns (e.g., 'forbidden_phrases', 'required_elements')"
 acceptance_criteria:
-  - A `grep` or similar search for common hardcoded rule patterns returns zero results in the `src` directories of all services
-  - All validation logic is confirmed to originate from Editorial Service API calls
-  - A final verification script confirms that all 355+ rules are served from ChromaDB
+  - A script (`scripts/find_hardcoded_rules.py`) is created to automate the detection process.
+  - The script scans all `.py` files within the `src` directories of all microservices.
+  - The final report is generated and serves as a checklist for the removal task.
 
 validation_commands:
-  - "find . -path '*/src/*' -name '*.py' | xargs grep -l 'forbidden_phrases\|required_elements\|style_patterns' | wc -l # Expected: 0"
-  - "curl http://localhost:8040/cache/stats | jq '.total_rules' # Expected: >= 355"
+  - "python scripts/find_hardcoded_rules.py > hardcoded_rules_report.json"
+  - "cat hardcoded_rules_report.json | jq '.total_found'"
+```
 
-test_requirements:
-  - "A dedicated test suite (`test_zero_hardcoded_rules.py`) that fails if any hardcoded rules are detected"
+##### Task 5.1.2: Automated Rule Removal & Code Refactoring (1 day) ⏱️ 8h
+```yaml
+objective: "Refactor all identified code locations to replace hardcoded rules with API calls to the Editorial Service"
+deliverable: "Code modifications that eliminate all hardcoded rules, replacing them with calls to either `/validate/selective` or `/validate/comprehensive` endpoints"
+acceptance_criteria:
+  - All code locations identified in `hardcoded_rules_report.json` have been refactored.
+  - No new hardcoded rules have been introduced.
+  - The application remains fully functional after the changes.
+  - All existing unit and integration tests pass.
+
+validation_commands:
+  - "python scripts/find_hardcoded_rules.py | jq '.total_found' # Expected: 0"
+  - "pytest --ignore=harvester/ # Run all tests except the new service"
 ```
 
 ## 🎯 Phase 3: Publishing Orchestration & Finalization
@@ -4412,99 +4432,6 @@ risks:
   - "Environment variability; ensure robust checks and timeouts"
 ```
 
-#### **WEEK 9: Auto-Scraping Integration**
-
-##### Task 2.4.1-2.4.4: Topic Scrapers (6 days) ⏱️ 48h
-```yaml
-objective: "Implement HN/Reddit/Twitter/LinkedIn scrapers with relevance scoring"
-deliverable: "Four scrapers with common interface and tests"
-acceptance_criteria:
-  - Each scraper returns normalized topics with source metadata
-  - Relevance score in [0,1]
-  - Backoff + rate limiting where needed
-validation_commands:
-  - "pytest -q topic-manager/tests/scrapers -v"
-test_requirements:
-  unit_tests:
-    - test_normalization
-    - test_relevance_bounds
-  integration_tests:
-    - test_live_endpoint_smoke (skipped by default)
-dependencies:
-  - "Topic Manager service running"
-risks:
-  - "Third-party API changes; wrap with adapters"
-```
-```python
-# topic-manager/src/scrapers/base_scraper.py
-from abc import ABC, abstractmethod
-from typing import List, Dict
-
-class TopicScraper(ABC):
-    def __init__(self, name: str):
-        self.name = name
-    
-    @abstractmethod
-    async def scrape_topics(self) -> List[Dict]:
-        """Scrape topics from external source"""
-        pass
-    
-    @abstractmethod
-    async def score_relevance(self, topic: Dict) -> float:
-        """Score topic relevance (0-1)"""
-        pass
-
-# topic-manager/src/scrapers/hackernews_scraper.py
-class HackerNewsTopicScraper(TopicScraper):
-    def __init__(self):
-        super().__init__("hackernews")
-        
-    async def scrape_topics(self) -> List[Dict]:
-        """Scrape trending topics from Hacker News"""
-        # Implementation here
-        pass
-
-# Similar implementations for Reddit, Twitter, LinkedIn
-```
-
-##### Task 2.4.5: Scraper Scheduling and Automation (1 day) ⏱️ 8h
-```yaml
-test_requirements:
-  unit_tests:
-    coverage_target: ">85% line coverage"
-    tests:
-      - test_scraper_scheduling_logic()
-      - test_automation_triggers()
-      - test_scraper_job_management()
-      - test_scheduling_persistence()
-  
-  integration_tests:
-    coverage_target: ">80% scraper integration coverage"
-    tests:
-      - test_scheduled_scraper_execution()
-      - test_multi_platform_scheduling()
-      - test_automation_workflow_integration()
-  
-  performance_tests:
-    targets:
-      - "Scraper job scheduling <10s"
-      - "Handle 50+ concurrent scraping jobs"
-    tests:
-      - test_scheduling_performance()
-      - test_concurrent_scraper_handling()
-  
-  error_handling_tests:
-    coverage_target: "100% error paths"
-    tests:
-      - test_scraper_failure_recovery()
-      - test_scheduling_conflict_resolution()
-  
-  acceptance_tests:
-    tests:
-      - test_automated_topic_discovery()
-      - test_scraper_scheduling_reliability()
-```
-
 #### **WEEK 10: Hardcoded Rules Elimination**
 
 ##### Task 2.5.1A: Hardcoded Rule Detection (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
@@ -4551,6 +4478,81 @@ else
     echo "❌ Found $total_found hardcoded patterns to eliminate"
     exit 1
 fi
+```
+
+#### Topic Intelligence Upgrade (Post Week 9) — Replace Stub with Vector AI Ranking
+
+```yaml
+overview:
+  objective: "Upgrade Topic Manager from Phase 2 stub to production-grade vector search and AI-driven ranking"
+  duration: "~1.5–2 weeks (7–10 days)"
+  dependencies:
+    - "Topic Manager service operational (2.3.1A–D, 2.3.2, 2.3.6)"
+    - "ChromaDB available"
+  risks:
+    - "Embedding cost/latency; batch ingestion and caching required"
+    - "Ranking quality; require feedback loop and evaluation set"
+
+tasks:
+  - id: 2.3.7
+    name: "Topic Embeddings & Chroma Collection"
+    objective: "Create embeddings for topics and store in Chroma collection topics_embeddings"
+    deliverable: "Embedding pipeline + collection + backfill script"
+    acceptance_criteria:
+      - "All existing topics embedded and indexed"
+      - "Health endpoint includes embeddings readiness flag"
+    validation_commands:
+      - "python topic-manager/scripts/embed_backfill.py --dry-run"
+      - "curl -s http://localhost:8041/health | jq '.embeddings_ready'"
+
+  - id: 2.3.8
+    name: "Vector-Search Suggestions + Reranking"
+    objective: "Power GET /topics/suggestions with vector search and lightweight reranking"
+    deliverable: "Top-K vector results + heurystyczny reranker (CTR/recency/platform-fit)"
+    acceptance_criteria:
+      - "p95 < 200ms lokalnie dla limit<=10"
+      - "Stabilny, deterministyczny porządek dla stałego seed"
+    validation_commands:
+      - "hey -z 30s -c 5 'http://localhost:8041/topics/suggestions?limit=10'"
+
+  - id: 2.3.9
+    name: "Novelty/Duplicate Check API"
+    objective: "POST /topics/novelty-check (vector similarity + reguły duplikatów)"
+    deliverable: "Score (0–1), nearest matches, decision DUPLICATE|NOVEL"
+    acceptance_criteria:
+      - "Reguły progu podobieństwa konfigurowalne"
+      - "Testy na syntetycznych near-duplicate"
+    validation_commands:
+      - "pytest -q topic-manager/tests/test_novelty_check.py"
+
+  - id: 2.3.10
+    name: "Suggestion Ingestion (S2S)"
+    objective: "POST /topics/suggestion z idempotencją i deduplikacją po dedupe_keys"
+    deliverable: "Upsert, audit fields, indeksy (title, content_type, dedupe hash)"
+    acceptance_criteria:
+      - "Zwraca {created|updated|duplicate}"
+      - "Idempotency-Key honorowany"
+    validation_commands:
+      - "pytest -q topic-manager/tests/test_ingestion.py"
+
+  - id: 2.3.11
+    name: "S2S Auth & Contract"
+    objective: "Token dla /suggestion i /novelty-check + SDK/httpx klient z przykładami"
+    deliverable: "ENV TOPIC_MANAGER_TOKEN, middleware, testy kontraktowe"
+    acceptance_criteria:
+      - "401 dla braku/nieprawidłowego tokena"
+      - "Kontrakty opisane w OpenAPI"
+    validation_commands:
+      - "pytest -q topic-manager/tests/test_auth_contract.py"
+
+  - id: 2.3.12
+    name: "Feedback Loop & Metrics"
+    objective: "Zbieranie sygnałów (click/fav/promote) i wpływ na ranking"
+    deliverable: "Prosty model wag + metryki (hit-rate, dwell-time proxy)"
+    acceptance_criteria:
+      - "Widoczne zmiany rankingu po feedbacku w testach A/B syntetycznych"
+    validation_commands:
+      - "pytest -q topic-manager/tests/test_feedback_loop.py"
 ```
 
 ##### Task 2.5.2: Validation of Zero Hardcoded Rules (1.5 days) ⏱️ 12h
