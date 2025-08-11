@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import NavBar from "@/components/NavBar";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import ServiceStatus from "@/components/ServiceStatus";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,8 +22,9 @@ export default function RootLayout({
       <body className={inter.className} suppressHydrationWarning>
         <div className="min-h-screen flex flex-col">
           <NavBar />
-          <div className="container mx-auto px-4">
+          <div className="container mx-auto px-4 flex items-center justify-between">
             <Breadcrumbs />
+            <ServiceStatus />
           </div>
           <div className="flex-1">{children}</div>
           <footer className="border-t bg-white text-sm text-gray-600">
