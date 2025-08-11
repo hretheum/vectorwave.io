@@ -107,11 +107,35 @@ services:
       editorial-service:
         condition: service_started
     networks: [vector-wave]
+    ports:
+      - "8080:8080"
+    environment:
+      - EDITORIAL_SERVICE_URL=http://editorial-service:8040
+      - GAMMA_PPT_URL=http://gamma-ppt-generator:8003
+      - PRESENTON_URL=http://presenton:8089
+      - LINKEDIN_PPT_GENERATOR_URL=http://linkedin-ppt:8002
 
   linkedin-ppt:
     profiles: ["publishing"]
     build: ./kolegium/linkedin_ppt_generator
     networks: [vector-wave]
+    ports:
+      - "8002:8002"
+    environment:
+      - PRESENTON_SERVICE_URL=http://presenton:8089
+
+  presenton:
+    profiles: ["publishing"]
+    build: ./presenton
+    networks: [vector-wave]
+    ports:
+      - "8089:8089"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8089/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   analytics-service:
     profiles: ["analytics"]
