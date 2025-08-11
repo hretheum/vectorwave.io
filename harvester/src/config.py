@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     CHROMADB_HOST: str = "chromadb"
     CHROMADB_PORT: int = 8000
     CHROMADB_COLLECTION: str = "raw_trends"
+    # Per-source fetch limit (upper bound) for batch runs
+    HARVEST_FETCH_LIMIT: int = 5
     
     # Schedule for the harvester to run (cron format)
     HARVEST_SCHEDULE_CRON: str = "0 */6 * * *" # Every 6 hours

@@ -1,0 +1,20 @@
+{
+  "recommended_production_capacity": 1,
+  "peak_throughput_flows_per_second": 2.14,
+  "scaling_characteristics": {
+    "avg_throughput_scaling": 1.8237056702697847,
+    "avg_efficiency": 0.8237953827416397,
+    "is_linear": true
+  },
+  "resource_requirements": {
+    "avg_memory_per_flow_mb": 2.5,
+    "avg_cpu_per_flow_percent": 4.200000000000001,
+    "memory_predictable": true,
+    "cpu_predictable": false
+  },
+  "bottleneck_analysis": {
+    "bottleneck_detected": false,
+    "bottleneck_flow_count": null,
+    "bottleneck_types": []
+  }
+}

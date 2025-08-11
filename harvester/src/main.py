@@ -8,11 +8,12 @@ from .storage import StorageService
 from .models import RawTrendItem
 import httpx
 from contextlib import asynccontextmanager
+import asyncio as _asyncio
 import logging
 from datetime import datetime
 import json
 from prometheus_client import Counter, Gauge, Histogram, CollectorRegistry, generate_latest, CONTENT_TYPE_LATEST
-from fastapi import Response
+from fastapi import Response, Query
 
 # Configure logging (structured JSON lines)
 logger = logging.getLogger("harvester")
@@ -41,6 +42,20 @@ async def lifespan(app: FastAPI):
     logger.info("Trend Harvester service starting up...")
     # Initialize scheduler, database connections etc.
     app.state.last_run: Dict[str, Any] = {"status": "not_run_yet"}
+    # Background scheduler: periodically trigger harvest with env-configured limit
+    interval_min = 30  # default every 30 minutes
+    try:
+        interval_min = int((settings.HARVEST_SCHEDULE_CRON or "0").split()[1]) if False else interval_min
+    except Exception:
+        interval_min = 30
+    async def _loop():
+        while True:
+            try:
+                await trigger_harvest()  # type: ignore
+            except Exception:
+                pass
+            await _asyncio.sleep(max(300, interval_min * 60))
+    _asyncio.create_task(_loop())
     yield
     # Shutdown logic
     logger.info("Trend Harvester service shutting down...")
@@ -92,13 +107,14 @@ async def health_check():
     }
 
 @app.post("/harvest/trigger")
-async def trigger_harvest():
+async def trigger_harvest(limit: int = Query(None, ge=1, le=100)):
     engine = FetcherEngine()
     storage = StorageService(settings.CHROMADB_HOST, settings.CHROMADB_PORT, settings.CHROMADB_COLLECTION)
     started_at = datetime.utcnow()
     HARVEST_COUNTER.inc()
     with HARVEST_DURATION.time():
-        items, errors = await engine.run()
+        effective_limit = int(limit or settings.HARVEST_FETCH_LIMIT)
+        items, errors = await engine.run(limit=effective_limit)
     # per-source counts
     per_source: Dict[str, int] = {}
     for it in items:
@@ -122,6 +138,7 @@ async def trigger_harvest():
         "saved": saved,
         "per_source": per_source,
         "source_errors": errors,
+        "limit": effective_limit,
     }
     app.state.last_run = run_status
     logger.info("harvest_completed", extra={"event": "harvest_completed", "data": run_status})

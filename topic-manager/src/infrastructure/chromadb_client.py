@@ -57,12 +57,41 @@ class ChromaDBHTTPClient:
         except Exception:
             return False
 
+    async def _get_collection_id(self, client: httpx.AsyncClient, name: str) -> str | None:
+        # Try by query param first
+        resp = await client.get(f"{self.base_url_v1}/collections", params={"name": name})
+        if resp.status_code == 200:
+            data = resp.json()
+            if isinstance(data, dict) and data.get("id"):
+                return data.get("id") or data.get("uuid")
+        # Fallback to list all
+        resp = await client.get(f"{self.base_url_v1}/collections")
+        if resp.status_code == 200 and isinstance(resp.json(), list):
+            for c in resp.json():
+                if c.get("name") == name:
+                    return c.get("id") or c.get("uuid")
+        return None
+
+    async def delete_collection(self, name: str) -> bool:
+        try:
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                # Accept name or id; resolve name to id
+                col_id = await self._get_collection_id(client, name)
+                url = f"{self.base_url_v1}/collections/{col_id or name}"
+                resp = await client.delete(url)
+                return resp.status_code in (200, 204)
+        except Exception:
+            return False
+
     async def count(self, name: str) -> int:
         # No direct count endpoint in v1; we can approximate by listing (not ideal).
         # Many servers expose GET /collections/{name} which includes size; attempt that.
         try:
             async with httpx.AsyncClient(timeout=3.0) as client:
-                url = f"{self.base_url_v1}/collections/{name}"
+                col_id = await self._get_collection_id(client, name)
+                if not col_id:
+                    return 0
+                url = f"{self.base_url_v1}/collections/{col_id}"
                 resp = await client.get(url)
                 if resp.status_code == 200:
                     data = resp.json()
@@ -75,8 +104,11 @@ class ChromaDBHTTPClient:
 
     async def add(self, name: str, ids: List[str], documents: List[str], metadatas: Optional[List[Dict[str, Any]]] = None, embeddings: Optional[List[List[float]]] = None) -> bool:
         try:
-            async with httpx.AsyncClient(timeout=6.0) as client:
-                url = f"{self.base_url_v1}/collections/{name}/add"
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                col_id = await self._get_collection_id(client, name)
+                if not col_id:
+                    return False
+                url = f"{self.base_url_v1}/collections/{col_id}/add"
                 payload: Dict[str, Any] = {"ids": ids, "documents": documents}
                 if metadatas is not None:
                     payload["metadatas"] = metadatas
@@ -87,13 +119,34 @@ class ChromaDBHTTPClient:
         except Exception:
             return False
 
-    async def query(self, name: str, query_embeddings: List[List[float]], n_results: int = 5) -> Dict[str, Any]:
+    async def query(self, name: str, query_embeddings: List[List[float]], n_results: int = 5, where: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         try:
-            async with httpx.AsyncClient(timeout=6.0) as client:
-                url = f"{self.base_url_v1}/collections/{name}/query"
-                resp = await client.post(url, json={"query_embeddings": query_embeddings, "n_results": n_results})
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                col_id = await self._get_collection_id(client, name)
+                if not col_id:
+                    return {}
+                url = f"{self.base_url_v1}/collections/{col_id}/query"
+                payload: Dict[str, Any] = {"query_embeddings": query_embeddings, "n_results": n_results}
+                if where:
+                    payload["where"] = where
+                resp = await client.post(url, json=payload)
                 if resp.status_code == 200:
                     return resp.json()
         except Exception:
             pass
         return {"ids": [], "distances": [], "documents": [], "metadatas": []}
+
+    async def get(self, name: str, ids: List[str]) -> Dict[str, Any]:
+        """Get items by IDs from a collection (best-effort)."""
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                col_id = await self._get_collection_id(client, name)
+                if not col_id:
+                    return {}
+                url = f"{self.base_url_v1}/collections/{col_id}/get"
+                resp = await client.post(url, json={"ids": ids})
+                if resp.status_code == 200:
+                    return resp.json()
+        except Exception:
+            pass
+        return {}

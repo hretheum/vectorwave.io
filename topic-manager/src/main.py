@@ -6,10 +6,32 @@ from typing import List, Dict, Optional, Any, Tuple
 import asyncio
 import os
 from dotenv import load_dotenv
+import asyncio as _asyncio
 
 # Load env once at startup (safe if missing)
 load_dotenv()
+
+async def _background_reindex_task():
+    cron = os.getenv("INDEX_REINDEX_CRON", "*/10 * * * *")
+    interval_min = 10
+    try:
+        if cron.startswith("*/"):
+            interval_min = int(cron.split()[0].replace("*/", ""))
+    except Exception:
+        interval_min = 10
+    while True:
+        try:
+            await topics_index_reindex(limit=200, reset=False)  # type: ignore
+        except Exception:
+            pass
+        await _asyncio.sleep(max(60, interval_min * 60))
+
 app = FastAPI(title="Topic Manager", version="1.0.0")
+
+@app.on_event("startup")
+async def _start_background_tasks():
+    # Fire-and-forget background reindex loop
+    _asyncio.create_task(_background_reindex_task())
 
 
 class Topic(BaseModel):
@@ -75,6 +97,11 @@ class TopicsIndexInfo(BaseModel):
     ready: bool = False
     total_indexed: int = 0
     chromadb_status: Optional[Dict[str, Any]] = None
+    # New diagnostic fields
+    total_topics: int = 0
+    last_indexed: int = 0
+    index_coverage: float = 0.0
+    chroma_reported_count: Optional[int] = None
 
 class TopicsSearchResponse(BaseModel):
     query: str
@@ -82,15 +109,26 @@ class TopicsSearchResponse(BaseModel):
     count: int
     took_ms: float
 
+class TopicsIndexVerifyResponse(BaseModel):
+    sampled_ids: List[str]
+    present: int
+    missing: int
+    sample_size: int
+    details: Optional[Dict[str, Any]] = None
+
 _CHROMA = None
 _INDEX_COLLECTION = "topics_index"
 _EMBEDDINGS = None
+_LAST_INDEXED = 0
 
 async def _get_chroma():
     global _CHROMA
     if _CHROMA is None:
         try:
-            from infrastructure.chromadb_client import ChromaDBHTTPClient  # type: ignore
+            try:
+                from infrastructure.chromadb_client import ChromaDBHTTPClient  # type: ignore
+            except Exception:
+                from src.infrastructure.chromadb_client import ChromaDBHTTPClient  # type: ignore
             _CHROMA = ChromaDBHTTPClient(
                 host=os.getenv("CHROMADB_HOST", "chromadb"),
                 port=int(os.getenv("CHROMADB_PORT", "8000")),
@@ -103,7 +141,10 @@ async def _get_embeddings():
     global _EMBEDDINGS
     if _EMBEDDINGS is None:
         try:
-            from infrastructure.embeddings import resolve_provider  # type: ignore
+            try:
+                from infrastructure.embeddings import resolve_provider  # type: ignore
+            except Exception:
+                from src.infrastructure.embeddings import resolve_provider  # type: ignore
             _EMBEDDINGS = resolve_provider()
         except Exception:
             _EMBEDDINGS = None
@@ -126,23 +167,82 @@ async def topics_index_info() -> TopicsIndexInfo:
     status: Optional[Dict[str, Any]] = None
     total = 0
     ready = False
+    # Compute total topics from repository or memory
+    total_topics = 0
+    if REPO:
+        try:
+            total_topics = REPO.count()
+        except Exception:
+            total_topics = 0
+    else:
+        total_topics = len(TOPICS)
+    reported_count: Optional[int] = None
     if chroma is not None:
         status = await chroma.heartbeat()
         if status.get("status") == "healthy":
             # Ensure collection exists; then try count
             ready = await chroma.ensure_collection(_INDEX_COLLECTION)
             if ready:
-                total = await chroma.count(_INDEX_COLLECTION)
-    return TopicsIndexInfo(collection=_INDEX_COLLECTION, ready=ready, total_indexed=total, chromadb_status=status)
+                c = await chroma.count(_INDEX_COLLECTION)
+                # Some Chroma versions do not report count; treat 0 as unknown
+                if isinstance(c, int) and c > 0:
+                    total = c
+                    reported_count = c
+                else:
+                    total = 0
+                    reported_count = None
+    index_coverage = (float(_LAST_INDEXED) / float(total_topics)) if total_topics > 0 else 0.0
+    return TopicsIndexInfo(
+        collection=_INDEX_COLLECTION,
+        ready=ready,
+        total_indexed=total,
+        chromadb_status=status,
+        total_topics=total_topics,
+        last_indexed=_LAST_INDEXED,
+        index_coverage=round(index_coverage, 4),
+        chroma_reported_count=reported_count,
+    )
+
+@app.post("/topics/index/verify")
+async def topics_index_verify(sample_size: int = Query(10, ge=1, le=100)) -> TopicsIndexVerifyResponse:
+    # Collect IDs from repo or memory
+    ids: List[str] = []
+    if REPO:
+        items = REPO.list(limit=sample_size, offset=0)
+        ids = [t.topic_id for t in items]
+    else:
+        ids = list(TOPICS.keys())[:sample_size]
+    chroma = await _get_chroma()
+    if not chroma:
+        raise HTTPException(status_code=503, detail={"code": "chromadb_unavailable", "detail": "Chroma client not initialized"})
+    # Attempt fetch by IDs
+    res = await chroma.get(_INDEX_COLLECTION, ids)
+    found = 0
+    try:
+        got_ids = res.get("ids") or []
+        if got_ids and isinstance(got_ids[0], list):
+            got_ids = got_ids[0]
+        found = len(got_ids)
+    except Exception:
+        found = 0
+    return TopicsIndexVerifyResponse(
+        sampled_ids=ids,
+        present=found,
+        missing=max(0, len(ids) - found),
+        sample_size=len(ids),
+        details={"raw": res} if res else None,
+    )
 
 @app.post("/topics/index/reindex")
-async def topics_index_reindex(limit: int = 200) -> Dict[str, Any]:
+async def topics_index_reindex(limit: int = 200, reset: bool = False) -> Dict[str, Any]:
     chroma = await _get_chroma()
     if chroma is None:
         raise HTTPException(status_code=503, detail={"code": "chromadb_unavailable", "detail": "Chroma client not initialized"})
     status = await chroma.heartbeat()
     if status.get("status") != "healthy":
         raise HTTPException(status_code=503, detail={"code": "chromadb_unhealthy", "detail": status})
+    if reset:
+        await chroma.delete_collection(_INDEX_COLLECTION)
     ok = await chroma.ensure_collection(_INDEX_COLLECTION)
     if not ok:
         raise HTTPException(status_code=500, detail={"code": "chromadb_collection_error", "detail": "Cannot ensure topics_index"})
@@ -170,6 +270,8 @@ async def topics_index_reindex(limit: int = 200) -> Dict[str, Any]:
     if provider:
         try:
             embs = await provider.embed_texts(docs)
+            if not isinstance(embs, list) or len(embs) != len(docs):
+                embs = [_cheap_embedding(d) for d in docs]
         except Exception:
             embs = [_cheap_embedding(d) for d in docs]
     else:
@@ -177,10 +279,18 @@ async def topics_index_reindex(limit: int = 200) -> Dict[str, Any]:
     added = await chroma.add(_INDEX_COLLECTION, ids=ids, documents=docs, metadatas=metas, embeddings=embs)
     if not added:
         raise HTTPException(status_code=500, detail={"code": "chromadb_add_failed", "detail": "Batch add failed"})
+    # Track last indexed count for diagnostics
+    global _LAST_INDEXED
+    _LAST_INDEXED = len(ids)
     return {"indexed": len(ids)}
 
 @app.get("/topics/search")
-async def topics_search(q: str = Query(..., min_length=2), limit: int = Query(5, ge=1, le=50)) -> TopicsSearchResponse:
+async def topics_search(
+    q: str = Query(..., min_length=2),
+    limit: int = Query(5, ge=1, le=50),
+    content_type: Optional[str] = Query(None),
+    title_contains: Optional[str] = Query(None),
+) -> TopicsSearchResponse:
     chroma = await _get_chroma()
     if chroma is None:
         raise HTTPException(status_code=503, detail={"code": "chromadb_unavailable", "detail": "Chroma client not initialized"})
@@ -196,7 +306,16 @@ async def topics_search(q: str = Query(..., min_length=2), limit: int = Query(5,
             qvec = [_cheap_embedding(q)]
     else:
         qvec = [_cheap_embedding(q)]
-    res = await chroma.query(_INDEX_COLLECTION, query_embeddings=qvec, n_results=limit)
+    # Build metadata filter for Chroma (where)
+    where: Optional[Dict[str, Any]] = None
+    if content_type or title_contains:
+        where = {}
+        if content_type:
+            where["content_type"] = content_type
+        if title_contains:
+            # Chroma v1 doesn't support substring on metadata; we filter post-query below
+            pass
+    res = await chroma.query(_INDEX_COLLECTION, query_embeddings=qvec, n_results=limit * 3, where=where)
     took_ms = round((asyncio.get_event_loop().time() - start) * 1000.0, 2)
     # Normalize response
     items: List[Dict[str, Any]] = []
@@ -213,13 +332,23 @@ async def topics_search(q: str = Query(..., min_length=2), limit: int = Query(5,
     if dists and isinstance(dists[0], list):
         dists = dists[0]
     for i, tid in enumerate(ids):
-        items.append({
+        meta = metas[i] if i < len(metas) else None
+        doc = docs[i] if i < len(docs) else None
+        item = {
             "topic_id": tid,
             "distance": float(dists[i]) if i < len(dists) else None,
-            "metadata": metas[i] if i < len(metas) else None,
-            "document": docs[i] if i < len(docs) else None,
+            "metadata": meta,
+            "document": doc,
             "score": 1.0 - float(dists[i]) if i < len(dists) and isinstance(dists[i], (int, float)) else None,
-        })
+        }
+        # Post-filter for title_contains
+        if title_contains and meta and isinstance(meta, dict):
+            title = str(meta.get("title", ""))
+            if title_contains.lower() not in title.lower():
+                continue
+        items.append(item)
+        if len(items) >= limit:
+            break
     return TopicsSearchResponse(query=q, items=items, count=len(items), took_ms=took_ms)
 
 
@@ -557,7 +686,16 @@ async def delete_topic(topic_id: str):
 
 
 @app.get("/topics")
-async def list_topics(limit: int = Query(20, ge=1, le=200), offset: int = Query(0, ge=0), q: Optional[str] = None, content_type: Optional[str] = None, sort_by: Optional[str] = Query(None, pattern="^(topic_id|title|content_type)$"), order: str = Query("asc", pattern="^(asc|desc)$")):
+async def list_topics(
+    limit: int = Query(20, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    q: Optional[str] = None,
+    content_type: Optional[str] = None,
+    source: Optional[str] = None,
+    title_contains: Optional[str] = None,
+    sort_by: Optional[str] = Query(None, pattern="^(topic_id|title|content_type)$"),
+    order: str = Query("asc", pattern="^(asc|desc)$"),
+):
     # Combine in-memory and repo for now; in future switch to repo-only when persistence enabled
     items = list(TOPICS.values())
     if REPO:
@@ -579,6 +717,9 @@ async def list_topics(limit: int = Query(20, ge=1, le=200), offset: int = Query(
             items = [t for t in items if ql in t.title.lower() or ql in t.description.lower() or any(ql in k.lower() for k in t.keywords)]
         if content_type:
             items = [t for t in items if t.content_type.lower() == content_type.lower()]
+        if title_contains:
+            sub = title_contains.lower()
+            items = [t for t in items if sub in t.title.lower()]
         total = len(items)
         items = items[offset: offset + limit]
     return {"items": [i.model_dump() for i in items], "count": len(items), "total": total, "limit": limit, "offset": offset}

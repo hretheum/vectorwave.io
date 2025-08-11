@@ -187,14 +187,14 @@ class FetcherEngine:
         self.newsdata = NewsDataFetcher()
         self.producthunt = ProductHuntFetcher()
 
-    async def run(self) -> Tuple[List[RawTrendItem], Dict[str, str]]:
+    async def run(self, limit: int = 5) -> Tuple[List[RawTrendItem], Dict[str, str]]:
         # Run all sources in parallel and merge results, collect errors per source
         tasks = [
-            ("hacker-news", self.hn.fetch(limit=5)),
-            ("arxiv", self.arxiv.fetch(limit=5)),
-            ("dev-to", self.devto.fetch(limit=5)),
-            ("newsdata-io", self.newsdata.fetch(limit=5)),
-            ("product-hunt", self.producthunt.fetch(limit=5)),
+            ("hacker-news", self.hn.fetch(limit=limit)),
+            ("arxiv", self.arxiv.fetch(limit=limit)),
+            ("dev-to", self.devto.fetch(limit=limit)),
+            ("newsdata-io", self.newsdata.fetch(limit=limit)),
+            ("product-hunt", self.producthunt.fetch(limit=limit)),
         ]
         results = await asyncio.gather(*(t for _, t in tasks), return_exceptions=True)
         merged: List[RawTrendItem] = []

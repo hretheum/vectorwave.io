@@ -23,19 +23,24 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN groupadd -r editorial && useradd -r -g editorial editorial
+# Create non-root user and home directory
+RUN groupadd -r editorial && useradd -r -g editorial -d /home/editorial editorial \
+    && mkdir -p /home/editorial \
+    && chown -R editorial:editorial /home/editorial
 
-# Copy installed packages from builder
-COPY --from=builder /root/.local /home/editorial/.local
+# Copy installed packages from builder (owned by editorial)
+COPY --from=builder --chown=editorial:editorial /root/.local /home/editorial/.local
 
-# Set PATH to include user packages and make src importable
+# Set env to include user packages, proper HOME and cache dir, and make src importable
 ENV PATH="/home/editorial/.local/bin:$PATH" \
-    PYTHONPATH="/app/src"
+    PYTHONPATH="/app/src" \
+    HOME="/home/editorial" \
+    XDG_CACHE_HOME="/home/editorial/.cache"
 
 WORKDIR /app
 
-# Copy application code
+# Prepare cache directory and copy application code
+RUN mkdir -p /home/editorial/.cache && chown -R editorial:editorial /home/editorial/.cache
 COPY --chown=editorial:editorial src/ ./src/
 COPY --chown=editorial:editorial config/ ./config/
 

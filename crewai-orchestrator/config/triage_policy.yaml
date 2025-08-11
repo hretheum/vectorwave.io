@@ -1,0 +1,35 @@
+version: 1
+lookback_hours: 72
+limits:
+  max_total: 100
+  max_per_source:
+    hacker-news: 40
+    arxiv: 30
+    dev-to: 20
+    newsdata-io: 10
+    product-hunt: 10
+keywords:
+  include: ["ai", "llm", "rag", "embedding", "agents", "vector"]
+  exclude: ["giveaway", "sponsored"]
+thresholds:
+  profile_fit: 0.70
+  novelty_sim_jaccard: 0.30
+  title_min_len: 12
+dedup:
+  local_fuzzy_jaccard: 0.70
+weights:
+  source:
+    hacker-news: 1.0
+    arxiv: 0.9
+    dev-to: 0.8
+    newsdata-io: 0.7
+    product-hunt: 0.7
+  momentum:
+    hn_score_weight: 0.2
+    comments_weight: 0.1
+scoring:
+  composite: "0.4*profile + 0.3*novelty + 0.2*source_weight + 0.1*momentum"
+promote:
+  top_k: 30
+  idempotency_key: "sha256(title|source|published_at)"
+dry_run: false

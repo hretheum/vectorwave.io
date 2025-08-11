@@ -18,6 +18,8 @@ async def triage_seed(payload: Dict[str, Any]):
     return {"received": True, "config": payload}
 
 router.add_api_route("/triage/seed", triage_seed, methods=["POST"])
+# Aliasy pod prefiksem /api
+router.add_api_route("/api/triage/seed", triage_seed, methods=["POST"])
 
 async def get_triage_policy():
     path = os.getenv("TRIAGE_POLICY_PATH", "/app/config/triage_policy.yaml")
@@ -60,3 +62,6 @@ async def set_triage_policy(payload: Dict[str, Any]):
 
 router.add_api_route("/triage/policy", get_triage_policy, methods=["GET"])
 router.add_api_route("/triage/policy", set_triage_policy, methods=["POST"])
+# Aliasy pod prefiksem /api
+router.add_api_route("/api/triage/policy", get_triage_policy, methods=["GET"])
+router.add_api_route("/api/triage/policy", set_triage_policy, methods=["POST"])
