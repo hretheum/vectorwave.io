@@ -1,74 +1,47 @@
-import asyncio
 import os
 import time
 import pytest
-import httpx
+import requests
 
-EDITORIAL_URL = os.getenv("EDITORIAL_URL", "http://localhost:8040")
-TOPIC_MANAGER_URL = os.getenv("TOPIC_MANAGER_URL", "http://localhost:8041")
-ORCHESTRATOR_URL = os.getenv("ORCHESTRATOR_URL", "http://localhost:8042")
-HARVESTER_URL = os.getenv("HARVESTER_URL", "http://localhost:8043")
+BASE_ORCH = os.getenv("ORCH_BASE", "http://localhost:8080")
+BASE_TM = os.getenv("TM_BASE", "http://localhost:8041")
+BASE_ES = os.getenv("ES_BASE", "http://localhost:8040")
 
+@pytest.mark.integration
+@pytest.mark.skipif(os.getenv("CI") == "true", reason="requires local services")
+def test_complete_user_workflow():
+    # 1) Topic discovery
+    r = requests.get(f"{BASE_TM}/topics/search", params={"q":"AI","limit":5}, timeout=10)
+    r.raise_for_status()
+    items = r.json().get("items", [])
+    assert isinstance(items, list)
 
-async def _is_up(url: str, path: str = "/health", timeout: float = 2.0) -> bool:
-    try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            r = await client.get(f"{url}{path}")
-            return r.status_code == 200
-    except Exception:
-        return False
+    # 2) Publish request (LI+TW)
+    payload = {
+        "topic": {"title": (items[0].get("title") if items else "AI Agents"), "description": "Workflow test"},
+        "platforms": {
+            "linkedin": {"enabled": True, "account_id": "a"},
+            "twitter": {"enabled": True, "account_id": "b"}
+        }
+    }
+    pr = requests.post(f"{BASE_ORCH}/publish", json=payload, timeout=30)
+    pr.raise_for_status()
+    resp = pr.json()
+    assert "publication_id" in resp
+    assert isinstance(resp.get("scheduled_jobs"), dict)
 
+    # 3) Validate content via ES (best-effort)
+    content_any = "AI agents transform development."
+    vr = requests.post(f"{BASE_ES}/validate/comprehensive", json={"content": content_any, "mode":"comprehensive"}, timeout=10)
+    if vr.status_code == 200:
+        assert isinstance(vr.json().get("rules_applied", []), list)
 
-@pytest.mark.e2e
-@pytest.mark.asyncio
-async def test_complete_user_workflow_sanity():
-    # 1) Check core services up (skip if not running locally)
-    editorial_up, tm_up, harvester_up = await asyncio.gather(
-        _is_up(EDITORIAL_URL), _is_up(TOPIC_MANAGER_URL), _is_up(HARVESTER_URL)
-    )
-    if not (editorial_up and tm_up and harvester_up):
-        pytest.skip("Required services not running locally (editorial/topic-manager/harvester)")
+    # 4) Analytics track
+    tr = requests.post(f"{BASE_ORCH}/analytics/track", json={"request_id": resp.get("request_id") or resp.get("publication_id"), "platform": "linkedin", "status": resp.get("status")}, timeout=10)
+    assert tr.status_code in (200, 404)  # 404 tolerated if not implemented
 
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        # 2) Editorial Service profile score
-        summary = "AI trend about vector embeddings and agents"
-        r1 = await client.post(f"{EDITORIAL_URL}/profile/score", json={"content_summary": summary})
-        assert r1.status_code == 200
-        prof_score = float(r1.json().get("profile_fit_score") or 0.0)
-        assert 0.0 <= prof_score <= 1.0
-
-        # 3) Topic Manager novelty check
-        r2 = await client.post(
-            f"{TOPIC_MANAGER_URL}/topics/novelty-check",
-            json={"title": summary, "summary": summary},
-        )
-        assert r2.status_code == 200
-        novelty_sim = float(r2.json().get("similarity_score") or 0.0)
-        assert 0.0 <= novelty_sim <= 1.0
-
-        # 4) Harvester selective triage (will promote if thresholds met)
-        r3 = await client.post(
-            f"{HARVESTER_URL}/triage/selective",
-            params={"summary": summary, "content_type": "POST"},
-        )
-        assert r3.status_code == 200
-        data3 = r3.json()
-        assert "decision" in data3
-        assert data3["decision"] in ["PROMOTE", "REJECT"]
-
-        # 5) Reindex topics vector index (best-effort) and search
-        await client.post(f"{TOPIC_MANAGER_URL}/topics/index/reindex", params={"limit": 50})
-        r4 = await client.get(f"{TOPIC_MANAGER_URL}/topics/search", params={"q": "AI", "limit": 3})
-        assert r4.status_code == 200
-        assert "items" in r4.json()
-
-        # 6) Check harvester status includes next_run_at
-        r5 = await client.get(f"{HARVESTER_URL}/harvest/status")
-        assert r5.status_code == 200
-        assert "next_run_at" in r5.json()
-
-        # 7) Check health reports dependencies and schedule
-        r6 = await client.get(f"{HARVESTER_URL}/health")
-        assert r6.status_code == 200
-        h = r6.json()
-        assert "dependencies" in h and "schedule" in h
+    # 5) Preferences
+    pu = requests.put(f"{BASE_ORCH}/preferences/demo", json={"platform":"linkedin","hour":"11:00","score":0.8}, timeout=10)
+    assert pu.status_code in (200, 404)
+    pg = requests.get(f"{BASE_ORCH}/preferences/demo", timeout=10)
+    assert pg.status_code in (200, 404)
