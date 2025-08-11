@@ -255,13 +255,14 @@ class NewsDataFetcher:
         api_key = settings.NEWS_DATA_API_KEY
         if not api_key:
             return []
+        # NewsData expects 'apikey' and supports 'q', 'language', 'category', 'page', 'size'
         params = {
             "apikey": api_key,
-            "q": "(artificial intelligence) OR ai OR machine learning",
+            "q": "artificial intelligence OR ai OR machine learning",
             "language": "en",
             "category": "technology,science",
             "page": 1,
-            "page_size": max(1, min(limit, 50)),
+            "size": max(1, min(limit, 50)),
         }
         try:
             async with httpx.AsyncClient(timeout=20.0) as client:
