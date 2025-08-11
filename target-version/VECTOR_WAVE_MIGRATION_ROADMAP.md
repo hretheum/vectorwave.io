@@ -257,7 +257,7 @@ meta:
     - 7253a84  # test(topic-manager): S2S contract tests for novelty/suggestion
 ```
 
-##### Task 2.5: Hardcoded Rules Elimination (0.5 weeks)
+##### Task 2.5: Hardcoded Rules Elimination (0.5 weeks) — COMPLETED
 ```yaml
 objective: "Perform a final sweep of the entire codebase to remove any remaining hardcoded validation rules"
 deliverable: "A codebase completely free of hardcoded style, editorial, or platform rules"
@@ -272,6 +272,13 @@ validation_commands:
 
 test_requirements:
   - "A dedicated test suite (`test_zero_hardcoded_rules.py`) that fails if any hardcoded rules are detected"
+ 
+meta:
+  status: COMPLETED
+  completed_date: 2025-08-11
+  commit_ids:
+    - e698c31  # eliminate hardcoded rules; fallback to ES; move detector to scripts/
+    - 81abd92  # deprecate styleguide_loader; remove context usage
 ```
 
 ## 🎯 Phase 4: Content Intelligence & Automation
