@@ -32,7 +32,7 @@
 ### 🎯 CREWAI COMPLIANCE VALIDATION
 **Every atomic task MUST:**
 - Follow CrewAI Flow documentation patterns
-- Implement @start/@router/@listen decorators correctly
+- Implement start/router/listen decorators correctly
 - Maintain Flow state consistency
 - Provide Knowledge Base integration
 
@@ -45,7 +45,7 @@ Implementacja pełnowymiarowego **CrewAI Flow** zgodnego z AI_WRITINGno j_FLOW_D
 - ✅ Proven infrastructure Phase 1-4 (227 passing tests)
 - ✅ Knowledge Base localhost:8082 (healthy, 4 docs loaded)
 - ✅ Enhanced monitoring and alerting systems
-- 🆕 CrewAI Flow @start/@router/@listen decorators
+- 🆕 CrewAI Flow start/router/listen decorators
 
 ### Success Metrics
 - **CrewAI Flow Completion**: >95% success rate
@@ -98,14 +98,14 @@ Implementacja pełnowymiarowego **CrewAI Flow** zgodnego z AI_WRITINGno j_FLOW_D
 ---
 
 ### Blok 2: Basic Flow Implementation (2h)
-**Goal**: Create first working CrewAI Flow with @start decorator  
+**Goal**: Create first working CrewAI Flow with start decorator  
 **Agent Chain**: project-coder → architecture-advisor → code-reviewer
 
 #### Atomic Tasks:
 - [ ] **Task 2.1**: Create basic AIWritingFlow class (60min)
   * **Agent**: project-coder
   * **Deliverable**: `src/ai_writing_flow/crewai_flow/ai_writing_flow.py`
-  * **Success**: Basic Flow class with @start decorator functional
+  * **Success**: Basic Flow class with start decorator functional
   * **Validation**: `flow = AIWritingFlow(); flow.kickoff(test_inputs)` executes
   * **Code Review**: Mandatory after 150 lines
 
@@ -116,11 +116,11 @@ Implementacja pełnowymiarowego **CrewAI Flow** zgodnego z AI_WRITINGno j_FLOW_D
   * **Validation**: Agent executes task and produces expected output format
   * **Code Review**: After agent implementation
 
-- [ ] **Task 2.3**: Create basic @start task (15min)
+- [ ] **Task 2.3**: Create basic start task (15min)
   * **Agent**: project-coder
-  * **Deliverable**: @start decorated method calling content analysis
+  * **Deliverable**: start-decorated method calling content analysis
   * **Success**: Flow starts with content analysis task
-  * **Validation**: Flow execution begins with @start task
+  * **Validation**: Flow execution begins with start task
   * **Code Review**: After @start implementation
 
 #### Success Criteria:
@@ -222,13 +222,13 @@ Implementacja pełnowymiarowego **CrewAI Flow** zgodnego z AI_WRITINGno j_FLOW_D
 ## 🗓️ WEEK 2: CONDITIONAL ROUTING (9h total)
 
 ### Blok 5: Router Implementation Foundation (3h)
-**Goal**: Implement @router decorator with basic conditional logic  
+**Goal**: Implement router decorator with basic conditional logic  
 **Agent Chain**: project-coder → architecture-advisor → code-reviewer
 
 #### Atomic Tasks:
-- [ ] **Task 5.1**: Implement @router decorator structure (90min)
+- [ ] **Task 5.1**: Implement router decorator structure (90min)
   * **Agent**: project-coder
-  * **Deliverable**: @router decorator functional with basic routing logic
+  * **Deliverable**: router decorator functional with basic routing logic
   * **Success**: Router can branch flow based on content analysis output
   * **Validation**: Router makes correct branching decisions
   * **Code Review**: Mandatory after 150 lines
@@ -248,7 +248,7 @@ Implementacja pełnowymiarowego **CrewAI Flow** zgodnego z AI_WRITINGno j_FLOW_D
   * **Code Review**: After KB routing enhancement
 
 #### Success Criteria:
-- @router decorator functional with conditional branching
+- router decorator functional with conditional branching
 - Content type routing working for 3 main types
 - Knowledge Base enhances routing decisions
 - Router decisions are consistent and predictable
@@ -352,7 +352,7 @@ Implementacja pełnowymiarowego **CrewAI Flow** zgodnego z AI_WRITINGno j_FLOW_D
 #### Atomic Tasks:
 - [ ] **Task 8.1**: Human review trigger points (90min)
   * **Agent**: project-coder
-  * **Deliverable**: @listen decorators for human review at key stages
+  * **Deliverable**: listen decorators for human review at key stages
   * **Success**: Human review triggered at draft completion and quality gates
   * **Validation**: Review triggers activate at correct flow points
   * **Code Review**: Every 150 lines of review integration
@@ -659,7 +659,7 @@ fi
 - **KB Integration**: >80% routing decisions KB-enhanced
 
 ### Business Metrics:
-- **CrewAI Compliance**: Full @start/@router/@listen implementation
+- **CrewAI Compliance**: Full start/router/listen implementation
 - **Content Quality**: Improved content routing and processing
 - **Human Efficiency**: Streamlined human review processes
 - **System Stability**: Zero downtime deployment and operation
@@ -680,12 +680,12 @@ fi
 
 ### ✅ ARCHITECTURE TRANSFORMATION COMPLETED
 
-**Original Challenge**: CrewAI Flow @router/@listen patterns caused infinite loops, CPU 97.9%, system instability
+**Original Challenge**: CrewAI Flow router/listen patterns caused infinite loops, CPU 97.9%, system instability
 
 **Solution Implemented**: **LINEAR FLOW PATTERN** - Complete architectural redesign
 
 **Results Achieved**:
-- ✅ **Zero Infinite Loops**: Complete elimination of @router/@listen patterns
+- ✅ **Zero Infinite Loops**: Complete elimination of router/listen patterns
 - ✅ **Performance Excellence**: <30s execution time (vs >5min with loops)
 - ✅ **Memory Efficiency**: <100MB usage (vs >500MB with loops)
 - ✅ **CPU Optimization**: <30% utilization (vs 97.9% with loops)
@@ -728,7 +728,7 @@ fi
 - **Observer Pattern**: Real-time metrics feeding alerting system
 
 #### Phase 2: Linear Flow Implementation ✅ COMPLETED
-- **Sequential Execution**: Complete elimination of @router/@listen loops
+- **Sequential Execution**: Complete elimination of router/listen loops
 - **Execution Guards**: CPU, memory, time limits with automatic protection
 - **Thread-Safe Operations**: RLock protection for concurrent access
 - **Performance Optimization**: All production targets exceeded
@@ -772,6 +772,6 @@ make dev           # Start all services
 
 ---
 
-**🏆 FINAL ACHIEVEMENT**: Complete transformation from problematic @router/@listen patterns to production-ready Linear Flow architecture with enterprise monitoring, AI assistant integration, and container-first deployment. 
+**🏆 FINAL ACHIEVEMENT**: Complete transformation from problematic router/listen patterns to production-ready Linear Flow architecture with enterprise monitoring, AI assistant integration, and container-first deployment. 
 
 **STATUS**: **PRODUCTION READY** - All 7 phases completed successfully! 🎉

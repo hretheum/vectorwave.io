@@ -206,7 +206,7 @@ def test_human_approval_flow():
     print("🎉 All Human Approval Flow tests passed!")
     print("✅ Task 8.1 implementation is complete and functional")
     print("\nKey achievements:")
-    print("- Multiple review points with @listen decorators")
+    print("- Multiple review points with listen decorators")
     print("- Configurable review options per stage")
     print("- Timeout handling with default decisions")
     print("- UI Bridge integration ready")

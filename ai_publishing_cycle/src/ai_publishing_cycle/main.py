@@ -9,7 +9,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from crewai.flow import Flow, listen, start
+from crewai.flow import Flow, listen as flow_listen, start as flow_start
 
 # Import our crews - add parent project to path
 kolegium_path = Path(__file__).parents[3] / "ai_kolegium_redakcyjne/src"
@@ -50,7 +50,7 @@ class AIPublishingFlow(Flow[PublishingState]):
     2. Editorial Review - AI Kolegium analyzes and decides on content
     """
 
-    @start()
+    @flow_start()
     def normalize_content(self):
         """Phase 1: Normalize raw content from various sources"""
         print("\n" + "="*60)
@@ -97,7 +97,7 @@ class AIPublishingFlow(Flow[PublishingState]):
                 "timestamp": datetime.now().isoformat()
             }
 
-    @listen(normalize_content)
+    @flow_listen(normalize_content)
     def editorial_review(self):
         """Phase 2: Run AI Kolegium editorial review on normalized content"""
         print("\n" + "="*60)
@@ -145,7 +145,7 @@ class AIPublishingFlow(Flow[PublishingState]):
                 "timestamp": datetime.now().isoformat()
             }
 
-    @listen(editorial_review)
+    @flow_listen(editorial_review)
     def generate_pipeline_report(self):
         """Phase 3: Generate final pipeline report"""
         print("\n" + "="*60)

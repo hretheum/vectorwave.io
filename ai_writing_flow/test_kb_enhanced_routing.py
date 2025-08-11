@@ -251,7 +251,7 @@ def test_kb_enhanced_routing():
                     "source": "knowledge_base"
                 },
                 {
-                    "content": "@router decorator for conditional routing patterns",
+                    "content": "router decorator for conditional routing patterns",
                     "score": 0.85,
                     "source": "knowledge_base"
                 },

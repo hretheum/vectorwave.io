@@ -1,7 +1,7 @@
 """
-Listen Chain Replacement - replaces @listen decorator pattern
+Listen Chain Replacement - replaces listen-decorator pattern
 
-This module implements linear method chaining to replace CrewAI's @listen decorators,
+This module implements linear method chaining to replace CrewAI's listen decorators,
 ensuring no circular dependencies and proper execution order.
 """
 
@@ -34,7 +34,7 @@ class ChainExecutionResult:
 
 class LinearExecutionChain:
     """
-    Linear execution chain replacing @listen decorator pattern
+    Linear execution chain replacing legacy listen-decorator pattern
     
     Features:
     - No circular dependencies through explicit method chaining

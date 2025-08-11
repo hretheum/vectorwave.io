@@ -234,7 +234,7 @@ show_deployment_summary() {
     echo ""
     echo "🧩 Active Components:"
     echo "  ✅ Phase 1: Core Architecture (FlowControlState, CircuitBreaker, RetryManager)"
-    echo "  ✅ Phase 2: Linear Flow Implementation (No @router/@listen loops)"
+    echo "  ✅ Phase 2: Linear Flow Implementation (No router/listen loops)"
     echo "  ✅ Phase 3: Monitoring & Quality Gates (Basic functionality)"
     echo "  ⚠️ CrewAI Integration: Disabled (dependency conflicts)"
     

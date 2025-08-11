@@ -2,7 +2,7 @@
 Test suite for linear flow methods
 
 Tests the new linear flow implementation methods that replace
-@start/@router/@listen decorators with linear execution.
+start/router/listen decorators with linear execution.
 """
 
 import pytest

@@ -67,7 +67,7 @@ def test_viral_content_flow():
         return False
     
     # Test 3: Viral writing optimization
-    print("\n3️⃣ Testing viral writing optimization (@listen)...")
+    print("\n3️⃣ Testing viral writing optimization (listen)...")
     try:
         writing_result = flow.viral_writing_optimization(trend_result)
         

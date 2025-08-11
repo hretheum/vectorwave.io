@@ -46,7 +46,7 @@ class ContentAnalysisFlow(Flow[ContentAnalysisState]):
         
         return self.state
     
-    @router()
+    router()
     def route_by_ownership(self):
         """Router deciding which validation path to take"""
         if self.state.content_ownership == "ORIGINAL":
@@ -54,7 +54,7 @@ class ContentAnalysisFlow(Flow[ContentAnalysisState]):
         else:
             return "validate_sourced_content"
     
-    @listen("validate_original_content")
+    listen("validate_original_content")
     def validate_original_content(self):
         """Validation for original content (without source requirements)"""
         crew = Crew(
@@ -94,7 +94,7 @@ class ContentAnalysisFlow(Flow[ContentAnalysisState]):
         self.state.analysis_results["style_compliance"] = result
         return self.state
     
-    @listen("validate_sourced_content")
+    listen("validate_sourced_content")
     def validate_sourced_content(self):
         """Full validation including source verification"""
         crew = Crew(
@@ -134,7 +134,7 @@ class ContentAnalysisFlow(Flow[ContentAnalysisState]):
         self.state.analysis_results["style_compliance"] = result
         return self.state
     
-    @listen(["validate_original_content", "validate_sourced_content"])
+    listen(["validate_original_content", "validate_sourced_content"])
     def generate_final_report(self):
         """Common final step for both paths"""
         # Generowanie raportu końcowego

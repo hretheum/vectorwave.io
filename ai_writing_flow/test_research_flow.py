@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test Research Flow with @listen handlers - Task 5.2"""
+"""Test Research Flow with listen handlers - Task 5.2"""
 
 import sys
 sys.path.append('src')
@@ -10,7 +10,7 @@ from ai_writing_flow.models import ContentAnalysisResult
 def test_research_flow():
     """Test Research Flow with conditional routing"""
     
-    print("🧪 Testing Research Flow - Task 5.2: @listen handlers")
+    print("🧪 Testing Research Flow - Task 5.2: listen handlers")
     print("=" * 60)
     
     # Test 1: Flow initialization
@@ -54,7 +54,7 @@ def test_research_flow():
         return False
     
     # Test 3: Router logic
-    print("\n3️⃣ Testing @router decorator (content type routing)...")
+    print("\n3️⃣ Testing router decorator (content type routing)...")
     try:
         # Test different content types
         test_cases = [
@@ -76,8 +76,8 @@ def test_research_flow():
         print(f"❌ Router testing failed: {e}")
         return False
     
-    # Test 4: @listen handlers for different research types
-    print("\n4️⃣ Testing @listen handlers for research paths...")
+    # Test 4: listen handlers for different research types
+    print("\n4️⃣ Testing listen handlers for research paths...")
     
     # Test deep research
     try:
@@ -206,8 +206,8 @@ def test_research_flow():
     print("✅ Task 5.2 implementation is complete and functional")
     print("\nKey achievements:")
     print("- @start decorator for content analysis")
-    print("- @router decorator for content type routing")
-    print("- @listen handlers for different research paths")
+    print("- router decorator for content type routing")
+    print("- listen handlers for different research paths")
     print("- State management throughout flow execution")
     print("- Conditional branching based on content type")
     print("- Integration with Research Agent")

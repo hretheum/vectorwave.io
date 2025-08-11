@@ -929,7 +929,7 @@
        consensus_type: str = "majority"
        timeout_minutes: int = 5
    
-   @router.post("/workflows/execute")
+   router.post("/workflows/execute")
    @inject
    async def execute_workflow(
        request: WorkflowRequest,
@@ -971,7 +971,7 @@
        except Exception as e:
            raise HTTPException(status_code=500, detail=str(e))
            
-   @router.post("/consensus/request")
+   router.post("/consensus/request")
    @inject
    async def request_consensus(
        request: ConsensusRequest,
@@ -997,7 +997,7 @@
        except Exception as e:
            raise HTTPException(status_code=500, detail=str(e))
            
-   @router.get("/workflows/templates")
+   router.get("/workflows/templates")
    async def list_workflow_templates():
        """List available workflow templates"""
        
@@ -1018,7 +1018,7 @@
            ]
        }
            
-   @router.get("/workflows/{workflow_id}/status")
+   router.get("/workflows/{workflow_id}/status")
    @inject
    async def get_workflow_status(
        workflow_id: UUID,

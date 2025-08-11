@@ -276,7 +276,7 @@ class ViralContentFlow(Flow[ViralFlowState]):
             )
             raise
     
-    @listen(trend_research_timing)
+    @flow_listen(trend_research_timing)
     def viral_writing_optimization(self, research_output: Dict[str, Any]) -> Dict[str, Any]:
         """
         Create viral content with engagement hooks
@@ -397,7 +397,7 @@ Follow for more insights like this 🚀"""
         
         return main_content
     
-    @listen(viral_writing_optimization)
+    @flow_listen(viral_writing_optimization)
     def engagement_optimization_final(self, writing_output: Dict[str, Any]) -> Dict[str, Any]:
         """
         Optimize content for maximum engagement

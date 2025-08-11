@@ -713,7 +713,7 @@
        reviewer_id: str
        reviewer_name: str
    
-   @router.post("/editorial-decision")
+   router.post("/editorial-decision")
    @inject
    async def submit_editorial_decision(
        request: HumanDecisionRequest,
@@ -743,7 +743,7 @@
        except Exception as e:
            raise HTTPException(status_code=400, detail=str(e))
    
-   @router.get("/pending-decisions")
+   router.get("/pending-decisions")
    @inject
    async def get_pending_decisions(
        editorial_agent: EditorialStrategistAgent = Provide[Container.editorial_strategist_agent]

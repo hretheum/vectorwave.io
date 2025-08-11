@@ -853,7 +853,7 @@
    class ValidateAgentRequest(BaseModel):
        description: str
        
-   @router.post("/create-from-description")
+   router.post("/create-from-description")
    @inject
    async def create_agent_from_description(
        request: CreateAgentRequest,
@@ -921,7 +921,7 @@
        except Exception as e:
            raise HTTPException(status_code=500, detail=str(e))
            
-   @router.post("/validate-description")
+   router.post("/validate-description")
    @inject
    async def validate_agent_description(
        request: ValidateAgentRequest,
@@ -2151,7 +2151,7 @@
    
    router = APIRouter(prefix="/api/agents", tags=["agent-management"])
    
-   @router.get("/")
+   router.get("/")
    @inject
    async def list_agents(
        status: Optional[str] = None,
@@ -2166,7 +2166,7 @@
            "agents": agents
        }
        
-   @router.get("/{agent_id}")
+   router.get("/{agent_id}")
    @inject
    async def get_agent_status(
        agent_id: UUID,
@@ -2180,7 +2180,7 @@
            
        return status
        
-   @router.post("/{agent_id}/pause")
+   router.post("/{agent_id}/pause")
    @inject
    async def pause_agent(
        agent_id: UUID,
@@ -2190,7 +2190,7 @@
        await lifecycle_manager.pause_agent(agent_id)
        return {"status": "paused", "agent_id": str(agent_id)}
        
-   @router.post("/{agent_id}/resume")
+   router.post("/{agent_id}/resume")
    @inject
    async def resume_agent(
        agent_id: UUID,
@@ -2200,7 +2200,7 @@
        await lifecycle_manager.resume_agent(agent_id)
        return {"status": "resumed", "agent_id": str(agent_id)}
        
-   @router.delete("/{agent_id}")
+   router.delete("/{agent_id}")
    @inject
    async def stop_agent(
        agent_id: UUID,
@@ -2210,7 +2210,7 @@
        await lifecycle_manager.stop_agent(agent_id)
        return {"status": "stopped", "agent_id": str(agent_id)}
        
-   @router.get("/metrics/summary")
+   router.get("/metrics/summary")
    @inject
    async def get_metrics_summary(
        lifecycle_manager: AgentLifecycleManager = Provide[Container.lifecycle_manager]
@@ -2241,7 +2241,7 @@
            }
        }
        
-   @router.post("/scaling/policy")
+   router.post("/scaling/policy")
    @inject
    async def set_scaling_policy(
        agent_type: str,
@@ -2252,7 +2252,7 @@
        autoscaling_manager.set_scaling_policy(agent_type, policy)
        return {"status": "policy_set", "agent_type": agent_type}
        
-   @router.post("/scaling/evaluate")
+   router.post("/scaling/evaluate")
    @inject
    async def evaluate_scaling(
        autoscaling_manager: AutoScalingManager = Provide[Container.autoscaling_manager]

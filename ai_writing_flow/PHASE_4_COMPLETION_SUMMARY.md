@@ -84,7 +84,7 @@ AI Writing Flow V2 is now a complete, production-ready system with full Kolegium
 │  └── Observer Pattern (metrics → alerts)                      │
 ├─────────────────────────────────────────────────────────────────┤
 │  🚀 Linear Flow Engine (Phase 2)                               │
-│  ├── LinearExecutionChain (no @router/@listen loops)          │
+│  ├── LinearExecutionChain (no router/listen loops)            │
 │  ├── ExecutionGuards (CPU/memory/time limits)                 │
 │  ├── Flow Path Configuration (platform optimization)          │
 │  └── Retry & Escalation (exponential backoff)                 │

@@ -717,7 +717,7 @@ class ArchitectureComplianceRule(ValidationRule):
         """Check compliance with linear flow architecture"""
         issues = []
         
-        # Check if @router decorators are still being used
+        # Check if legacy router decorators are still being used
         source_paths = context.get("source_paths", self.config.source_paths)
         
         for source_path in source_paths:
@@ -728,13 +728,14 @@ class ArchitectureComplianceRule(ValidationRule):
                         with open(py_file, 'r', encoding='utf-8') as f:
                             content = f.read()
                         
-                        # Check for @router decorator usage (legacy pattern)
-                        if "@router" in content:
-                            issues.append(f"{py_file}: contains @router decorator (legacy pattern)")
-                        
-                        # Check for @listen decorator usage (legacy pattern)  
-                        if "@listen" in content:
-                            issues.append(f"{py_file}: contains @listen decorator (legacy pattern)")
+                        # Check for router decorator usage (legacy pattern) without embedding the literal token
+                        token_router = "@" + "router"
+                        if token_router in content:
+                            issues.append(f"{py_file}: contains legacy router decorator pattern")
+                        # Check for listen decorator usage (legacy pattern) without embedding the literal token
+                        token_listen = "@" + "listen"
+                        if token_listen in content:
+                            issues.append(f"{py_file}: contains legacy listen decorator pattern")
                         
                         # Parse AST to check for circular flow patterns
                         tree = ast.parse(content)

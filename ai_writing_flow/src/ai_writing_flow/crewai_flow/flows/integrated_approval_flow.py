@@ -10,7 +10,7 @@ import asyncio
 import structlog
 from typing import Dict, Any, Optional, List, Callable
 from pydantic import BaseModel, Field
-from crewai.flow.flow import Flow, start, listen, router
+from crewai.flow.flow import Flow, start as flow_start, listen as flow_listen, router as flow_router
 
 from .human_approval_flow import HumanApprovalFlow, ReviewDecision, HumanReviewPoint
 from .feedback_processing_flow import FeedbackProcessingFlow, FeedbackAction
@@ -155,7 +155,7 @@ class IntegratedApprovalFlow(Flow[IntegratedApprovalState]):
             review_points=self.state.pattern_config.review_points
         )
     
-    @start()
+    @flow_start()
     def execute_approval_pattern(self, content_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute the configured approval pattern
@@ -206,7 +206,7 @@ class IntegratedApprovalFlow(Flow[IntegratedApprovalState]):
             "max_time": self.state.pattern_config.max_total_time
         }
     
-    @listen(execute_approval_pattern)
+    @flow_listen(execute_approval_pattern)
     def process_review_sequence(self, pattern_output: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process the sequence of reviews based on pattern
@@ -421,7 +421,7 @@ class IntegratedApprovalFlow(Flow[IntegratedApprovalState]):
             "action": feedback_result.get('action')
         }
     
-    @router(process_review_sequence)
+    @flow_router(process_review_sequence)
     def route_final_decision(self, sequence_result: Dict[str, Any]) -> str:
         """
         Route based on final approval status
@@ -438,7 +438,7 @@ class IntegratedApprovalFlow(Flow[IntegratedApprovalState]):
         else:
             return 'approved'
     
-    @listen("approved")
+    @flow_listen("approved")
     def handle_approval(self) -> Dict[str, Any]:
         """Handle approved content"""
         return {
@@ -449,7 +449,7 @@ class IntegratedApprovalFlow(Flow[IntegratedApprovalState]):
             "total_time": self.state.total_elapsed_time
         }
     
-    @listen("rejected")
+    @flow_listen("rejected")
     def handle_rejection(self) -> Dict[str, Any]:
         """Handle rejected content"""
         return {
@@ -460,7 +460,7 @@ class IntegratedApprovalFlow(Flow[IntegratedApprovalState]):
             "total_time": self.state.total_elapsed_time
         }
     
-    @listen("timeout")
+    @flow_listen("timeout")
     def handle_timeout(self) -> Dict[str, Any]:
         """Handle timeout scenario"""
         return {

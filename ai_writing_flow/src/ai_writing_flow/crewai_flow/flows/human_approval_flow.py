@@ -2,7 +2,7 @@
 Human Approval Flow - Task 8.1
 
 Implements human review integration at key decision points
-with @listen decorators for approval workflows.
+with listen decorators for approval workflows.
 """
 
 import time
@@ -13,7 +13,7 @@ import structlog
 from typing import Dict, Any, Optional, List
 from enum import Enum
 from pydantic import BaseModel, Field
-from crewai.flow.flow import Flow, start, listen, router
+from crewai.flow.flow import Flow, start as flow_start, listen as flow_listen, router as flow_router
 
 from ...models import (
     HumanFeedbackDecision,
@@ -157,7 +157,7 @@ class HumanApprovalFlow(Flow[HumanApprovalState]):
             config=self.config
         )
     
-    @listen("draft_completion")
+    @flow_listen("draft_completion")
     def review_draft_completion(self, draft_output: Dict[str, Any]) -> Dict[str, Any]:
         """
         Human review point after draft generation
@@ -178,7 +178,7 @@ class HumanApprovalFlow(Flow[HumanApprovalState]):
             }
         )
     
-    @listen("quality_gate")
+    @flow_listen("quality_gate")
     def review_quality_gate(self, quality_output: Dict[str, Any]) -> Dict[str, Any]:
         """
         Human review at final quality gate
@@ -215,7 +215,7 @@ class HumanApprovalFlow(Flow[HumanApprovalState]):
             }
         )
     
-    @listen("topic_viability")
+    @flow_listen("topic_viability")
     def review_topic_viability(self, viability_output: Dict[str, Any]) -> Dict[str, Any]:
         """
         Human review for low-viability topics
@@ -236,7 +236,7 @@ class HumanApprovalFlow(Flow[HumanApprovalState]):
             }
         )
     
-    @listen("routing_override")
+    @flow_listen("routing_override")
     def review_routing_decision(self, routing_output: Dict[str, Any]) -> Dict[str, Any]:
         """
         Human override for routing decisions

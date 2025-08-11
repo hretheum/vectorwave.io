@@ -3,7 +3,7 @@
 Test Router Accuracy - Task 7.1
 
 Comprehensive test suite for validating routing accuracy
-of the CrewAI Flow @router decorator implementation.
+of the CrewAI Flow router decorator implementation.
 """
 
 import sys

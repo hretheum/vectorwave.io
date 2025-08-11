@@ -57,7 +57,7 @@ def test_standard_content_flow():
         return False
     
     # Test 3: Audience analysis
-    print("\n3️⃣ Testing audience analysis (@listen)...")
+    print("\n3️⃣ Testing audience analysis (listen)...")
     try:
         audience_result = flow.audience_analysis(research_result)
         

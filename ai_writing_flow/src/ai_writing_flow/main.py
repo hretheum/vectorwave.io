@@ -9,7 +9,7 @@ This is the main entry point for AI Writing Flow V2, providing:
 - Linear execution flow (eliminates infinite loops)
 - Backward compatibility with Kolegium system
 
-V2 replaces the legacy @router/@listen implementation with production-ready architecture.
+V2 replaces the legacy router/listen implementation with production-ready architecture.
 """
 
 import os

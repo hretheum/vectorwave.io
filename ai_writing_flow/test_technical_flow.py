@@ -61,7 +61,7 @@ def test_technical_content_flow():
         return False
     
     # Test 3: Code validation
-    print("\n3️⃣ Testing code validation (@listen)...")
+    print("\n3️⃣ Testing code validation (listen)...")
     try:
         # Simulate listener execution
         validation_result = flow.validate_code_examples(research_result)

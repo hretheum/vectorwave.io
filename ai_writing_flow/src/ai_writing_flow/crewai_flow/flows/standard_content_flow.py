@@ -9,7 +9,7 @@ import time
 import structlog
 from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field
-from crewai.flow.flow import Flow, start, listen
+from crewai.flow.flow import Flow, start as flow_start, listen as flow_listen
 
 from ...models import (
     ContentAnalysisResult,
@@ -102,7 +102,7 @@ class StandardContentFlow(Flow[StandardFlowState]):
             config=self.config
         )
     
-    @start()
+    @flow_start()
     def comprehensive_research(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """
         Entry point: Conduct comprehensive research
@@ -248,7 +248,7 @@ class StandardContentFlow(Flow[StandardFlowState]):
             )
             raise
     
-    @listen(comprehensive_research)
+    @flow_listen(comprehensive_research)
     def audience_analysis(self, research_output: Dict[str, Any]) -> Dict[str, Any]:
         """
         Analyze target audience based on research
@@ -320,7 +320,7 @@ class StandardContentFlow(Flow[StandardFlowState]):
             )
             raise
     
-    @listen(audience_analysis)
+    @flow_listen(audience_analysis)
     def structured_writing(self, audience_output: Dict[str, Any]) -> Dict[str, Any]:
         """
         Create structured content based on audience needs
@@ -391,7 +391,7 @@ class StandardContentFlow(Flow[StandardFlowState]):
             )
             raise
     
-    @listen(structured_writing)
+    @flow_listen(structured_writing)
     def style_optimization(self, writing_output: Dict[str, Any]) -> Dict[str, Any]:
         """
         Optimize content style for target audience
@@ -457,7 +457,7 @@ class StandardContentFlow(Flow[StandardFlowState]):
             )
             raise
     
-    @listen(style_optimization)
+    @flow_listen(style_optimization)
     def quality_review_final(self, style_output: Dict[str, Any]) -> Dict[str, Any]:
         """
         Final quality review and polish

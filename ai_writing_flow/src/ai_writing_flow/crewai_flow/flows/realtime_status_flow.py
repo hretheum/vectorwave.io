@@ -11,7 +11,7 @@ import structlog
 from typing import Dict, Any, Optional, List, Callable
 from enum import Enum
 from pydantic import BaseModel, Field
-from crewai.flow.flow import Flow, start, listen
+from crewai.flow.flow import Flow, start as flow_start, listen as flow_listen
 
 from ...utils.ui_bridge_v2 import UIBridgeV2
 from ..persistence import get_state_manager
@@ -133,7 +133,7 @@ class RealtimeStatusFlow(Flow[RealtimeStatusState]):
                     message=f"Waiting for {stage.value.replace('_', ' ')}"
                 )
     
-    @start()
+    @flow_start()
     def start_with_status_tracking(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """
         Start flow with real-time status tracking
@@ -187,7 +187,7 @@ class RealtimeStatusFlow(Flow[RealtimeStatusState]):
             "update_frequency_ms": self.state.update_frequency_ms
         }
     
-    @listen(start_with_status_tracking)
+    @flow_listen(start_with_status_tracking)
     def execute_with_detailed_status(self, init_result: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute flow with detailed status updates

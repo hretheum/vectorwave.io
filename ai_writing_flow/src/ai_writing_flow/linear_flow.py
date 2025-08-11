@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Linear AI Writing Flow - Production-ready replacement for CrewAI @router/@listen patterns
+Linear AI Writing Flow - Production-ready replacement for CrewAI router/listen patterns
 
 This module implements a linear execution flow that eliminates circular dependencies
 and integrates with Phase 1 core architecture components.
@@ -49,7 +49,6 @@ except ImportError:
         feedback_text: str = ""
         feedback_type: str = ""
 from ai_writing_flow.crews.writing_crew import WritingCrew
-from ai_writing_flow.tools.styleguide_loader import load_styleguide_context
 from ai_writing_flow.utils.ui_bridge import UIBridge
 
 # Load environment variables
@@ -166,7 +165,7 @@ class LinearFlowStateAdapter:
 
 class LinearAIWritingFlow:
     """
-    Linear execution flow replacing CrewAI @router/@listen patterns
+    Linear execution flow replacing CrewAI router/listen patterns
     
     Features:
     - Zero circular dependencies
@@ -200,7 +199,6 @@ class LinearAIWritingFlow:
         # Legacy components for compatibility
         self.crew = WritingCrew()
         self.ui_bridge = UIBridge()
-        self.styleguide_context = load_styleguide_context()
         
         # State management
         self.state_adapter = LinearFlowStateAdapter(self.flow_state)
@@ -605,7 +603,7 @@ class LinearAIWritingFlow:
         """
         Execute the complete linear flow using LinearExecutionChain - Task 15.2
         
-        This replaces the old @listen decorator pattern with explicit method chaining.
+        This replaces the old listen decorator pattern with explicit method chaining.
         
         Returns:
             ChainExecutionResult with final execution status

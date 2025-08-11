@@ -11,7 +11,7 @@ Po analizie dokumentacji CrewAI, **Flows** są znacznie lepszym wyborem dla nasz
 | **Kontrola** | Autonomiczne agenty | Deterministyczna egzekucja |
 | **Decision Making** | Open-ended | Strukturalne drzewa decyzyjne |
 | **Stan** | Ograniczony | Pełne zarządzanie stanem |
-| **Routing** | Brak | Conditional routing z @router |
+| **Routing** | Brak | Conditional routing z router |
 | **Audytowalność** | Podstawowa | Pełna ścieżka decyzyjna |
 
 ## 🏗️ Architektura Editorial Flow
@@ -63,7 +63,7 @@ class EditorialDecisionFlow(Flow[EditorialState]):
         
         return {"topics": topics}
     
-    @listen(discover_content)
+listen(discover_content)
     async def analyze_viral_potential(self, topics: Dict) -> float:
         """Analiza potencjału viralowego"""
         score = await self.trend_analyst.analyze(self.state.content)
@@ -76,7 +76,7 @@ class EditorialDecisionFlow(Flow[EditorialState]):
         
         return score
     
-    @router(analyze_viral_potential)
+router(analyze_viral_potential)
     async def route_by_viral_score(self, score: float) -> str:
         """Routing bazujący na viral score"""
         if score < 0.3:
@@ -87,7 +87,7 @@ class EditorialDecisionFlow(Flow[EditorialState]):
         else:
             return "standard_review"
     
-    @listen("reject")
+listen("reject")
     async def reject_content(self) -> None:
         """Odrzucenie treści"""
         self.state.editorial_decision = "rejected"
@@ -97,7 +97,7 @@ class EditorialDecisionFlow(Flow[EditorialState]):
             "reason": self.state.rejection_reason
         })
     
-    @listen("fast_track")
+listen("fast_track")
     async def fast_track_review(self) -> None:
         """Szybka ścieżka dla wysokiego potencjału"""
         # Tylko podstawowe sprawdzenie kontrowersji
@@ -111,7 +111,7 @@ class EditorialDecisionFlow(Flow[EditorialState]):
         self.state.editorial_decision = "approved"
         await self.publish_content()
     
-    @listen("standard_review")
+listen("standard_review")
     async def standard_review_process(self) -> Dict[str, float]:
         """Standardowy proces review"""
         # Pełna analiza kontrowersji i jakości
@@ -123,7 +123,7 @@ class EditorialDecisionFlow(Flow[EditorialState]):
         
         return {"controversy": controversy, "quality": quality}
     
-    @router(standard_review_process)
+router(standard_review_process)
     async def route_by_review_results(self, results: Dict) -> str:
         """Routing po standardowym review"""
         if results["quality"] < 0.5:
@@ -134,7 +134,7 @@ class EditorialDecisionFlow(Flow[EditorialState]):
         else:
             return "approve"
     
-    @listen("human_review")
+listen("human_review")
     async def request_human_review(self) -> None:
         """Żądanie ludzkiej interwencji"""
         self.state.human_review_required = True
@@ -151,7 +151,7 @@ class EditorialDecisionFlow(Flow[EditorialState]):
         human_decision = await self.wait_for_human_input()
         self.state.editorial_decision = human_decision
     
-    @listen("approve")
+listen("approve")
     async def approve_and_publish(self) -> None:
         """Zatwierdzenie i publikacja"""
         self.state.editorial_decision = "approved"
@@ -192,7 +192,7 @@ class HumanReviewFlow(Flow[EditorialState]):
             }
         })
     
-    @listen(present_for_review)
+    listen(present_for_review)
     async def await_decision(self) -> str:
         """Czekanie na decyzję redaktora"""
         # Timeout 5 minut
@@ -204,7 +204,7 @@ class HumanReviewFlow(Flow[EditorialState]):
         
         return decision["action"]  # "approve", "reject", "modify"
     
-    @router(await_decision)
+    router(await_decision)
     async def process_human_decision(self, action: str) -> str:
         """Przetworzenie decyzji człowieka"""
         if action == "approve":
@@ -214,7 +214,7 @@ class HumanReviewFlow(Flow[EditorialState]):
         elif action == "modify":
             return "edit"
     
-    @listen("edit")
+    listen("edit")
     async def handle_modifications(self) -> None:
         """Obsługa modyfikacji przez redaktora"""
         modifications = await self.get_modifications()
@@ -237,7 +237,7 @@ class BatchEditorialFlow(Flow):
         topics = await self.content_scout.discover_batch(limit=50)
         return topics
     
-    @listen(load_content_batch)
+    listen(load_content_batch)
     async def parallel_analysis(self, topics: List[Dict]) -> Dict[str, Any]:
         """Równoległa analiza wielu treści"""
         # CrewAI Flows wspierają równoległe wykonanie
@@ -252,7 +252,7 @@ class BatchEditorialFlow(Flow):
             "human_review": sum(1 for r in results if r["requires_human"])
         }
     
-    @router(parallel_analysis)
+    router(parallel_analysis)
     async def route_batch_results(self, results: Dict) -> str:
         """Routing na podstawie wyników batcha"""
         if results["human_review"] > 5:

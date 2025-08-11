@@ -1,5 +1,5 @@
 """
-Linear Draft Generation Execution - replaces @listen("generate_draft")
+Linear Draft Generation Execution - replaces listen("generate_draft") pattern
 
 This module implements draft generation stage execution without circular dependencies,
 with human review checkpoint and draft versioning.
@@ -47,7 +47,7 @@ class HumanReviewCheckpoint:
 
 class LinearDraftExecutor:
     """
-    Linear draft generation execution replacing @listen("generate_draft")
+    Linear draft generation execution replacing legacy listen("generate_draft") pattern
     
     Features:
     - No circular dependencies or loops
@@ -418,7 +418,7 @@ class LinearDraftExecutor:
             
             logger.info(f"🎯 Executing CrewAI Flow: {flow_inputs['topic_title']} for {flow_inputs['platform']}")
             
-            # Execute prawdziwy CrewAI Flow z @start, @listen decorators
+            # Execute real CrewAI Flow with start/listen decorators (legacy nomenclature)
             # To uruchomi cały pipeline: research → audience → writing → style → quality
             result = content_flow.kickoff(inputs=flow_inputs)
             

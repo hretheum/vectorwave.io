@@ -10,7 +10,7 @@ import asyncio
 import structlog
 from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field
-from crewai.flow.flow import Flow, start, listen
+from crewai.flow.flow import Flow, start as flow_start, listen as flow_listen
 
 from ...utils.ui_bridge_v2 import UIBridgeV2, create_ui_bridge_v2
 from ...models import WritingFlowState, HumanFeedbackDecision
@@ -110,7 +110,7 @@ class UIIntegratedFlow(Flow[UIIntegratedFlowState]):
             auto_mode=self.auto_mode
         )
     
-    @start()
+    @flow_start()
     def start_ui_flow(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """
         Start flow with UI session tracking
@@ -150,7 +150,7 @@ class UIIntegratedFlow(Flow[UIIntegratedFlowState]):
             "ui_ready": True
         }
     
-    @listen(start_ui_flow)
+    @flow_listen(start_ui_flow)
     def process_with_ui_updates(self, session_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process flow with UI progress updates

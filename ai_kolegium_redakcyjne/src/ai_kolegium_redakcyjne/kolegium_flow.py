@@ -2,7 +2,7 @@
 CrewAI Flow implementation for AI Kolegium Redakcyjne with conditional logic
 """
 
-from crewai.flow.flow import Flow, listen, start, router
+from crewai.flow.flow import Flow, listen as flow_listen, start as flow_start, router as flow_router
 try:
     from crewai.flow.flow import or_
 except ImportError:
@@ -126,7 +126,7 @@ class KolegiumEditorialFlow(Flow[EditorialState]):
             }
         }
     
-    @start()
+    @flow_start()
     def analyze_content_ownership(self):
         """Initial step: Analyze content to determine type and ownership"""
         logger.info(f"🔍 Analyzing content in: {self.state.folder_path}")
@@ -175,7 +175,7 @@ class KolegiumEditorialFlow(Flow[EditorialState]):
         pattern = re.compile(r'\d+[-_]')
         return sum(1 for f in files if pattern.match(f)) > len(files) * 0.7
     
-    @router(analyze_content_ownership)
+    @flow_router(analyze_content_ownership)
     def route_by_content_ownership(self):
         """Route to appropriate validation based on content ownership"""
         if self.state.content_ownership == "ORIGINAL":
@@ -185,7 +185,7 @@ class KolegiumEditorialFlow(Flow[EditorialState]):
             logger.info("➡️ Routing to EXTERNAL content validation (full source checking)")
             return "validate_external_content"
     
-    @listen("validate_original_content")
+    @flow_listen("validate_original_content")
     def validate_original_content(self):
         """Validation path for original content (without source verification)"""
         logger.info("🎨 Validating ORIGINAL content...")
@@ -256,7 +256,7 @@ class KolegiumEditorialFlow(Flow[EditorialState]):
         # Go to final report
         return self._generate_final_report()
     
-    @listen("validate_external_content")
+    @flow_listen("validate_external_content")
     def validate_external_content(self):
         """Full validation path for external/sourced content"""
         logger.info("📚 Validating EXTERNAL content with source verification...")

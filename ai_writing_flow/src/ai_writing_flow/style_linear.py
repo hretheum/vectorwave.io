@@ -201,94 +201,10 @@ class LinearStyleExecutor:
         # Mock style validation (replace with actual style engine)
         draft_content = writing_state.current_draft.lower()
         
-        # Platform-specific style rules
+        # Externalized validation only: no hardcoded rules here.
         violations = []
         forbidden_phrases = []
         suggestions = []
-        
-        if writing_state.platform == "LinkedIn":
-            # LinkedIn style rules
-            if len(writing_state.current_draft) > 3000:
-                violations.append({
-                    "type": "length_violation",
-                    "message": "LinkedIn posts should be under 3000 characters",
-                    "severity": "warning"
-                })
-            
-            if not any(hashtag in draft_content for hashtag in ["#", "hashtag"]):
-                suggestions.append("Consider adding relevant hashtags for LinkedIn visibility")
-            
-            # Forbidden phrases for LinkedIn
-            linkedin_forbidden = ["click here", "buy now", "limited offer"]
-            for phrase in linkedin_forbidden:
-                if phrase in draft_content:
-                    forbidden_phrases.append(phrase)
-                    violations.append({
-                        "type": "forbidden_phrase",
-                        "message": f"Phrase '{phrase}' not recommended for LinkedIn",
-                        "severity": "error"
-                    })
-        
-        elif writing_state.platform == "Twitter":
-            # Twitter style rules
-            if len(writing_state.current_draft) > 280:
-                violations.append({
-                    "type": "length_violation", 
-                    "message": "Individual tweets should be under 280 characters",
-                    "severity": "error"
-                })
-            
-            if "thread" not in draft_content and len(writing_state.current_draft) > 200:
-                suggestions.append("Consider breaking into a thread for better readability")
-            
-            # Twitter forbidden phrases
-            twitter_forbidden = ["follow me", "retweet if"]
-            for phrase in twitter_forbidden:
-                if phrase in draft_content:
-                    forbidden_phrases.append(phrase)
-                    violations.append({
-                        "type": "forbidden_phrase",
-                        "message": f"Phrase '{phrase}' may reduce organic reach",
-                        "severity": "warning"
-                    })
-        
-        elif writing_state.platform == "Blog":
-            # Blog style rules
-            if len(writing_state.current_draft) < 300:
-                violations.append({
-                    "type": "length_violation",
-                    "message": "Blog posts should be at least 300 words for SEO",
-                    "severity": "warning"
-                })
-            
-            if "## " not in writing_state.current_draft:
-                suggestions.append("Consider adding subheadings (##) for better structure")
-            
-            # Blog forbidden phrases
-            blog_forbidden = ["click bait", "you won't believe"]
-            for phrase in blog_forbidden:
-                if phrase in draft_content:
-                    forbidden_phrases.append(phrase)
-                    violations.append({
-                        "type": "forbidden_phrase",
-                        "message": f"Phrase '{phrase}' may be considered clickbait",
-                        "severity": "error"
-                    })
-        
-        # Common style issues
-        if "!!!" in draft_content:
-            violations.append({
-                "type": "style_violation",
-                "message": "Avoid excessive exclamation marks",
-                "severity": "warning"
-            })
-        
-        if draft_content.count("amazing") > 2:
-            violations.append({
-                "type": "overuse_violation",
-                "message": "Word 'amazing' overused - consider alternatives",
-                "severity": "warning"
-            })
         
         # Calculate compliance score
         error_count = len([v for v in violations if v["severity"] == "error"])

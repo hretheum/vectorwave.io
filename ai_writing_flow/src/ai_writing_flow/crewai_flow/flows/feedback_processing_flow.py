@@ -10,7 +10,7 @@ import structlog
 from typing import Dict, Any, Optional, List, Callable
 from enum import Enum
 from pydantic import BaseModel, Field
-from crewai.flow.flow import Flow, start, listen, router
+from crewai.flow.flow import Flow, start as flow_start, listen as flow_listen, router as flow_router
 
 from ...models import WritingFlowState
 from ..flows.research_flow import ResearchFlow
@@ -113,7 +113,7 @@ class FeedbackProcessingFlow(Flow[FeedbackProcessingState]):
             max_revisions=self.state.max_revisions
         )
     
-    @start()
+    @flow_start()
     def process_feedback_decision(self, feedback_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Entry point: Process human feedback decision
@@ -175,7 +175,7 @@ class FeedbackProcessingFlow(Flow[FeedbackProcessingState]):
             "processing_time": self.state.feedback_processing_time
         }
     
-    @router(process_feedback_decision)
+    @flow_router(process_feedback_decision)
     def route_by_action(self, processing_output: Dict[str, Any]) -> str:
         """
         Route based on processing action
@@ -193,7 +193,7 @@ class FeedbackProcessingFlow(Flow[FeedbackProcessingState]):
         
         return action
     
-    @listen("continue")
+    @flow_listen("continue")
     def handle_continue(self) -> Dict[str, Any]:
         """
         Handle approval - continue with current flow
@@ -214,7 +214,7 @@ class FeedbackProcessingFlow(Flow[FeedbackProcessingState]):
             "feedback_applied": False
         }
     
-    @listen("revise")
+    @flow_listen("revise")
     def handle_revision(self) -> Dict[str, Any]:
         """
         Handle revision request - re-run current stage
@@ -278,7 +278,7 @@ class FeedbackProcessingFlow(Flow[FeedbackProcessingState]):
             "feedback_applied": True
         }
     
-    @listen("edit")
+    @flow_listen("edit")
     def handle_edit(self) -> Dict[str, Any]:
         """
         Handle edit request - apply edits and continue
@@ -316,7 +316,7 @@ class FeedbackProcessingFlow(Flow[FeedbackProcessingState]):
         
         return edit_result
     
-    @listen("redirect")
+    @flow_listen("redirect")
     def handle_redirect(self) -> Dict[str, Any]:
         """
         Handle redirect request - change flow path
@@ -365,7 +365,7 @@ class FeedbackProcessingFlow(Flow[FeedbackProcessingState]):
             "feedback_applied": True
         }
     
-    @listen("terminate")
+    @flow_listen("terminate")
     def handle_termination(self) -> Dict[str, Any]:
         """
         Handle termination request

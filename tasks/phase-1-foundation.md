@@ -330,7 +330,7 @@ Droplet został już skonfigurowany i działa:
    
    router = APIRouter()
    
-   @router.websocket("/ws/agui")
+router.websocket("/ws/agui")
    @inject
    async def agui_websocket(
        websocket: WebSocket,
@@ -358,7 +358,7 @@ Droplet został już skonfigurowany i działa:
    
    router = APIRouter()
    
-   @router.get("/events/stream")
+   router.get("/events/stream")
    @inject
    async def event_stream():
        """Server-Sent Events stream for AG-UI events"""

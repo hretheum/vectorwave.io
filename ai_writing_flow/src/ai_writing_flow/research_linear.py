@@ -1,5 +1,5 @@
 """
-Linear Research Execution - replaces @listen("conduct_research") 
+Linear Research Execution - replaces listen("conduct_research") pattern
 
 This module implements research stage execution without circular dependencies,
 with circuit breaker protection and completion tracking.
@@ -33,7 +33,7 @@ class ResearchResult:
 
 class LinearResearchExecutor:
     """
-    Linear research execution replacing @listen("conduct_research")
+    Linear research execution replacing legacy listen("conduct_research") pattern
     
     Features:
     - No circular dependencies

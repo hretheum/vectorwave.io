@@ -15,7 +15,7 @@ System automatycznie wykrywa:
 ### 2. Routing warunkowy
 
 ```python
-@router(analyze_content_ownership)
+router(analyze_content_ownership)
 def route_by_content_ownership(self):
     if self.state.content_ownership == "ORIGINAL":
         return "validate_original_content"

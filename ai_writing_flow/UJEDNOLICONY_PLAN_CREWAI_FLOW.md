@@ -12,7 +12,7 @@ Implementacja pełnowymiarowego **CrewAI Flow** zgodnego z AI_WRITING_FLOW_DIAGR
 
 ### Current State vs Target State
 - **CURRENT**: Linear Flow z doskonałą infrastrukturą (monitoring, alerting, circuit breakers) ale bez CrewAI Flow business logic
-- **TARGET**: Full CrewAI Flow z @router/@listen decorators, conditional branching, Knowledge Base decision support
+- **TARGET**: Full CrewAI Flow z router/listen decorators, conditional branching, Knowledge Base decision support
 
 ### Success Metrics
 - ✅ CrewAI Flow completion rate >95%
@@ -42,7 +42,7 @@ class AIWritingCrewFlow(Flow):
         self.setup_flow_routes()               # 🆕 Add
         self.setup_agents()                    # 🆕 Add
     
-    @start
+    start
     def content_analysis_start(self):
         return Task(
             description="Analyze content and determine flow path",
@@ -50,7 +50,7 @@ class AIWritingCrewFlow(Flow):
             expected_output="Content analysis with routing decision"
         )
     
-    @router(content_analysis_start)
+    router(content_analysis_start)
     def route_by_content_type(self, context):
         if context.output.get('content_type') == "TECHNICAL_TUTORIAL":
             return self.technical_flow
@@ -58,7 +58,7 @@ class AIWritingCrewFlow(Flow):
             return self.viral_content_flow
         return self.standard_flow
     
-    @listen(content_analysis_start)
+    listen(content_analysis_start)
     def technical_flow(self, context):
         return [
             self.deep_research_task,
@@ -70,7 +70,7 @@ class AIWritingCrewFlow(Flow):
 ### Key Components
 
 #### 1. **Flow Control Layer** 🆕
-- `@start/@router/@listen` decorators
+- `start/router/listen` decorators
 - Conditional branching logic
 - Flow state management
 - Context passing between stages
@@ -115,7 +115,7 @@ class BasicAIWritingFlow(Flow):
             agent=self.analyzer_agent
         )
     
-    @listen(analyze_content)
+    listen(analyze_content)
     def write_content(self, context):
         return Task(
             description="Generate content based on analysis",
@@ -135,11 +135,11 @@ class BasicAIWritingFlow(Flow):
 - ✅ V1 API still working (backward compatibility)
 
 ### Week 2: Conditional Routing 🛤️
-**Goal**: Implement @router logic with KB-powered decisions
+**Goal**: Implement router logic with KB-powered decisions
 
 **Day 1-2: Router Implementation**
 ```python
-@router(content_analysis_start)
+router(content_analysis_start)
 def route_by_content_analysis(self, context):
     content_type = context.output.get('content_type')
     viral_score = context.output.get('viral_score', 0)
@@ -182,7 +182,7 @@ def route_by_content_analysis(self, context):
 
 **Day 1-2: Human Review Points**
 ```python
-@listen("draft_completed")
+listen("draft_completed")
 def human_review_gate(self, context):
     # Present draft to human via AG-UI
     review_result = self.ui_bridge.request_human_review(
@@ -357,7 +357,7 @@ writing_flow_input = {
 }
 
 # Enhanced routing based on Kolegium analysis
-@router(kolegium_input_analysis)
+router(kolegium_input_analysis)
 def route_by_kolegium_analysis(self, context):
     kolegium_data = context.inputs
     
@@ -372,7 +372,7 @@ def route_by_kolegium_analysis(self, context):
 ### 2. LinkedIn Module Integration
 **Output Interface**: Enhanced publication packaging
 ```python
-@listen("content_finalized")
+listen("content_finalized")
 def prepare_linkedin_publication(self, context):
     publication_package = {
         "content": context.output.get('final_draft'),
@@ -463,7 +463,7 @@ class KBFallbackStrategy:
 
 ### 3. Human Review Timeout Handling
 ```python
-@listen("human_review_requested")
+listen("human_review_requested")
 def handle_human_review_with_timeout(self, context):
     timeout_seconds = 300  # 5 minutes
     

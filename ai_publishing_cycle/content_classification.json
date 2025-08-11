@@ -76,7 +76,7 @@
       "language_confidence": "high",
       "status": "complete",
       "title": "Problems Solved - Knowledge Base Agent",
-      "preview": "---\ncontent_type: SOURCE\nsource: troubleshooting\nverified: true\ndate_collected: 2025-08-03\n---\n\n# Problems Solved - Knowledge Base Agent\n\n## 🚨 Crisis Timeline\n\n### Problem 1: Claude Code Documentation Gap\n**Date**: Styczeń-lipiec 2025  \n**Severity**: High - Development Blocker\n\n**Problem Description**:\nClaude Code nie miał dostępu do aktualnej dokumentacji CrewAI przez internet. To powodowało:\n- Debugging oparty na guesswork i outdated examples\n- Brak kontekstu przy rozwiązywaniu problemów z @router dependencies  ... (truncated)",
+      "preview": "---\ncontent_type: SOURCE\nsource: troubleshooting\nverified: true\ndate_collected: 2025-08-03\n---\n\n# Problems Solved - Knowledge Base Agent\n\n## 🚨 Crisis Timeline\n\n### Problem 1: Claude Code Documentation Gap\n**Date**: Styczeń-lipiec 2025  \n**Severity**: High - Development Blocker\n\n**Problem Description**:\nClaude Code nie miał dostępu do aktualnej dokumentacji CrewAI przez internet. To powodowało:\n- Debugging oparty na guesswork i outdated examples\n- Brak kontekstu przy rozwiązywaniu problemów z router dependencies  ... (truncated)",
       "file_size_bytes": null,
       "last_modified": "2025-08-03T20:13:12.854759",
       "reasoning": "A verified source file reporting project troubleshooting and solutions. Not an idea/suggestion, not a template, and not a partial draft—complete reference."

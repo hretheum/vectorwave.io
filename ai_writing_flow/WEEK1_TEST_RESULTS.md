@@ -9,7 +9,7 @@
 **Test Coverage**: Comprehensive E2E + Integration tests
 
 ### Key Achievements
-- ✅ CrewAI Flow with @start decorator fully operational
+- ✅ CrewAI Flow with start decorator fully operational
 - ✅ Knowledge Base integration with 7 tools configured
 - ✅ Circuit breaker protection active
 - ✅ Comprehensive metrics tracking
@@ -66,7 +66,7 @@
 | KB Tools | ✅ | 7 tools available to agents |
 | ContentAnalysisAgent | ✅ | Role/Goal/Backstory configured |
 | ContentAnalysisTask | ✅ | Pydantic output models working |
-| @start decorator | ✅ | CrewAI Flow pattern implemented |
+| start decorator | ✅ | CrewAI Flow pattern implemented |
 | Data Flow | ✅ | Complete response structure |
 | Error Handling | ✅ | Validation and fallback working |
 
@@ -80,7 +80,7 @@
 ```
 src/ai_writing_flow/crewai_flow/
 ├── flows/
-│   └── ai_writing_flow.py (626 lines) - Main CrewAI Flow with @start
+│   └── ai_writing_flow.py (626 lines) - Main CrewAI Flow with start
 ├── agents/
 │   └── content_analysis_agent.py (508 lines) - Enhanced KB agent
 └── tasks/
@@ -110,7 +110,7 @@ test_integration_validation.py - All integration points
 
 ### 1. CrewAI Flow Pattern Implementation
 ```python
-@start
+start
 def analyze_content(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
     """Entry point with full infrastructure integration"""
     # Validates inputs
@@ -167,7 +167,7 @@ self.content_analysis_breaker = StageCircuitBreaker(
 
 - [x] CrewAI 0.152.0 compatibility verified
 - [x] All existing 227 tests still pass
-- [x] @start decorator functional
+- [x] start decorator functional
 - [x] KB integration with 7 tools
 - [x] Circuit breaker protection active
 - [x] Metrics tracking operational
@@ -180,7 +180,7 @@ self.content_analysis_breaker = StageCircuitBreaker(
 ## 🎯 Next Steps
 
 ### Immediate (Week 2)
-1. Implement @listen decorators for stage transitions
+1. Implement listen decorators for stage transitions
 2. Add remaining agents (Research, Writer, etc.)
 3. Create router logic for flow orchestration
 4. Add async/await support

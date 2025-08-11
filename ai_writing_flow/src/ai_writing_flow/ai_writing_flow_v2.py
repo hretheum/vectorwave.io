@@ -4,7 +4,7 @@ AI Writing Flow V2 - Production Integration with Full Monitoring & Quality Gates
 
 This module provides the production-ready V2 flow class that integrates:
 - Phase 1: Core Architecture (FlowControlState, CircuitBreaker, etc.)
-- Phase 2: Linear Flow Implementation (eliminates @router/@listen loops)
+- Phase 2: Linear Flow Implementation (eliminates router/listen loops)
 - Phase 3: Monitoring, Alerting & Quality Gates (FlowMetrics, Alerting, QualityGate)
 - Phase 4: Kolegium System Integration (UI Bridge, API Endpoints)
 
@@ -57,7 +57,7 @@ class AIWritingFlowV2:
     Production-ready AI Writing Flow V2 with complete monitoring and quality gates
     
     Features:
-    - Linear execution flow (no @router/@listen loops)
+    - Linear execution flow (no router/listen loops)
     - Real-time performance monitoring with KPI tracking
     - Multi-channel alerting system (console, webhook, email)
     - Quality gates with 5 validation rules
@@ -582,7 +582,7 @@ AI Writing Flow V2 Architecture Diagram
 │  └── LoopPreventionSystem (Infinite loop protection)           │
 ├─────────────────────────────────────────────────────────────────┤
 │  Phase 2: Linear Flow Implementation                            │
-│  ├── LinearExecutionChain (No @router/@listen loops)           │
+│  ├── LinearExecutionChain (No router/listen loops)             │
 │  ├── Linear Executors (Research, Audience, Draft, Style, QA)   │
 │  ├── FlowExecutionGuards (Resource monitoring)                 │
 │  └── WritingFlowInputs (Input validation)                      │

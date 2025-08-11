@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Added
 - **LinearExecutionChain**
-  - Replaced @router/@listen patterns with linear execution
+- Replaced router/listen patterns with linear execution
   - Sequential flow: validate → research → audience → draft → style → quality
   - No circular dependencies possible
   - Method chaining with validation
@@ -43,14 +43,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Platform and content type validation
 
 #### Changed
-- Flow execution from circular @router patterns to linear progression
+- Flow execution from circular router patterns to linear progression
 - Method signatures to support linear execution chain
 - State management to support new linear flow model
 - Error handling to use fallback strategies instead of loops
 
 #### Fixed
 - Infinite loop issues causing 97.9% CPU usage
-- Circular dependencies in @router decorators
+- Circular dependencies in router decorators
 - Memory leaks from unchecked retries
 - Twitter platform configuration for faster posting
 
@@ -159,7 +159,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Upcoming - Phase 2: Linear Flow Implementation
 
 ### Planned Features
-- **Linear Flow Implementation**: Replace @router patterns with linear execution
+- **Linear Flow Implementation**: Replace router patterns with linear execution
 - **CrewAI Integration**: Full integration with existing crew system
 - **Production Deployment**: Enhanced containerization and monitoring
 - **Advanced Observability**: Distributed tracing and metrics collection

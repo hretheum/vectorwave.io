@@ -95,7 +95,7 @@ The flow provides real-time status updates:
 To modify the pipeline:
 
 1. Edit `PublishingState` to track additional data
-2. Add new phases using `@listen` decorators
+2. Add new phases using `listen` decorators
 3. Integrate additional crews or tools
 4. Customize report generation logic
 

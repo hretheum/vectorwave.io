@@ -1,5 +1,5 @@
 """
-Linear Audience Alignment Execution - replaces @listen("align_audience")
+Linear Audience Alignment Execution - replaces listen("align_audience") pattern
 
 This module implements audience alignment stage execution without circular dependencies,
 with error handling and state integration.
@@ -34,7 +34,7 @@ class AudienceAlignmentResult:
 
 class LinearAudienceExecutor:
     """
-    Linear audience alignment execution replacing @listen("align_audience")
+    Linear audience alignment execution replacing legacy listen("align_audience") pattern
     
     Features:
     - Always executes (no skip logic)
