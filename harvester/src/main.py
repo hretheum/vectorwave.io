@@ -4,7 +4,8 @@ from pydantic import BaseModel
 from typing import List, Dict, Any
 from .config import settings
 from .fetcher import FetcherEngine
-from .storage import StorageService, RawTrendItem
+from .storage import StorageService
+from .models import RawTrendItem
 import httpx
 from contextlib import asynccontextmanager
 import logging
@@ -46,7 +47,7 @@ async def trigger_harvest():
     engine = FetcherEngine()
     storage = StorageService(settings.CHROMADB_HOST, settings.CHROMADB_PORT, settings.CHROMADB_COLLECTION)
     items = await engine.run()
-    saved = await storage.save_items([RawTrendItem(i) for i in items])
+    saved = await storage.save_items(items)
     return {"status": "ok", "fetched": len(items), "saved": saved}
 
 @app.get("/harvest/status")
