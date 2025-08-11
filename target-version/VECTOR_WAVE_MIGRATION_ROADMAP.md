@@ -410,70 +410,25 @@ meta:
     - e959847  # add E2E complete user workflow sanity test
 ```
 
-### 5.3 Dependencies Mapping
+### 5.3 Dependencies Mapping — COMPLETED
 
-```
-
-```
 ```yaml
-objective: "Comprehensive verification of complete rule migration process"
-deliverable: "Fully verified migration with performance and integrity confirmation"
+objective: "Provide a comprehensive dependency map across all services"
+deliverable: "docs/DEPENDENCIES_MAP.md with service→dependency graph and ports"
 acceptance_criteria:
-  - All 355+ rules migrated and accessible
-  - Zero data loss confirmed
-  - Performance benchmarks met
-  - Editorial Service integration verified
+  - All core services listed with ports and dependencies
+  - Mermaid diagram present and renders in markdown
+  - External dependencies (e.g., OpenAI) marked as optional
 
 validation_commands:
-  - "python editorial-service/migration/verify_full_migration.py | jq '{success, totals, style_check, platform_check, editorial_health, perf, hardcoded_scan}'"
+  - "test -f docs/DEPENDENCIES_MAP.md"
+  - "rg -n 'mermaid' docs/DEPENDENCIES_MAP.md"
 
-test_requirements:
-  unit_tests:
-    coverage_target: ">85% line coverage"
-    tests:
-      - test_migration_completeness_verification()
-      - test_rule_count_validation()
-      - test_data_integrity_checks()
-      - test_performance_benchmarks()
-  
-  integration_tests:
-    coverage_target: ">80% end-to-end verification coverage"
-    tests:
-      - test_editorial_service_rule_access()
-      - test_complete_migration_workflow_verification()
-      - test_cross_collection_query_functionality()
-      - test_migration_audit_trail_validation()
-  
-  performance_tests:
-    targets:
-      - "Rule queries P95 <100ms across all collections"
-      - "Batch validation of 50 rules <500ms"
-      - "Editorial Service response time <200ms P95"
-    tests:
-      - test_cross_collection_query_performance()
-      - test_editorial_service_performance_post_migration()
-      - test_batch_validation_performance()
-  
-  error_handling_tests:
-    coverage_target: "100% error paths"
-    tests:
-      - test_missing_rule_detection()
-      - test_corrupted_data_identification()
-      - test_performance_degradation_alerts()
-      - test_verification_failure_reporting()
-  
-  acceptance_tests:
-    tests:
-      - test_complete_system_ready_for_phase_2()
-      - test_zero_hardcoded_rules_confirmation()
-      - test_all_migration_success_criteria_met()
-  
-  data_integrity_tests:
-    tests:
-      - test_rule_count_matches_source()
-      - test_rule_content_integrity()
-      - test_metadata_preservation()
-      - test_collection_relationships()
+meta:
+  status: COMPLETED
+  completed_date: 2025-08-11
+  commit_ids:
+    - docs:dependencies-map
 ```
 
 #### **WEEK 6: CrewAI Orchestrator Service** 🆕 **CRITICAL ADDITION**
