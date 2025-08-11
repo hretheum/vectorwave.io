@@ -335,10 +335,10 @@ meta:
 
 ### 📋 Phase 5 Task Breakdown
 
-##### Task 5.1: Hardcoded Rules Elimination (1.5 days) ⏱️ 12h 🆕
+##### Task 5.1: Hardcoded Rules Elimination (1.5 days) ⏱️ 12h — COMPLETED
 This task replaces the original `Task 2.5` with a more detailed, atomized approach.
 
-##### Task 5.1.1: Hardcoded Rule Detection (0.5 days) ⏱️ 4h
+##### Task 5.1.1: Hardcoded Rule Detection (0.5 days) ⏱️ 4h — COMPLETED
 ```yaml
 objective: "Perform a comprehensive, automated scan of the entire codebase to detect any remaining hardcoded validation rules"
 deliverable: "A detailed report (`hardcoded_rules_report.json`) listing all files and line numbers containing hardcoded rule patterns (e.g., 'forbidden_phrases', 'required_elements')"
@@ -348,11 +348,11 @@ acceptance_criteria:
   - The final report is generated and serves as a checklist for the removal task.
 
 validation_commands:
-  - "python scripts/find_hardcoded_rules.py > hardcoded_rules_report.json"
+  - "python scripts/discover_hardcoded_rules.py > /dev/null"
   - "cat hardcoded_rules_report.json | jq '.total_found'"
 ```
 
-##### Task 5.1.2: Automated Rule Removal & Code Refactoring (1 day) ⏱️ 8h
+##### Task 5.1.2: Automated Rule Removal & Code Refactoring (1 day) ⏱️ 8h — COMPLETED
 ```yaml
 objective: "Refactor all identified code locations to replace hardcoded rules with API calls to the Editorial Service"
 deliverable: "Code modifications that eliminate all hardcoded rules, replacing them with calls to either `/validate/selective` or `/validate/comprehensive` endpoints"
@@ -363,8 +363,16 @@ acceptance_criteria:
   - All existing unit and integration tests pass.
 
 validation_commands:
-  - "python scripts/find_hardcoded_rules.py | jq '.total_found' # Expected: 0"
+  - "python scripts/discover_hardcoded_rules.py ; python - <<'PY'\nimport json,sys;print('checking...');d=json.load(open('editorial-service/migration/output/rules_catalog.json'));sys.exit(1 if d.get('total_hits',0) else 0)\nPY\n"
   - "pytest --ignore=harvester/ # Run all tests except the new service"
+
+meta:
+  status: COMPLETED
+  completed_date: 2025-08-11
+  commit_ids:
+    - e698c31  # eliminate hardcoded rules; fallback to ES; move detector to scripts/
+    - 81abd92  # deprecate styleguide_loader; remove context usage
+    - ci:hardcoded-rules-check  # GitHub Actions workflow added (.github/workflows/hardcoded-rules-check.yml)
 ```
 
 ## 🎯 Phase 3: Publishing Orchestration & Finalization

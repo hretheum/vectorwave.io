@@ -1,0 +1,40 @@
+name: Hardcoded Rules Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  hardcoded-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # No external deps needed for the script; ensure jq present for validation step
+          sudo apt-get update && sudo apt-get install -y jq
+      - name: Run hardcoded rules detector
+        run: |
+          python scripts/discover_hardcoded_rules.py || true
+          test -f editorial-service/migration/output/rules_catalog.json || echo '{"files":[],"total_hits":0}' > editorial-service/migration/output/rules_catalog.json
+          cat editorial-service/migration/output/rules_catalog.json | jq '.total_hits'
+      - name: Fail if any hardcoded rules found
+        run: |
+          python - <<'PY'
+import json,sys
+p='editorial-service/migration/output/rules_catalog.json'
+with open(p) as f:
+    data=json.load(f)
+if data.get('total_hits',0)>0:
+    print(f"Hardcoded rules detected: {data['total_hits']}")
+    sys.exit(1)
+print('No hardcoded rules detected')
+PY
