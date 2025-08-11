@@ -1879,6 +1879,10 @@ acceptance_criteria:
 
 validation_commands:
   - "curl -X POST http://localhost:8040/profile/score -H 'Content-Type: application/json' -d '{\"content_summary\": "A new AI model for code generation"}' | jq '.profile_fit_score'"
+status: COMPLETED
+completed_date: 2025-08-11
+commit_id: 56f6678
+notes: "Endpoint implemented in production FastAPI app; returns score = 1.0 - distance and top-3 matching rules"
 ```
 
 
@@ -4289,8 +4293,11 @@ notes:
 ##### Task 2.3.2X: S2S Contract for Harvester (auth + endpoints) ✅ COMPLETED
 ```yaml
 status: COMPLETED
-completed_date: 2025-08-10
-commit_id: 513c31d
+completed_date: 2025-08-11
+commit_ids:
+  - 513c31d  # initial endpoints
+  - 8e972bc  # Idempotency-Key alias fix
+  - 7253a84  # S2S tests
 objective: "Provide secure contract endpoints for Harvester integration"
 deliverable: "POST /topics/novelty-check, POST /topics/suggestion, Bearer auth, Idempotency-Key"
 acceptance_criteria:

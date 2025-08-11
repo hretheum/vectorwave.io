@@ -213,6 +213,10 @@ acceptance_criteria:
 
 validation_commands:
   - "curl -X POST http://localhost:8040/profile/score -H 'Content-Type: application/json' -d '{\"content_summary\": "A new AI model for code generation"}' | jq '.profile_fit_score'"
+meta:
+  status: COMPLETED
+  commit_id: 56f6678
+  notes: "Implemented /profile/score in editorial-service using Chroma distances with top-3 matching rules"
 ```
 
 ### Task 2.2: Topic Manager Integration Endpoints (0.5 weeks) ⏱️ 4h
@@ -227,6 +231,12 @@ acceptance_criteria:
 
 validation_commands:
   - "pytest topic-manager/tests/test_harvester_integration.py"
+meta:
+  status: COMPLETED
+  commit_ids:
+    - 8e972bc  # fix Idempotency-Key header parsing
+    - 7253a84  # add S2S contract tests for harvester integration
+  notes: "Auth Bearer enforced; Idempotency-Key required and parsed via alias; tests green"
 ```
 
 ## 4. Phase 3: AI-Powered Triage & Automation
