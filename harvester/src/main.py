@@ -42,16 +42,39 @@ async def lifespan(app: FastAPI):
     logger.info("Trend Harvester service starting up...")
     # Initialize scheduler, database connections etc.
     app.state.last_run: Dict[str, Any] = {"status": "not_run_yet"}
-    # Background scheduler: periodically trigger harvest with env-configured limit
+    # Background scheduler: periodically run full cycle (fetch -> selective triage -> promote)
     interval_min = 30  # default every 30 minutes
     try:
-        interval_min = int((settings.HARVEST_SCHEDULE_CRON or "0").split()[1]) if False else interval_min
+        cron = settings.HARVEST_SCHEDULE_CRON or "*/30 * * * *"
+        if cron.startswith("*/"):
+            interval_min = int(cron.split()[0].replace("*/", ""))
     except Exception:
         interval_min = 30
+
+    async def _run_full_cycle():
+        # 1) Fetch and save
+        status = await trigger_harvest()  # type: ignore
+        fetched = int(status.get("fetched", 0) or 0)
+        # 2) Selective triage + promote (best-effort)
+        promoted = 0
+        triage_errors = 0
+        sample = min(fetched, 10)
+        for _ in range(sample):
+            try:
+                r = await selective_triage(summary="AI trend candidate", content_type="POST")  # type: ignore
+                if r.get("decision") == "PROMOTE":
+                    promoted += 1
+            except Exception:
+                triage_errors += 1
+        # Update last_run snapshot
+        status.update({"promoted": promoted, "triage_errors": triage_errors})
+        app.state.last_run = status
+        logger.info("harvest_cycle_completed", extra={"event": "harvest_cycle_completed", "data": status})
+
     async def _loop():
         while True:
             try:
-                await trigger_harvest()  # type: ignore
+                await _run_full_cycle()
             except Exception:
                 pass
             await _asyncio.sleep(max(300, interval_min * 60))

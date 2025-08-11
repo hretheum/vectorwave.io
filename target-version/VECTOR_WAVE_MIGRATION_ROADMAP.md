@@ -300,6 +300,11 @@ acceptance_criteria:
 validation_commands:
   - "curl -X POST http://localhost:8043/harvest/trigger"
   - "docker compose logs harvester | grep 'Harvest cycle completed'"
+
+notes:
+  partial_reason: "Scheduler loop uruchamia pełny cykl (fetch->triage->promote) oraz promuje przez /topics/suggestion, ale triage pracuje na próbkach; brak aktualizacji statusu pojedynczych rekordów raw_trends i pełnej iteracji po dokumentach."
+  latest_commit_ids:
+    - e698c31  # add background full cycle loop in harvester
 ```
 
 ##### Task 4.1.7: Final Integration & Monitoring (1 day) ⏱️ 8h — IN PROGRESS
