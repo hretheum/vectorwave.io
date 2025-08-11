@@ -66,6 +66,18 @@ class SuggestionIngestResponse(BaseModel):
     existing_topic_id: Optional[str] = None
 
 
+# --- Vector Topics Index (skeleton for Post Week 9) ---
+class TopicsIndexInfo(BaseModel):
+    collection: str = "topics_index"
+    ready: bool = False
+    total_indexed: int = 0
+
+@app.get("/topics/index/info")
+async def topics_index_info() -> TopicsIndexInfo:
+    # Placeholder: will return real counts when embedding provider is configured
+    return TopicsIndexInfo()
+
+
 
 TOPICS: Dict[str, Topic] = {}
 DB_PATH: Optional[str] = None
