@@ -67,6 +67,7 @@ All documentation in this ecosystem follows these principles:
 - All validation through Editorial Service (port 8040)
 - ChromaDB-sourced rules only
 - No fallback to hardcoded patterns
+- Pre-commit hook: run `pre-commit install` to enable `scripts/precommit_hardcoded_rules.sh`
 
 ### **Container-First Development**
 - Everything runs in Docker containers
