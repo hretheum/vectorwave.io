@@ -56,7 +56,11 @@ class ArXivFetcher:
             "max_results": max(1, limit),
         }
         try:
-            async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
+            headers = {
+                "User-Agent": "vector-wave-harvester/1.0 (+https://vector-wave.local; contact: dev@vector-wave.local)",
+                "Accept": "application/atom+xml, application/xml;q=0.9, */*;q=0.8",
+            }
+            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, headers=headers) as client:
                 r = await client.get(self.BASE_URL, params=params)
                 r.raise_for_status()
                 xml_text = r.text
@@ -64,30 +68,50 @@ class ArXivFetcher:
             return []
 
         try:
-            # Parse Atom feed
+            # Parse Atom feed robustly (with and without explicit namespace prefixes)
+            atom_ns = "http://www.w3.org/2005/Atom"
             root = ET.fromstring(xml_text)
-            ns = {"atom": "http://www.w3.org/2005/Atom"}
+
+            def findall_e(parent: ET.Element, local: str) -> List[ET.Element]:
+                nodes = parent.findall(f"{{{atom_ns}}}{local}")
+                if not nodes:
+                    nodes = parent.findall(local)
+                return nodes
+
+            def findtext_e(parent: ET.Element, local: str) -> Optional[str]:
+                node = parent.find(f"{{{atom_ns}}}{local}")
+                if node is not None and node.text is not None:
+                    return node.text
+                node = parent.find(local)
+                return node.text if node is not None else None
+
             items: List[RawTrendItem] = []
-            for entry in root.findall("atom:entry", ns):
-                title = (entry.findtext("atom:title", default="", namespaces=ns) or "").strip() or "(no title)"
-                summary = (entry.findtext("atom:summary", default="", namespaces=ns) or "").strip() or None
+            entries = findall_e(root, "entry")
+            for entry in entries:
+                title = (findtext_e(entry, "title") or "").strip() or "(no title)"
+                summary = (findtext_e(entry, "summary") or "").strip() or None
 
                 # Prefer alternate link, fallback to id
                 link_url: Optional[str] = None
-                for link in entry.findall("atom:link", ns):
+                for link in findall_e(entry, "link"):
                     rel = link.attrib.get("rel", "")
-                    if rel in ("alternate", "") and link.attrib.get("href"):
-                        link_url = link.attrib.get("href")
+                    href = link.attrib.get("href")
+                    if href and rel in ("alternate", ""):
+                        link_url = href
                         break
                 if not link_url:
-                    link_url = entry.findtext("atom:id", default=None, namespaces=ns)
+                    link_url = findtext_e(entry, "id")
 
                 # Authors
-                authors = [a.findtext("atom:name", default="", namespaces=ns) or "" for a in entry.findall("atom:author", ns)]
-                author = ", ".join([a for a in authors if a]) or None
+                authors: List[str] = []
+                for a in findall_e(entry, "author"):
+                    name = findtext_e(a, "name") or ""
+                    if name:
+                        authors.append(name)
+                author = ", ".join(authors) or None
 
                 # Published date
-                published_raw = entry.findtext("atom:published", default=None, namespaces=ns)
+                published_raw = findtext_e(entry, "published")
                 published_dt: Optional[datetime] = None
                 if published_raw:
                     try:
@@ -97,7 +121,7 @@ class ArXivFetcher:
 
                 # Categories as keywords
                 keywords: List[str] = []
-                for cat in entry.findall("atom:category", ns):
+                for cat in findall_e(entry, "category"):
                     term = cat.attrib.get("term")
                     if term:
                         keywords.append(term)
