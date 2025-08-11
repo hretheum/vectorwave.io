@@ -9,6 +9,8 @@ This service exposes orchestration endpoints for the Vector Wave platform.
 - `GET /checkpoints/status/{id}` – status pojedynczego checkpointu
 - `POST /checkpoints/{id}/intervene` – interwencja użytkownika i rewalidacja
 - `GET /checkpoints/history/{id}` – historia zdarzeń checkpointu (persisted w Redis)
+- `POST /checkpoints/sequence/start` – uruchamia sekwencję pre→mid→post dla podanego contentu
+- `GET /checkpoints/sequence/status/{flow_id}` – status sekwencji i lista checkpointów
 - `POST /triage/seed` and `POST /api/triage/seed` – batch pre-screening and promotion of topics using triage policy
 - `GET /triage/policy` and `GET /api/triage/policy` – get current applied policy (from `TRIAGE_POLICY_PATH`)
 - `POST /triage/policy` and `POST /api/triage/policy` – update policy (validated if `TRIAGE_POLICY_SCHEMA_PATH` is available)

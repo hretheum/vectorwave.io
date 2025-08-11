@@ -36,9 +36,22 @@ async def list_checkpoints() -> Dict[str, Any]:
 async def get_checkpoint_history(checkpoint_id: str) -> List[Dict[str, Any]]:
     return await manager.get_history(checkpoint_id)
 
+class StartSequenceRequest(BaseModel):
+    content: str
+    platform: str
+
+async def start_sequence(req: StartSequenceRequest) -> Dict[str, Any]:
+    fid = await manager.start_sequence(req.content, req.platform)
+    return {"flow_id": fid, "status": "running"}
+
+async def sequence_status(flow_id: str) -> Dict[str, Any]:
+    return await manager.get_sequence_status(flow_id)
+
 # Register endpoints
 router.add_api_route("/checkpoints/create", create_checkpoint, methods=["POST"])
 router.add_api_route("/checkpoints/status/{checkpoint_id}", get_checkpoint_status, methods=["GET"])
 router.add_api_route("/checkpoints/{checkpoint_id}/intervene", intervene, methods=["POST"])
 router.add_api_route("/checkpoints/active", list_checkpoints, methods=["GET"])
 router.add_api_route("/checkpoints/history/{checkpoint_id}", get_checkpoint_history, methods=["GET"])
+router.add_api_route("/checkpoints/sequence/start", start_sequence, methods=["POST"])
+router.add_api_route("/checkpoints/sequence/status/{flow_id}", sequence_status, methods=["GET"])

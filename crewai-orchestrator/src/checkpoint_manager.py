@@ -68,6 +68,9 @@ class CheckpointManager:
     def _rk_flow(self, flow_id: str) -> str:
         return f"vw:orch:flow:{flow_id}:checkpoints"
 
+    def _rk_flow_meta(self, flow_id: str) -> str:
+        return f"vw:orch:flow:{flow_id}:meta"
+
     async def create(self, content: str, platform: str, checkpoint: str, user_notes: Optional[str] = None) -> str:
         ctype = self._parse_checkpoint(checkpoint)
         chk_id = f"chk_{uuid.uuid4().hex[:8]}"
@@ -234,6 +237,88 @@ class CheckpointManager:
         }
         await r.rpush(self._rk_events(checkpoint_id), json.dumps(evt))
         await r.expire(self._rk_events(checkpoint_id), 60 * 60 * 24)
+
+    # --- Sequence (pre -> mid -> post) ---
+    async def start_sequence(self, content: str, platform: str) -> str:
+        flow_id = f"cflow_{uuid.uuid4().hex[:8]}"
+        r = await self._get_redis()
+        if r:
+            await r.delete(self._rk_flow(flow_id))
+            await r.hset(
+                self._rk_flow_meta(flow_id),
+                mapping={
+                    "status": "running",
+                    "current_step": "pre_writing",
+                    "created_at": str(time.time()),
+                    "updated_at": str(time.time()),
+                },
+            )
+
+        async def _runner():
+            order = [
+                CheckpointType.PRE_WRITING.value,
+                CheckpointType.MID_WRITING.value,
+                CheckpointType.POST_WRITING.value,
+            ]
+            current_content = content
+            try:
+                for idx, cp in enumerate(order):
+                    chk_id = await self.create(current_content, platform, cp)
+                    if r:
+                        await r.rpush(self._rk_flow(flow_id), chk_id)
+                        await r.hset(self._rk_flow_meta(flow_id), mapping={
+                            "current_step": cp,
+                            "updated_at": str(time.time()),
+                        })
+                    # Best-effort wait a short time for validation to complete
+                    for _ in range(40):  # up to ~10s
+                        st = self.active.get(chk_id)
+                        if st and st.result is not None and st.status in {CheckpointStatus.WAITING_USER, CheckpointStatus.COMPLETED}:
+                            # Optionally, mutate content with suggestions if available
+                            try:
+                                suggestions = st.result.get("suggestions", []) if isinstance(st.result, dict) else []
+                                if suggestions:
+                                    current_content = self._apply_suggestions(current_content, suggestions)
+                            except Exception:
+                                pass
+                            break
+                        await asyncio.sleep(0.25)
+                if r:
+                    await r.hset(self._rk_flow_meta(flow_id), mapping={
+                        "status": "completed",
+                        "updated_at": str(time.time()),
+                    })
+            except Exception as e:
+                if r:
+                    await r.hset(self._rk_flow_meta(flow_id), mapping={
+                        "status": f"failed:{str(e)}",
+                        "updated_at": str(time.time()),
+                    })
+
+        asyncio.create_task(_runner())
+        return flow_id
+
+    async def get_sequence_status(self, flow_id: str) -> Dict[str, Any]:
+        r = await self._get_redis()
+        checkpoints: List[str] = []
+        meta: Dict[str, Any] = {"status": "unknown", "current_step": None}
+        if r:
+            checkpoints = [c.decode("utf-8") if isinstance(c, (bytes, bytearray)) else c for c in await r.lrange(self._rk_flow(flow_id), 0, -1)]
+            raw_meta = await r.hgetall(self._rk_flow_meta(flow_id))
+            meta = { (k.decode("utf-8") if isinstance(k, (bytes, bytearray)) else k): (v.decode("utf-8") if isinstance(v, (bytes, bytearray)) else v) for k, v in raw_meta.items() }
+        return {
+            "flow_id": flow_id,
+            "status": meta.get("status", "unknown"),
+            "current_step": meta.get("current_step"),
+            "checkpoints": checkpoints,
+        }
+
+    def _apply_suggestions(self, content: str, suggestions: List[str]) -> str:
+        top = suggestions[:3]
+        if not top:
+            return content
+        lines = [content.strip(), "", "Improvements applied:"] + [f"- {s}" for s in top]
+        return "\n".join(lines)
 
     def _parse_checkpoint(self, checkpoint: str) -> CheckpointType:
         mapping = {
