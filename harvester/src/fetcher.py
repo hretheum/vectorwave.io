@@ -307,6 +307,8 @@ class NewsDataFetcher:
                             return []
                         await asyncio.sleep(delay)
                         delay *= 2
+        except httpx.HTTPError:
+            return []
 
         results = (data or {}).get("results") or []
         items: List[RawTrendItem] = []
