@@ -50,14 +50,14 @@ note: "Hacker News and ArXiv do not require API keys."
 objective: "Implement the core functionality of fetching and storing real data from external APIs"
 deliverable: "A triggerable workflow that populates the `raw_trends` ChromaDB collection with data from configured APIs"
 acceptance_criteria:
-  - A `Fetcher Engine` is implemented, capable of querying Hacker News, ArXiv, and GitHub.
+  - A `Fetcher Engine` is implemented, capable of querying all 6 initial sources: Hacker News, ArXiv, GitHub, Product Hunt, Dev.to, and NewsData.io.
   - A `Storage Service` is implemented to save normalized data to a new ChromaDB collection named `raw_trends`.
   - The `POST /harvest/trigger` endpoint successfully executes the entire fetch-and-store pipeline.
   - The process is resilient; failure of one API does not stop the others.
 
 validation_commands:
   - "curl -X POST http://localhost:8043/harvest/trigger"
-  - "sleep 30 && python scripts/verify_chroma_collection.py --collection raw_trends --min-count 10"
+  - "sleep 30 && python scripts/verify_chroma_collection.py --collection raw_trends --min-count 50"
 ```
 
 ## 3. Phase 2: Integration with Core Services
