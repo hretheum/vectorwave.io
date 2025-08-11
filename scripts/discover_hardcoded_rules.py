@@ -8,6 +8,7 @@ from typing import Dict, List, Any
 CANDIDATE_PATHS = [
     "kolegium/ai_writing_flow/src/ai_writing_flow/crews/style_crew.py",
     "kolegium/ai_writing_flow/src/ai_writing_flow/tools/styleguide_loader.py",
+    "kolegium/ai_writing_flow/src/ai_writing_flow/style_linear.py",
 ]
 
 PATTERNS = {
@@ -50,7 +51,7 @@ def scan_file(path: Path) -> Dict[str, Any]:
 
 
 def main() -> int:
-    repo_root = Path(__file__).resolve().parents[3]
+    repo_root = Path(__file__).resolve().parents[1]
     out_dir = repo_root / "editorial-service" / "migration" / "output"
     out_dir.mkdir(parents=True, exist_ok=True)
     catalog_path = out_dir / "rules_catalog.json"
