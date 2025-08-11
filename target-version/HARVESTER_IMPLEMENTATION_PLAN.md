@@ -58,9 +58,12 @@ acceptance_criteria:
   - The `Storage Service` can successfully connect to the `raw_trends` ChromaDB collection and save a list of `RawTrendItem` objects.
   - The `POST /harvest/trigger` endpoint is created but initially does nothing or calls an empty engine.
   - Unit tests for the Storage Service are created and pass.
+  - The harvester container image builds and the service runs under the `harvester` compose profile.
 
 validation_commands:
-  - "pytest harvester/tests/test_storage_service.py"
+  - "docker compose --profile harvester up -d --build harvester"
+  - "curl -sSf http://localhost:8043/health | jq '.status' # Expected: healthy"
+  - "pytest -q harvester/tests/test_storage_service.py"
 ```
 
 ##### Task 1.3.2: Implement Hacker News Fetcher (2h)
@@ -72,8 +75,11 @@ acceptance_criteria:
   - Raw API data is successfully normalized into the `RawTrendItem` model.
   - When triggered, the `POST /harvest/trigger` endpoint now fetches data from Hacker News and stores it in the `raw_trends` collection.
   - The integration is resilient to API errors.
+  - Validation is performed against the freshly rebuilt harvester container.
 
 validation_commands:
+  - "docker compose --profile harvester up -d --build harvester"
+  - "curl -sSf http://localhost:8043/health"
   - "curl -X POST http://localhost:8043/harvest/trigger"
   - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source\":\"hacker-news\"}' --min-count 5"
 ```
@@ -86,10 +92,13 @@ acceptance_criteria:
   - The fetcher correctly queries the ArXiv API for recent papers in AI-related categories (cs.AI, cs.LG, etc.).
   - The XML response from ArXiv is correctly parsed and normalized into the `RawTrendItem` model.
   - The main pipeline now fetches from both Hacker News and ArXiv.
+  - Validation is performed against the freshly rebuilt harvester container.
 
 validation_commands:
+  - "docker compose --profile harvester up -d --build harvester"
+  - "curl -sSf http://localhost:8043/health"
   - "curl -X POST http://localhost:8043/harvest/trigger"
-  - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source":\"arxiv\"}' --min-count 5"
+  - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source\":\"arxiv\"}' --min-count 5"
 ```
 
 ##### Task 1.3.4: Implement Dev.to Fetcher (2h)
@@ -100,10 +109,13 @@ acceptance_criteria:
   - The fetcher correctly queries the Dev.to API for articles tagged with 'ai', 'machinelearning', etc.
   - The fetcher correctly uses the provided API key for authentication.
   - The main pipeline now includes Dev.to as a data source.
+  - Validation is performed against the freshly rebuilt harvester container.
 
 validation_commands:
+  - "docker compose --profile harvester up -d --build harvester"
+  - "curl -sSf http://localhost:8043/health"
   - "curl -X POST http://localhost:8043/harvest/trigger"
-  - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source":\"dev-to\"}' --min-count 5"
+  - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source\":\"dev-to\"}' --min-count 5"
 ```
 
 ##### Task 1.3.5: Implement NewsData.io Fetcher (2h)
@@ -114,10 +126,13 @@ acceptance_criteria:
   - The fetcher correctly queries the NewsData.io API for news related to AI.
   - The fetcher correctly uses the provided API key for authentication.
   - The main pipeline now includes NewsData.io as a data source.
+  - Validation is performed against the freshly rebuilt harvester container.
 
 validation_commands:
+  - "docker compose --profile harvester up -d --build harvester"
+  - "curl -sSf http://localhost:8043/health"
   - "curl -X POST http://localhost:8043/harvest/trigger"
-  - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source":\"newsdata-io\"}' --min-count 5"
+  - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source\":\"newsdata-io\"}' --min-count 5"
 ```
 
 ##### Task 1.3.6: Implement GitHub Fetcher (2h)
@@ -128,13 +143,19 @@ acceptance_criteria:
   - The fetcher uses the GitHub Search API to find recently created repositories with a high number of stars, tagged with 'ai' or 'llm'.
   - The fetcher correctly uses the provided Personal Access Token for authentication.
   - The main pipeline now includes GitHub as a data source.
+  - Validation is performed against the freshly rebuilt harvester container.
 
 validation_commands:
+  - "docker compose --profile harvester up -d --build harvester"
+  - "curl -sSf http://localhost:8043/health"
   - "curl -X POST http://localhost:8043/harvest/trigger"
-  - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source":\"github\"}' --min-count 5"
+  - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source\":\"github\"}' --min-count 5"
 ```
 
 ##### Task 1.3.7: Implement Product Hunt Fetcher (2h)
+
+Dokumentacja api: https://api.producthunt.com/v2/docs
+
 ```yaml
 objective: "Add support for discovering new tech products from Product Hunt"
 deliverable: "A functional `ProductHuntFetcher` module integrated into the Fetcher Engine"
@@ -142,10 +163,13 @@ acceptance_criteria:
   - The fetcher correctly queries the Product Hunt v2 GraphQL API for recent top-voted products.
   - The fetcher correctly uses the provided Developer Token for authentication.
   - The main pipeline now includes Product Hunt as a data source.
+  - Validation is performed against the freshly rebuilt harvester container.
 
 validation_commands:
+  - "docker compose --profile harvester up -d --build harvester"
+  - "curl -sSf http://localhost:8043/health"
   - "curl -X POST http://localhost:8043/harvest/trigger"
-  - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source":\"product-hunt\"}' --min-count 5"
+  - "sleep 15 && python scripts/verify_chroma_collection.py --collection raw_trends --where '{\"source\":\"product-hunt\"}' --min-count 5"
 ```
 
 

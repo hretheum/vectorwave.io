@@ -1825,117 +1825,6 @@ test_requirements:
     - test_ai_writing_flow_integration_with_topic_manager()
 ```
 
-##### Task 4.1 (Revised): Incremental Trend Harvester Implementation (2 weeks) 🆕
-This task replaces the original `Task 2.4: Auto-Scraping Integration` with a more robust, microservice-based approach focused on rapid, incremental delivery.
-
-##### Task 4.1.1: Harvester Service Foundation (0.5 days) ⏱️ 4h
-```yaml
-objective: "Create the Trend-Harvester microservice foundation with a container-first approach"
-deliverable: "A running, skeletal FastAPI service on port 8043, integrated into the main docker-compose file under the 'harvester' profile"
-acceptance_criteria:
-  - The `harvester/` directory is created with a standard project structure.
-  - The service can be started with `docker compose --profile harvester up -d`.
-  - The `/health` endpoint returns a 200 OK status.
-
-validation_commands:
-  - "docker compose --profile harvester up -d --build"
-  - "curl http://localhost:8043/health"
-```
-
-##### Task 4.1.2: [USER ACTION REQUIRED] Provide API Keys (0.5 days) ⏱️ 4h
-```yaml
-objective: "Provide the necessary API keys for the Trend Harvester to access external data sources"
-deliverable: "Updated environment variable configuration (`.env` file or similar) with the required API keys"
-acceptance_criteria:
-  - The development environment is configured with valid keys for the services listed below.
-
-api_list:
-  - **GitHub:** For tracking open-source projects. ([Docs](https://docs.github.com/en/rest/authentication/creating-a-personal-access-token))
-  - **Product Hunt:** For discovering new tech products. ([Docs](https://api.producthunt.com/v2/docs))
-  - **Dev.to:** For developer articles and tutorials. ([Docs](https://developers.forem.com/api/v1))
-  - **NewsData.io:** For global news aggregation. ([Docs](https://newsdata.io/docs))
-
-note: "Hacker News and ArXiv do not require API keys. Google Trends API will be skipped for now."
-```
-
-##### Task 4.1.3: Core Data Ingestion Pipeline (2 days) ⏱️ 16h
-```yaml
-objective: "Implement the core functionality of fetching and storing real data from external APIs"
-deliverable: "A triggerable workflow that populates the `raw_trends` ChromaDB collection with data from configured APIs"
-acceptance_criteria:
-  - A `Fetcher Engine` is implemented, capable of querying Hacker News, ArXiv, and GitHub.
-  - A `Storage Service` is implemented to save normalized data to a new ChromaDB collection named `raw_trends`.
-  - The `POST /harvest/trigger` endpoint successfully executes the entire fetch-and-store pipeline.
-  - The process is resilient; failure of one API does not stop the others.
-
-validation_commands:
-  - "curl -X POST http://localhost:8043/harvest/trigger"
-  - "sleep 30 && python scripts/verify_chroma_collection.py --collection raw_trends --min-count 10"
-```
-
-##### Task 4.1.4: Editorial Service Profile Endpoint (1 day) ⏱️ 8h
-```yaml
-objective: "Enhance the Editorial Service to expose a profile-scoring endpoint"
-deliverable: "A new `POST /profile/score` endpoint in the Editorial Service"
-acceptance_criteria:
-  - The new endpoint accepts a JSON payload with `content_summary` (string).
-  - It performs a ChromaDB query against the `style_editorial_rules` collection using the summary.
-  - **Scoring Logic:** The returned `profile_fit_score` is calculated as `1.0 - distance`, where `distance` is the value returned by ChromaDB for the most relevant rule. The score must be between 0.0 and 1.0.
-  - If no rules are found, the score must be `0.0`.
-  - The response includes a list of `matching_rules` containing the content of the top 3 matched rules.
-  - The endpoint is documented in `target-version/COMPLETE_API_SPECIFICATIONS.md`.
-
-validation_commands:
-  - "curl -X POST http://localhost:8040/profile/score -H 'Content-Type: application/json' -d '{\"content_summary\": \"A new AI model for code generation\"}' | jq '.profile_fit_score'"
-```
-
-##### Task 4.1.5: Triage Crew Implementation (2 days) ⏱️ 16h
-```yaml
-objective: "Implement the `Triage Crew` of AI agents for automated assessment"
-deliverable: "A functional CrewAI team within the Harvester that can process items from the `raw_trends` collection"
-dependencies: ["Task 4.1.4"]
-acceptance_criteria:
-  - The crew consists of `SummarizerAgent`, `ProfileAssessorAgent`, and `NoveltyCheckAgent`.
-  - `ProfileAssessorAgent` successfully calls the `/profile/score` endpoint on the Editorial Service.
-  - `NoveltyCheckAgent` successfully calls the Topic Manager to check for duplicates.
-  - **Decision Logic:** The crew produces a final decision based on the following rule: `PROMOTE` if `profile_fit_score >= 0.7 AND novelty_score >= 0.8`, otherwise `REJECT`.
-  - The final output for each item includes the `decision`, `profile_fit_score`, `novelty_score`, and a brief textual `reasoning`.
-
-validation_commands:
-  - "pytest harvester/tests/test_triage_crew.py"
-
-test_requirements:
-  - The test suite must include cases that verify the decision logic for both PROMOTE and REJECT scenarios based on defined score thresholds.
-```
-
-##### Task 4.1.6: Topic Promotion & Scheduling (1.5 days) ⏱️ 12h
-```yaml
-objective: "Implement the final step of the workflow: promoting topics and scheduling the process"
-deliverable: "A complete, scheduled workflow that automatically discovers, triages, and promotes new topics"
-acceptance_criteria:
-  - Items marked `PROMOTE` by the Triage Crew are sent to the `POST /topics/suggestion` endpoint of the Topic Manager.
-  - The status of the item in the `raw_trends` collection is updated to `promoted`.
-  - The entire process is scheduled to run automatically using APScheduler.
-
-validation_commands:
-  - "curl -X POST http://localhost:8043/harvest/trigger"
-  - "docker compose logs harvester | grep 'Harvest cycle completed. Promoted X topics.'"
-```
-
-##### Task 4.1.7: Final Integration & Monitoring (1 day) ⏱️ 8h
-```yaml
-objective: "Fully integrate the Harvester service and add monitoring"
-deliverable: "A stable, observable Harvester service"
-acceptance_criteria:
-  - The `/health` endpoint correctly reflects the status of all dependencies.
-  - The `/harvest/status` endpoint provides accurate information about runs.
-  - The service is included in the main `docker-compose.yml` with the `harvester` profile.
-  - The main `VECTOR_WAVE_TARGET_SYSTEM_ARCHITECTURE.md` diagram is updated.
-
-validation_commands:
-  - "curl http://localhost:8043/harvest/status | jq '.last_run.status'"
-```
-
 ##### Task 2.5: Hardcoded Rules Elimination (0.5 weeks)
 ```yaml
 objective: "Perform a final sweep of the entire codebase to remove any remaining hardcoded validation rules"
@@ -4395,6 +4284,22 @@ notes:
         - topic_manager_data:/data
       environment:
         - SERVICE_PORT=8041
+```
+
+##### Task 2.3.2X: S2S Contract for Harvester (auth + endpoints) ✅ COMPLETED
+```yaml
+status: COMPLETED
+completed_date: 2025-08-10
+commit_id: 513c31d
+objective: "Provide secure contract endpoints for Harvester integration"
+deliverable: "POST /topics/novelty-check, POST /topics/suggestion, Bearer auth, Idempotency-Key"
+acceptance_criteria:
+  - 401 on missing/invalid token
+  - Idempotent suggestion ingestion (duplicate detection)
+  - Stable error envelope {code, detail}
+validation_commands:
+  - "TOPIC_MANAGER_TOKEN=dev curl -s -H 'Authorization: Bearer dev' -H 'Content-Type: application/json' -d '{"title":"X"}' http://localhost:8041/topics/novelty-check | jq '.'"
+  - "TOPIC_MANAGER_TOKEN=dev curl -s -H 'Authorization: Bearer dev' -H 'Idempotency-Key: abc123' -H 'Content-Type: application/json' -d '{"title":"X","content_type":"POST"}' http://localhost:8041/topics/suggestion | jq '.'"
 ```
 
 ##### Task 2.8A: CLI Playbooks for Kolegium (0.5 days) ⏱️ 4h 🆕 **ATOMIZED**
