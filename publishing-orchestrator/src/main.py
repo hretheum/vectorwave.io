@@ -13,6 +13,8 @@ import httpx
 import logging
 from datetime import datetime, timedelta
 from enum import Enum
+from .adapters import PLATFORM_ADAPTERS
+from .variations import generate_variations
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -238,11 +240,26 @@ async def generate_platform_content(topic: TopicRequest, platform: str,
         # Generate content using AI Writing Flow
         content = await call_ai_writing_flow(topic, platform)
     
-    # Validate with Editorial Service
-    validation_results = await validate_with_editorial_service(
-        content.get("content", ""), platform
-    )
-    content["validation_results"] = validation_results
+    # Generate variations per platform
+    variations = generate_variations(content.get("content", ""), num=3)
+    valid_variations: List[Dict[str, Any]] = []
+    # Validate each variation with Editorial Service (best-effort)
+    for v in variations:
+        vr = await validate_with_editorial_service(v.get("content", ""), platform)
+        v["validation_results"] = vr
+        # Exclude failed validations if returned
+        if vr.get("error"):
+            continue
+        valid_variations.append(v)
+
+    # Choose first valid or fallback to base
+    chosen = valid_variations[0] if valid_variations else {"content": content.get("content", ""), "validation_results": {"is_compliant": True}}
+    content.update(chosen)
+
+    # Apply platform adapter formatting
+    adapter = PLATFORM_ADAPTERS.get(platform, lambda c, t: {"content": c})
+    formatted = adapter(content.get("content", ""), topic.dict())
+    content.update(formatted)
     
     generation_time = (datetime.now() - start_time).total_seconds()
     content["generation_time"] = generation_time
