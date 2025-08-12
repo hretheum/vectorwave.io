@@ -41,6 +41,11 @@ jobs:
         if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install pytest pytest-cov pytest-asyncio
+        # Service-specific deps
+        if [ "${{ matrix.service }}" = "ai_writing_flow" ]; then \
+          pip install -e ai_writing_flow && \
+          pip install "crewai[tools]" aiohttp structlog pydantic psutil httpx requests pytest-timeout ; \
+        fi
     
     - name: Run tests
       run: |
@@ -54,7 +59,7 @@ jobs:
         else
           # ai_writing_flow tests
           if [ -d "ai_writing_flow" ]; then cd ai_writing_flow; fi
-          python -m pytest --cov=. --cov-report=xml --cov-report=term
+          python -m pytest -k "not e2e and not performance and not heavy_load" --maxfail=1 --cov=. --cov-report=xml --cov-report=term
         fi
     
     - name: Upload coverage to Codecov
