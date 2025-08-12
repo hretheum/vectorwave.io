@@ -12,7 +12,6 @@ Service for topic management, discovery, and vector search.
 - DELETE /topics/{topic_id} — delete topic
 - POST /topics/suggestion — idempotent ingestion (requires Bearer + Idempotency-Key)
 - POST /topics/novelty-check — S2S duplicate check (requires Bearer)
-- POST /topics/scrape — stub auto-scraping
 
 ### Vector Index (ChromaDB)
 
