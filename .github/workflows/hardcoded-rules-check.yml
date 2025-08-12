@@ -11,17 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        # Do not auto-init all submodules here — some are private/not available to GITHUB_TOKEN
-        # We'll init only the required submodule(s) explicitly in the next step
-      - name: Configure HTTPS for GitHub submodules
-        run: |
-          git config --global url.https://github.com/.insteadOf git@github.com:
-          git config --global url.https://github.com/.insteadOf ssh://git@github.com/
-          # Force kolegium submodule to use HTTPS explicitly
-          git config submodule.kolegium.url https://github.com/hretheum/vector-wave-editorial-crew.git
-      - name: Init required submodule (kolegium only)
-        run: |
-          git submodule update --init --depth 1 kolegium
+        # Intentionally not initializing submodules. This job only scans the current repo tree.
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
