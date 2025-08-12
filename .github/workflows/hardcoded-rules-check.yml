@@ -17,6 +17,8 @@ jobs:
         run: |
           git config --global url.https://github.com/.insteadOf git@github.com:
           git config --global url.https://github.com/.insteadOf ssh://git@github.com/
+          # Force kolegium submodule to use HTTPS explicitly
+          git config submodule.kolegium.url https://github.com/hretheum/vector-wave-editorial-crew.git
       - name: Init required submodule (kolegium only)
         run: |
           git submodule update --init --depth 1 kolegium
