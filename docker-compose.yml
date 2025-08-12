@@ -157,6 +157,23 @@ services:
     build: ./kolegium/gamma-ppt-generator
     environment:
       - GAMMA_API_KEY=${GAMMA_API_KEY:-}
+
+  vikunja:
+    profiles: ["kanban"]
+    image: vikunja/vikunja:0.22
+    container_name: vikunja
+    ports:
+      - "3456:3456"
+    environment:
+      VIKUNJA_DATABASE__TYPE: sqlite
+      VIKUNJA_SERVICE__JWTSECRET: ${VIKUNJA_JWTSECRET:-changeme-dev}
+      VIKUNJA_SERVICE__ENABLEREGISTRATION: "true"
+    volumes:
+      - vikunja_data:/app/vikunja/files
+    restart: unless-stopped
+
+volumes:
+  vikunja_data:
       - HOST=0.0.0.0
       - SERVICE_PORT=8003
       - DEBUG=false
