@@ -23,4 +23,4 @@
 [submodule "knowledge-base/knowledge-base/data/crewai-docs"]
 	path = knowledge-base/knowledge-base/data/crewai-docs
 	url = https://github.com/crewAIInc/crewAI.git
-	branch = master
+	branch = main

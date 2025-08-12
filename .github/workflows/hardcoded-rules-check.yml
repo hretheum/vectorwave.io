@@ -11,8 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
+        # Intentionally not initializing submodules. This job only scans the current repo tree.
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
