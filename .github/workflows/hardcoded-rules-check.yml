@@ -11,8 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
+        # Do not auto-init all submodules here — some are private/not available to GITHUB_TOKEN
+        # We'll init only the required submodule(s) explicitly in the next step
+      - name: Init required submodule (kolegium only)
+        run: |
+          git submodule update --init --depth 1 kolegium
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
