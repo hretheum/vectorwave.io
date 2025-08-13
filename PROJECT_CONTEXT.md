@@ -130,6 +130,10 @@ Ten projekt jest przygotowany do pracy z agentem w Cursor IDE przy użyciu MCP (
 - 2025-08-13T21:08:36Z
   - Harvester `/harvest/trigger?limit=10` OK: duration≈3.3s, fetched=30, saved=30; `/harvest/status` OK
   - TM `/topics/suggestion` accepted (payload: content_type=POST, source.name=harvester)
+- 2025-08-13T21:29:40Z
+  - Orchestrator checkpoints:
+    - POST `/checkpoints/create` → 200, `checkpoint_id=chk_*`, status=running
+    - GET `/checkpoints/status/{id}` → `status=waiting_user`, `rule_count=4`, `processing_time_ms≈6275`, mode=selective
 
 
 ## 🚨 AKTUALNY STAN PROJEKTU (2025-08-11) - PHASE 2/3 MIGRATION COMPLETED, PHASE 4 W TOKU
