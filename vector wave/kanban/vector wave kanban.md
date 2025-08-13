@@ -58,7 +58,7 @@ kanban-plugin: board
 
 ## todo
 
-- [ ] [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]
+ 
 	   - comments:
 	   - Źródła: README.md (Quick Start), PROJECT_CONTEXT.md, tests/e2e/workflow/TEST_PLAN.md; health: 8000/8040/8041
    - Subtasks:
@@ -68,7 +68,7 @@ kanban-plugin: board
     - [ ] Zanotuj wynik (czas, statusy) w PROJECT_CONTEXT.md
    - notes:
     - 2025-08-13: chromadb heartbeat OK; editorial/topic-manager status=healthy; orchestrator /health=healthy (8042). Endpoint minimalnego runu nieodnaleziony (404 na /checkpoints/sequence/start). Alternatywa: smoke przez triage seed (`POST /api/triage/seed`).
-- [ ] [P0] Harvester smoke: /harvest/trigger → triage-preview and selective-triage promote path to TM. [owner: data]
+ - [ ] [P0] Harvester smoke: /harvest/trigger → triage-preview and selective-triage promote path to TM. [owner: data]
 	   - comments:
 	   - Źródła: harvester/README.md; ścieżka: trigger → triage-preview → selective-triage → TM /topics/suggestion
 	   - follows: [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]
@@ -77,7 +77,7 @@ kanban-plugin: board
 	- [ ] POST /harvest/trigger (limit=10)
 	- [ ] GET /harvest/status (zweryfikuj promoted/promoted_ids_count)
 	- [ ] Zweryfikuj ingest do TM (Idempotency-Key; brak duplikatów)
-- [ ] [P0] Kolegium AI Writing Flow CI-Light: run basic selective checkpoints against Editorial Service. [owner: kolegium]
+ - [ ] [P0] Kolegium AI Writing Flow CI-Light: run basic selective checkpoints against Editorial Service. [owner: kolegium]
 	   - comments:
 	   - Źródła: kolegium/docker-compose.test.yml, kolegium/AI_WRITING_FLOW_TASKS.md, kolegium/AI_WRITING_FLOW_DESIGN.md
 	   - follows: [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]
@@ -85,7 +85,7 @@ kanban-plugin: board
 	- [ ] Uruchom CI-Light tests (docker-compose.test.yml)
 	- [ ] Sprawdź selektywne checkpointy vs Editorial (8040)
 	- [ ] Zaprotokołuj ewentualne flaki i retry
-- [ ] [P0] Orchestrator happy-path flow: research→audience→writer with selective validation calls; return content. [owner: kolegium]
+ - [ ] [P0] Orchestrator happy-path flow: research→audience→writer with selective validation calls; return content. [owner: kolegium]
 	   - comments:
 	   - Źródła: kolegium/publishing-orchestrator/README.md; integracja z Editorial Service (8040)
 	   - follows: [P0] Kolegium AI Writing Flow CI-Light: run basic selective checkpoints against Editorial Service. [owner: kolegium]
@@ -94,7 +94,7 @@ kanban-plugin: board
 	- [ ] Uruchom sekwencję research→audience→writer
 	- [ ] Zweryfikuj wywołania selektywnej walidacji do Editorial
 	- [ ] Zbierz i zapisz wynik (treść, czasy)
-- [ ] [P1] Publisher smoke: enqueue → minimal dry-run via Twitter adapter (Typefully; no real publish), metrics visible. [owner: publishing]
+ - [ ] [P1] Publisher smoke: enqueue → minimal dry-run via Twitter adapter (Typefully; no real publish), metrics visible. [owner: publishing]
 	   - comments:
 	   - Źródła: publisher/README.md; metryki: /metrics; health: 8085
 	   - Subtasks:
@@ -102,7 +102,7 @@ kanban-plugin: board
 	- [ ] Uruchom publisher (profil publishing)
 	- [ ] POST /publish z twitter.enabled=true (bez real publish)
 	- [ ] Zweryfikuj /metrics i /health
-- [ ] [P1] Topic Manager vector index: reindex + search happy path; embed fallback without OPENAI_API_KEY. [owner: platform]
+ - [ ] [P1] Topic Manager vector index: reindex + search happy path; embed fallback without OPENAI_API_KEY. [owner: platform]
 	   - comments:
 	   - Źródła: topic-manager/README.md; komendy: /topics/index/*, /topics/search; fallback bez OPENAI_API_KEY
 	   - follows: [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]
@@ -111,7 +111,7 @@ kanban-plugin: board
 	- [ ] GET /topics/index/info (sprawdź diagnostykę)
 	- [ ] GET /topics/search (2-3 zapytania testowe)
 	- [ ] Test bez OPENAI_API_KEY (fallback)
-- [ ] [P2] Analytics Service: API skeleton v2.0.0 — health + insights smoke (no data collection yet). [owner: analytics]
+ - [ ] [P2] Analytics Service: API skeleton v2.0.0 — health + insights smoke (no data collection yet). [owner: analytics]
 	   - comments:
 	   - Źródła: kolegium/analytics-service/README.md; health + /analytics/insights/{user_id}
 	   - follows: [P0] Orchestrator happy-path flow: research→audience→writer with selective validation calls; return content. [owner: kolegium]
@@ -119,7 +119,7 @@ kanban-plugin: board
 	- [ ] Uruchom analytics-service (profil analytics)
 	- [ ] GET /health (P95 < 80ms)
 	- [ ] GET /analytics/insights/{user_id} (Bearer dev; sprawdź data_quality_score)
-- [ ] [P2] Gamma.app service skeleton kept archived; no integration work. [owner: publishing]
+ - [ ] [P2] Gamma.app service skeleton kept archived; no integration work. [owner: publishing]
 	   - comments:
 	   - Plan i wymagania → docs/GAMMA_INTEGRATION_PLAN.md; Service docs → kolegium/gamma-ppt-generator/README.md
 	   - Subtasks:
@@ -129,6 +129,16 @@ kanban-plugin: board
 
 ## in progress
 
+ - [ ] [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]
+    - comments:
+    - Źródła: README.md (Quick Start), PROJECT_CONTEXT.md, tests/e2e/workflow/TEST_PLAN.md; health: 8000/8040/8041
+    - Subtasks:
+     - [x] Uruchom core: chromadb, editorial-service (8040), topic-manager (8041), crewai-orchestrator
+     - [x] Sprawdź /health: 8000 heartbeat, 8040/8041 200 OK
+     - [x] Minimalny run orchestratora (triage seed) przyjęty
+     - [ ] Zanotuj wynik (czas, statusy) w PROJECT_CONTEXT.md
+    - notes:
+     - 2025-08-13: chromadb heartbeat OK; editorial/topic-manager status=healthy; orchestrator /health=healthy (8042). Endpoint minimalnego runu nieodnaleziony (404 na /checkpoints/sequence/start). Alternatywa: smoke przez triage seed (`POST /api/triage/seed`).
 
 
 ## done

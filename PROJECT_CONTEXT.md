@@ -120,6 +120,14 @@ Ten projekt jest przygotowany do pracy z agentem w Cursor IDE przy użyciu MCP (
 7) Oczekiwany porządek wykonywania (fragment, może się zmieniać wg relacji)
    - VW-26 → VW-33 → VW-27 → VW-29/VW-30/VW-31/VW-32 → VW-37 → VW-36 → VW-34 …
 
+### E2E Smoke — Progress Log
+- 2025-08-13T21:05:25Z
+  - ChromaDB heartbeat OK (`/api/v1/heartbeat`)
+  - Editorial Service `/health` = healthy (8040)
+  - Topic Manager `/health` = healthy (8041)
+  - Orchestrator `/health` = healthy (8042)
+  - Orchestrator minimal run endpoint `/checkpoints/sequence/start` → 404 (niezaimplementowane); alternatywa smoke: `POST /api/triage/seed` → accepted
+
 
 ## 🚨 AKTUALNY STAN PROJEKTU (2025-08-11) - PHASE 2/3 MIGRATION COMPLETED, PHASE 4 W TOKU
 
