@@ -51,6 +51,7 @@ curl -s -X POST http://localhost:8040/validate/selective -H 'Content-Type: appli
 - docs/integration/PORT_ALLOCATION.md (port 8040)
 - PROJECT_CONTEXT.md (reguły SOP/kanban)
 - target-version/VECTOR_WAVE_TARGET_SYSTEM_ARCHITECTURE.md
+- docs/KPI_VALIDATION_FRAMEWORK.md
 
 ### Istniejąca Dokumentacja (Zachowana)
 

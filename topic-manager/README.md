@@ -204,3 +204,4 @@ KEY=$(uuidgen); curl -s -X POST http://localhost:8041/topics/suggestion -H 'Cont
 - docs/integration/PORT_ALLOCATION.md (port 8041)
 - PROJECT_CONTEXT.md (Kontekst, SOP)
 - docs/DOCS_CONSOLIDATION_PLAN.md (standardy README/QUICK_START)
+- docs/KPI_VALIDATION_FRAMEWORK.md
