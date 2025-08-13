@@ -1,6 +1,7 @@
 # Topic Manager
 
-Status: aktywny serwis pomocniczy (bez wbudowanych scraperów) – integruje się z Harvester i innymi usługami poprzez proste endpointy HTTP. Port domyślny: 8041.
+## Overview
+Aktywny serwis pomocniczy (bez wbudowanych scraperów) – integruje się z Harvester i innymi usługami poprzez proste endpointy HTTP. Port domyślny: 8041.
 
 ## Cel
 - Utrzymywanie indeksu tematów oraz obsługa kontroli nowości i przyjmowania sugestii tematów z zewnętrznych procesów (np. `Harvester`).
@@ -185,3 +186,21 @@ Docker Compose sets these for you; override via shell env if needed.
 - Run tests: `pytest -q`
 - Optional smoke test against real OpenAI (skipped by default):
   - `RUN_OPENAI_SMOKE=1 OPENAI_API_KEY=sk-... pytest -q tests/test_embeddings_smoke.py`
+
+## KPIs i Walidacja
+
+- Health: `GET /health` P95 < 50ms; status 200
+- Novelty-check i suggestion: średni czas < 150ms
+- Reindex: done < 60s dla 10k tematów (lokalnie)
+
+Walidacja ręczna (smoke):
+```bash
+curl -f http://localhost:8041/health
+curl -s -X POST http://localhost:8041/topics/novelty-check -H 'Content-Type: application/json' -d '{"title":"Test","summary":"Short"}' | jq .
+KEY=$(uuidgen); curl -s -X POST http://localhost:8041/topics/suggestion -H 'Content-Type: application/json' -H "Idempotency-Key: $KEY" -d '{"title":"Test","source":"harvester"}' | jq .
+```
+
+## References
+- docs/integration/PORT_ALLOCATION.md (port 8041)
+- PROJECT_CONTEXT.md (Kontekst, SOP)
+- docs/DOCS_CONSOLIDATION_PLAN.md (standardy README/QUICK_START)
