@@ -106,7 +106,7 @@ kanban-plugin: board
 	- [ ] Uruchom publisher (profil publishing)
 	- [ ] POST /publish z twitter.enabled=true (bez real publish)
 	- [ ] Zweryfikuj /metrics i /health
- - [ ] [P1] Topic Manager vector index: reindex + search happy path; embed fallback without OPENAI_API_KEY. [owner: platform]
+ - [x] [P1] Topic Manager vector index: reindex + search happy path; embed fallback without OPENAI_API_KEY. [owner: platform]
 	   - comments:
 	   - Źródła: topic-manager/README.md; komendy: /topics/index/*, /topics/search; fallback bez OPENAI_API_KEY
 	   - follows: [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]
@@ -114,9 +114,9 @@ kanban-plugin: board
     - [x] POST /topics/index/reindex (limit=200)
     - [x] GET /topics/index/info (sprawdź diagnostykę)
     - [x] GET /topics/search (2-3 zapytania testowe)
-    - [ ] Test bez OPENAI_API_KEY (fallback)
+    - [x] Test bez OPENAI_API_KEY (fallback)
    - notes:
-    - 2025-08-13: reindex OK (indexed~1; demo dane); info: ready=true, index_coverage=1.0; search OK (top 5 z przykładowymi wynikami)
+    - 2025-08-13: reindex OK (indexed~1; demo dane); info: ready=true, index_coverage=1.0; search OK (top 5). OPENAI_API_KEY nieustawiony w compose → fallback potwierdzony
  - [ ] [P2] Analytics Service: API skeleton v2.0.0 — health + insights smoke (no data collection yet). [owner: analytics]
 	   - comments:
 	   - Źródła: kolegium/analytics-service/README.md; health + /analytics/insights/{user_id}
