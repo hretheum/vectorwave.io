@@ -41,7 +41,7 @@ kanban-plugin: board
 	   - id: 21
 - [ ] VW-22 Analytics: API skeleton + /health
 	   - id: 22
-- [ ] VW-23 Docs: zaktualizować harvester i Gamma.app ^EPIC-VW-16]
+- [ ] VW-23 Docs: zaktualizować harvester i Gamma.app
 	   ↳ Parent: [^EPIC-VW-16]
 	   - id: 23
 - [ ] VW-24 Gamma: MVP (health + generate)
@@ -87,37 +87,22 @@ kanban-plugin: board
 	 - [x] VW-27 Doksy: plan konsolidacji dokumentacji
 	 - [x] VW-33 Doksy: raport rozbieżności vs target-version
 	 - [x] VW-28 Doksy: Topic Manager — bez scraperów, integracje
-- [ ] Doksy: ujednolicenie README i QUICK_START (VW-35) ^EPIC-VW-16]
+- [ ] Doksy: ujednolicenie README i QUICK_START (VW-35)
 	   ↳ Parent: [^EPIC-VW-16]
 	   - follows: VW-31, VW-28, VW-29
 	   - notes:
 	 - Kontekst: PROJECT_CONTEXT; TM bez scraperów; ujednolicenie QUICK_START.
-- [ ] Doksy: standard README/QUICK_START template i ToC (VW-31) ^EPIC-VW-16]
-	   ↳ Parent: [^EPIC-VW-16]
-	   - comments:
-	 - Źródła: docs/DOCS_CONSOLIDATION_PLAN.md, docs/DOCS_INVENTORY.md, target-version/VECTOR_WAVE_TARGET_SYSTEM_ARCHITECTURE.md, istniejące README w usługach
-	   - notes:
-	 - Artefakty do utworzenia: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md
-- [ ] Doksy: Gamma.app — stan, plan i wymagania (VW-30) ^EPIC-VW-16]
-	   ↳ Parent: [^EPIC-VW-16]
-	   - blocks: VW-12
-	   - follows: VW-27
-	   - comments:
-	 - Gamma docs → kolegium/gamma-ppt-generator/README.md
+ 
+ 
 - [ ] Kanban: synchronizacja z PROJECT_CONTEXT (priorytety, etykiety, relacje) (VW-32)
 	   - follows: VW-36
 	   - comments:
 	 - Kontekst → PROJECT_CONTEXT.md
-- [ ] PROJECT_CONTEXT normalization: labels/priorities spec + SOP (VW-36) ^EPIC-VW-16]
-   ↳ Parent: [^EPIC-VW-16]
-   - comments:
- 	 - Źródła: PROJECT_CONTEXT.md, target-version/KANBAN.md, docker-compose.yml (porty/usługi), stan Kanban (Vikunja/Wekan)
-   - notes:
- 	 - Zrealizowano: sekcje "Standard etykiet i priorytetów (Normalization)" i "SOP pracy z Kanbanem" w PROJECT_CONTEXT.md
-- [ ] Doksy: cele/metryki/walidacja w README serwisów (VW-34) ^EPIC-VW-16]
+ 
+- [ ] Doksy: cele/metryki/walidacja w README serwisów (VW-34)
 	   ↳ Parent: [^EPIC-VW-16]
 	   - follows: VW-37
-- [ ] Doksy: KPI/validation framework — definicja i checklisty (VW-37) ^EPIC-VW-16]
+- [ ] Doksy: KPI/validation framework — definicja i checklisty (VW-37)
 	   ↳ Parent: [^EPIC-VW-16]
 	   - comments:
 	 - Źródła: tests/e2e/workflow/TEST_PLAN.md, tests/e2e/test_complete_user_workflow.py, publisher/docs/* (monitoring), kolegium/analytics-service/README.md
@@ -127,19 +112,23 @@ kanban-plugin: board
 
 **Complete**
 - [x] [P0] Remove TM scraping stub and docs mentioning /topics/scrape.
-- [x] Doksy: Topic Manager — bez scraperów, integracje (VW-28) ^EPIC-VW-16]
+- [x] Doksy: Topic Manager — bez scraperów, integracje (VW-28)
 	  ↳ Parent: [^EPIC-VW-16]
 	  - comments:
 	- TM docs → topic-manager/README.md
-- [x] Doksy: Analytics Service — status i API szkic (VW-29) ^EPIC-VW-16]
+- [x] Doksy: Analytics Service — status i API szkic (VW-29)
 	  ↳ Parent: [^EPIC-VW-16]
 	  	- comments:
 	  	- Analytics docs → kolegium/analytics-service/README.md
-- [x] Doksy: Gamma.app — stan, plan i wymagania (VW-30) ^EPIC-VW-16]
+- [x] Doksy: Gamma.app — stan, plan i wymagania (VW-30)
 	  ↳ Parent: [^EPIC-VW-16]
 	  	- comments:
 	  	- Gamma plan → docs/GAMMA_INTEGRATION_PLAN.md; Service docs → kolegium/gamma-ppt-generator/README.md
-- [x] Doksy: standard README/QUICK_START template i ToC (VW-31) ^EPIC-VW-16]
+- [x] Doksy: standard README/QUICK_START template i ToC (VW-31)
+ - [x] Kanban: synchronizacja z PROJECT_CONTEXT (priorytety, etykiety, relacje) (VW-32)
+  ↳ Parent: [^EPIC-VW-16]
+	- comments:
+	- Synchronizacja: usunięto duplikaty kotwicy ^EPIC-VW-16, poprawiono „↳ Parent” i literówki; zgodnie z PROJECT_CONTEXT.md
 	  ↳ Parent: [^EPIC-VW-16]
 	  	- comments:
 	  	- Artefakty: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md
@@ -153,15 +142,15 @@ kanban-plugin: board
 
 ## Archive
 
-- [x] 2025-08-13 Doksy: Analytics Service — status i API szkic (VW-29) ^EPIC-VW-16]
+- [x] 2025-08-13 Doksy: Analytics Service — status i API szkic (VW-29)
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- Analytics docs → kolegium/analytics-service/README.md
-- [x] 2025-08-13 Doksy: Gamma.app — stan, plan i wymagania (VW-30) ^EPIC-VW-16]
+- [x] 2025-08-13 Doksy: Gamma.app — stan, plan i wymagania (VW-30)
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- Gamma plan → docs/GAMMA_INTEGRATION_PLAN.md; Service docs → kolegium/gamma-ppt-generator/README.md
-- [x] 2025-08-13 Doksy: standard README/QUICK_START template i ToC (VW-31) ^EPIC-VW-16]
+- [x] 2025-08-13 Doksy: standard README/QUICK_START template i ToC (VW-31)
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- Artefakty: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md
@@ -170,13 +159,17 @@ kanban-plugin: board
    ↳ Parent: [^EPIC-VW-16]
   	  - comments:
   	- Zmiany: PROJECT_CONTEXT.md → sekcje Normalization + SOP; Źródła: target-version/KANBAN.md, docker-compose.yml
-- [x] 2025-08-13 18:38 Doksy: przegląd całej dokumentacji (repo + submoduły) (VW-26) ^EPIC-VW-16]
+- [x] 2025-08-13 18:38 Doksy: przegląd całej dokumentacji (repo + submoduły) (VW-26)
 	   ↳ Parent: [^EPIC-VW-16]
 	 	  - comments:
 	 	- Inwentarz → docs/DOCS_INVENTORY.md
-- [x] 2025-08-13 18:38 Doksy: plan konsolidacji dokumentacji (VW-27) ^EPIC-VW-16]
-	   ↳ Parent: [
-- [x] 2025-08-13 18:38 Doksy: raport rozbieżności vs target-version (VW-33) ^EPIC-VW-16]
+- [x] 2025-08-13 18:38 Doksy: plan konsolidacji dokumentacji (VW-27)
+   ↳ Parent: [^EPIC-VW-16]
+- [x] 2025-08-13 18:38 Doksy: raport rozbieżności vs target-version (VW-33)
+ - [x] 2025-08-13 Kanban: synchronizacja z PROJECT_CONTEXT (priorytety, etykiety, relacje) (VW-32)
+   ↳ Parent: [^EPIC-VW-16]
+	  - comments:
+	- Synchronizacja: usunięto duplikaty kotwicy ^EPIC-VW-16, poprawiono „↳ Parent” i literówki; zgodnie z PROJECT_CONTEXT.md
 	   ↳ Parent: [^EPIC-VW-16]
 	 	  - comments:
 	 	- Raport → docs/DOCS_DIFF_REPORT.md
