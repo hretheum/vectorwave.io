@@ -87,13 +87,7 @@ kanban-plugin: board
 	 - [x] VW-27 Doksy: plan konsolidacji dokumentacji
 	 - [x] VW-33 Doksy: raport rozbieżności vs target-version
 	 - [x] VW-28 Doksy: Topic Manager — bez scraperów, integracje
-- [ ] Doksy: ujednolicenie README i QUICK_START (VW-35)
-	   ↳ Parent: [^EPIC-VW-16]
-	   - follows: VW-31, VW-28, VW-29
-	   - notes:
-	 - Kontekst: PROJECT_CONTEXT; TM bez scraperów; ujednolicenie QUICK_START.
-   - comments:
-	 - Wdrożenie standardów: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md; Indeks: docs/README.md
+ 
  
  
 - [ ] Kanban: synchronizacja z PROJECT_CONTEXT (priorytety, etykiety, relacje) (VW-32)
@@ -131,6 +125,10 @@ kanban-plugin: board
   ↳ Parent: [^EPIC-VW-16]
 	- comments:
 	- Synchronizacja: usunięto duplikaty kotwicy ^EPIC-VW-16, poprawiono „↳ Parent” i literówki; zgodnie z PROJECT_CONTEXT.md
+ - [x] Doksy: ujednolicenie README i QUICK_START (VW-35)
+   ↳ Parent: [^EPIC-VW-16]
+	- comments:
+	- Wdrożenie standardów: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md; Indeks: docs/README.md; Linter: scripts/docs_lint_readme.py; Znormalizowane README: editorial-service, topic-manager, publisher, presenton, kolegium/analytics-service, kolegium/gamma-ppt-generator, kolegium
 	  ↳ Parent: [^EPIC-VW-16]
 	  	- comments:
 	  	- Artefakty: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md
@@ -152,6 +150,11 @@ kanban-plugin: board
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- Gamma plan → docs/GAMMA_INTEGRATION_PLAN.md; Service docs → kolegium/gamma-ppt-generator/README.md
+
+- [x] 2025-08-13 Doksy: ujednolicenie README i QUICK_START (VW-35)   ^EPIC-VW-16
+   ↳ Parent: [^EPIC-VW-16]
+  	  - comments:
+  	- Linter: scripts/docs_lint_readme.py (wynik: wszystkie README OK); Wdrożone standardy: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md; Znormalizowane README: editorial-service, topic-manager, publisher, presenton, kolegium/analytics-service, kolegium/gamma-ppt-generator, kolegium
 - [x] 2025-08-13 Doksy: standard README/QUICK_START template i ToC (VW-31)
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
