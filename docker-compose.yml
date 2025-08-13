@@ -9,6 +9,7 @@ networks:
 volumes:
   chroma_data:
   topic_manager_data:
+  vikunja_data:
 
 services:
   chromadb:
@@ -152,41 +153,6 @@ services:
       - "8081:8081"
     networks: [vector-wave]
 
-  gamma-ppt-generator:
-    profiles: ["gamma"]
-    build: ./kolegium/gamma-ppt-generator
-    environment:
-      - GAMMA_API_KEY=${GAMMA_API_KEY:-}
-
-  vikunja:
-    profiles: ["kanban"]
-    image: vikunja/vikunja:0.22
-    container_name: vikunja
-    ports:
-      - "3456:3456"
-    environment:
-      VIKUNJA_DATABASE__TYPE: sqlite
-      VIKUNJA_SERVICE__JWTSECRET: ${VIKUNJA_JWTSECRET:-changeme-dev}
-      VIKUNJA_SERVICE__ENABLEREGISTRATION: "true"
-    volumes:
-      - vikunja_data:/app/vikunja/files
-    restart: unless-stopped
-
-volumes:
-  vikunja_data:
-      - HOST=0.0.0.0
-      - SERVICE_PORT=8003
-      - DEBUG=false
-    ports:
-      - "8003:8003"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    networks: [vector-wave]
-
   harvester:
     profiles: ["harvester"]
     build:
@@ -220,4 +186,26 @@ volumes:
       retries: 3
       start_period: 40s
     restart: unless-stopped
+
+  gamma-ppt-generator:
+    profiles: ["gamma"]
+    build: ./kolegium/gamma-ppt-generator
+    environment:
+      - GAMMA_API_KEY=${GAMMA_API_KEY:-}
+
+  vikunja:
+    profiles: ["kanban"]
+    image: vikunja/vikunja:latest
+    container_name: vikunja
+    ports:
+      - "3456:3456"
+    environment:
+      VIKUNJA_DATABASE_TYPE: sqlite
+      VIKUNJA_DATABASE_PATH: /app/vikunja/files/vikunja.db
+      VIKUNJA_SERVICE_JWTSECRET: ${VIKUNJA_JWTSECRET:-changeme-dev}
+      VIKUNJA_SERVICE_ENABLEREGISTRATION: "true"
+    volumes:
+      - vikunja_data:/app/vikunja/files
+    restart: unless-stopped
+    user: "0:0"
 
