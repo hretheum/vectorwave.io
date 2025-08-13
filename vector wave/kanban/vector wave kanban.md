@@ -68,7 +68,7 @@ kanban-plugin: board
     - [ ] Zanotuj wynik (czas, statusy) w PROJECT_CONTEXT.md
    - notes:
     - 2025-08-13: chromadb heartbeat OK; editorial/topic-manager status=healthy; orchestrator /health=healthy (8042). Endpoint minimalnego runu nieodnaleziony (404 na /checkpoints/sequence/start). Alternatywa: smoke przez triage seed (`POST /api/triage/seed`).
- - [ ] [P0] Harvester smoke: /harvest/trigger → triage-preview and selective-triage promote path to TM. [owner: data]
+ - [x] [P0] Harvester smoke: /harvest/trigger → triage-preview and selective-triage promote path to TM. [owner: data]
 	   - comments:
 	   - Źródła: harvester/README.md; ścieżka: trigger → triage-preview → selective-triage → TM /topics/suggestion
 	   - follows: [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]

@@ -127,6 +127,9 @@ Ten projekt jest przygotowany do pracy z agentem w Cursor IDE przy użyciu MCP (
   - Topic Manager `/health` = healthy (8041)
   - Orchestrator `/health` = healthy (8042)
   - Orchestrator minimal run endpoint `/checkpoints/sequence/start` → 404 (niezaimplementowane); alternatywa smoke: `POST /api/triage/seed` → accepted
+- 2025-08-13T21:08:36Z
+  - Harvester `/harvest/trigger?limit=10` OK: duration≈3.3s, fetched=30, saved=30; `/harvest/status` OK
+  - TM `/topics/suggestion` accepted (payload: content_type=POST, source.name=harvester)
 
 
 ## 🚨 AKTUALNY STAN PROJEKTU (2025-08-11) - PHASE 2/3 MIGRATION COMPLETED, PHASE 4 W TOKU
