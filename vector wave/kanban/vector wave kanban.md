@@ -72,11 +72,13 @@ kanban-plugin: board
 	   - comments:
 	   - Źródła: harvester/README.md; ścieżka: trigger → triage-preview → selective-triage → TM /topics/suggestion
 	   - follows: [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]
-	   - Subtasks:
-	- [ ] Uruchom harvester (profil harvester w compose)
-	- [ ] POST /harvest/trigger (limit=10)
-	- [ ] GET /harvest/status (zweryfikuj promoted/promoted_ids_count)
-	- [ ] Zweryfikuj ingest do TM (Idempotency-Key; brak duplikatów)
+   - Subtasks:
+    - [x] Uruchom harvester (profil harvester w compose)
+    - [x] POST /harvest/trigger (limit=10)
+    - [x] GET /harvest/status (zweryfikuj promoted/promoted_ids_count)
+    - [x] Zweryfikuj ingest do TM (Idempotency-Key; brak duplikatów)
+   - notes:
+    - 2025-08-13: /harvest/trigger OK (duration~3.3s, fetched/saved=30); /harvest/status OK; /topics/suggestion accepted (content_type=POST, source.name=harvester)
  - [ ] [P0] Kolegium AI Writing Flow CI-Light: run basic selective checkpoints against Editorial Service. [owner: kolegium]
 	   - comments:
 	   - Źródła: kolegium/docker-compose.test.yml, kolegium/AI_WRITING_FLOW_TASKS.md, kolegium/AI_WRITING_FLOW_DESIGN.md
