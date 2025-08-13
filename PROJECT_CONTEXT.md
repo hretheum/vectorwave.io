@@ -1,5 +1,126 @@
 # PROJECT CONTEXT - Vector Wave AI Kolegium
 
+## 🆕 AKTUALIZACJA (2025-08-13) — Vikunja Kanban + MCP
+
+### Stan Kanbana (lokalna instancja Vikunja)
+- Projekt: `vector-wave` (project_id=2), widok Kanban (view_id=8)
+- Kolumny: Backlog (id=2), Todo (id=4), In-Progress (id=5), Blocked (id=6), Done (id=7)
+- Zadania makro oznaczone jako epiki (etykieta `EPIC`) oraz z ustawionym priorytetem polem `priority`:
+  - 3: Stand up self-hosted Kanban (Vikunja) — priority=5, labels: EPIC, INFRA
+  - 4: Smoke E2E — priority=5, labels: EPIC, E2E
+  - 5: Harvester smoke — priority=5, labels: EPIC, HARVESTER
+  - 6: Kolegium AI Writing Flow CI-Light — priority=5, labels: EPIC, ORCH
+  - 8: Orchestrator happy-path flow — priority=5, labels: EPIC, ORCH
+  - 9: Publisher smoke — priority=3, labels: EPIC, PUBLISHER
+  - 10: Topic Manager vector index — priority=3, labels: EPIC, TM
+  - 11: Analytics placeholder API scaffolding — priority=2, labels: EPIC, ANALYTICS
+  - 12: Gamma.app service skeleton — priority=2, labels: EPIC, GAMMA
+- Zadanie dokumentacyjne 16: etykiety `EPIC`, `DOCS` (epik dokumentacji)
+- Mikrozadania (14–25) z priorytetami ustawionymi polem `priority`, relacje rodzic→dziecko ustawione polem `parent_task_id`:
+  - 14→4, 15→5, 17→5, 18→6, 19→8, 20→9, 21→10, 22→11, 24→12, 25→9; 23→16
+- Uwaga: przypinanie etykiet przez surowe API różni się między wersjami; zalecane jest użycie narzędzi MCP do trwałego przypinania (patrz niżej).
+
+### MCP (vikunja-mcp) — jak kontynuować w Cursor IDE
+1) Włącz MCP w Cursor i dodaj serwer `vikunja` (jeśli jeszcze nie ma):
+   - Settings → Model Context Protocol → Add Server
+   - Command: `npx`
+   - Args: `[-y, "@democratize-technology/vikunja-mcp@latest"]`
+   - Env: `VIKUNJA_URL=http://localhost:3456/api/v1`, `VIKUNJA_API_TOKEN=<lokalny_token>`
+2) W nowym wątku w Cursor otwórz Tools → `vikunja` i wykonaj:
+   - Upewnij się, że etykiety domenowe istnieją (tworzy, gdy brak):
+     - `vikunja.labels.ensure { "title": "INFRA" }`
+     - `vikunja.labels.ensure { "title": "ORCH" }`, `"E2E"`, `"HARVESTER"`, `"PUBLISHER"`, `"TM"`, `"ANALYTICS"`, `"GAMMA"`, `"DOCS"`
+   - Przypnij etykiety do mikrozadań (przykłady):
+     - `vikunja.tasks.labels.add { "taskId": 14, "label": "ORCH" }`
+     - `vikunja.tasks.labels.add { "taskId": 14, "label": "E2E" }`
+     - (analogicznie: 15→HARVESTER; 17→HARVESTER+TM; 18→ORCH; 20→PUBLISHER; 21→TM; 22→ANALYTICS; 23→DOCS; 24→GAMMA; 25→PUBLISHER+GAMMA)
+   - Opcjonalnie: przenieś mikrozadania do `Todo` (jeśli UI nie odświeżył):
+     - `vikunja.tasks.update { "taskId": 14, "bucketId": 4, "projectViewId": 8 }`
+   - Weryfikacja:
+     - `vikunja.views.tasks.list { "projectId": 2, "viewId": 8 }`
+
+3) Bezpieczeństwo: token trzymaj wyłącznie lokalnie (nie commitować do repo). Nie zapisujemy kluczy w `.env*` śledzonych przez git.
+
+4) Szybkie curl-checki (lokalnie):
+```bash
+curl -s -H "Authorization: Bearer $VIKUNJA_API_TOKEN" http://localhost:3456/api/v1/projects/2 | jq '.title,.id'
+curl -s -H "Authorization: Bearer $VIKUNJA_API_TOKEN" http://localhost:3456/api/v1/projects/2/views/8/tasks | jq '.[].title'
+```
+
+### Do zrobienia (MCP / UI)
+- Trwale przypiąć etykiety domenowe do mikrozadań (używając MCP, jak wyżej), tak aby widoczne były w kolumnie „Etykiety” w UI.
+- Ewentualnie posprzątać testowe zadania (#1, #2) lub przenieść #1 do Done i #2 do Backlog/archiwum.
+
+### Standard etykiet i priorytetów (Normalization)
+- Etykiety domenowe: `INFRA`, `ORCH`, `E2E`, `HARVESTER`, `PUBLISHER`, `TM`, `ANALYTICS`, `GAMMA`, `DOCS`
+- Etykiety roli: `EPIC`, `P0`, `P1`, `P2`
+- Priorytety: używamy pól liczbowych (`priority` w Vikunja) zgodnie z mapowaniem:
+  - 5 = P0 (krytyczne, ścieżka E2E, blokery główne)
+  - 4 = P1 (wysoki, ważne funkcje)
+  - 3 = P2 (średni, nice-to-have teraz, wymagane później)
+  - 2 = P3 (niski)
+  - 1 = P4 (archiwum / pomysły)
+- Konwencja tytułów: `VW-<index> <krótki opis>`; dla epików prefiks `[EPIC]`
+- Konwencja opisów: pierwsza linia: cel; kolejne: „blocked by”, „follows”, „comments” (źródła)
+
+### SOP pracy z Kanbanem (Cursor + Vikunja/Wekan)
+1) Identyfikacja zadania: mapuj `VW-<index>` → `id` (MCP `vikunja.tasks.list`)
+2) Komentarz przed przeniesieniem: dodaj referencje do plików (`docs/*`, `PROJECT_CONTEXT.md` itp.)
+3) Realizacja: w repozytorium dokonaj zmian (bez commitowania sekretów)
+4) Walidacja: minimalny test (health, ścieżka happy-path jeśli dotyczy)
+5) Przeniesienie: ustaw `done=true`, `bucketId=7` (Done) w `viewId=8` (Kanban)
+6) Weryfikacja w UI: sprawdź widoczność komentarza i statusu; ponów komentarz, jeśli zniknął
+
+
+### Cursor IDE Agent Handoff (resume this conversation)
+
+Ten projekt jest przygotowany do pracy z agentem w Cursor IDE przy użyciu MCP (vikunja-mcp). Poniżej minimalny kontekst i reguły, które agent ma stosować, aby kontynuować bez dodatkowych wyjaśnień:
+
+1) Konfiguracja MCP po stronie Cursor
+   - Servers → Add Server:
+     - command: `npx`
+     - args: `["-y", "@democratize-technology/vikunja-mcp@latest"]`
+     - env:
+       - `VIKUNJA_URL=http://localhost:3456/api/v1`
+       - `VIKUNJA_API_TOKEN=<lokalny_token>`
+
+2) Nazewnictwo i identyfikacja zadań
+   - Projekt posiada `Identifier = VW`. W komunikacji używamy formatu: `VW-<index>` (np. VW-27).
+   - Agent zawsze mapuje `VW-<index>` → `id` dynamicznie przez listowanie zadań:
+     - MCP: `vikunja.tasks.list { "projectId": 2 }` i wybór rekordów, gdzie `index == <index>`.
+
+3) Zasada dodawania notek i przenoszenia (widoczne w UI)
+   - ZAWSZE najpierw dodać komentarz (nie opis) do zadania, następnie przenieść do kolumny Done.
+   - Szablon komentarza (w razie potrzeby dostosować):
+     - "NOTE: Źródła: `docs/DOCS_INVENTORY.md` | Raport: `docs/DOCS_DIFF_REPORT.md` | Plan: `docs/DOCS_CONSOLIDATION_PLAN.md`"
+   - MCP przykłady:
+     - `vikunja.tasks.comments.create { "taskId": <id>, "comment": "NOTE: Źródła: docs/DOCS_INVENTORY.md | Raport: docs/DOCS_DIFF_REPORT.md | Plan: docs/DOCS_CONSOLIDATION_PLAN.md" }`
+     - `vikunja.tasks.update { "taskId": <id>, "bucketId": 7, "projectViewId": 8, "done": true }`
+   - Po przeniesieniu agent weryfikuje komentarz; jeśli UI go nie pokazuje, ponawia `comments.create`.
+
+4) Pliki referencyjne wymagane w komentarzach i podczas realizacji
+   - `docs/DOCS_INVENTORY.md` – spis wszystkich dokumentów
+   - `docs/DOCS_DIFF_REPORT.md` – aktualny raport rozbieżności
+   - `docs/DOCS_CONSOLIDATION_PLAN.md` – plan konsolidacji dokumentacji
+   - `PROJECT_CONTEXT.md` – niniejszy kontekst (MCP/Kanban/SOP)
+
+5) SOP realizacji zadania Kanban (skrót)
+   - Mapuj `VW-<index>` → `id` (MCP `tasks.list`).
+   - Dodaj komentarz z referencjami (jak wyżej).
+   - Wykonaj zmianę w repo (commit/PR jeśli dotyczy); nie commituj sekretów.
+   - Dodaj komentarz z linkiem do plików/PR i krótkim wynikiem walidacji.
+   - Oznacz `done=true`, przenieś do `bucketId=7` (Done) w `viewId=8` (Kanban) i zweryfikuj.
+
+6) Przydatne MCP komendy (kanban)
+   - Lista zadań w projekcie: `vikunja.tasks.list { "projectId": 2 }`
+   - Zadania w widoku Kanban: `vikunja.views.tasks.list { "projectId": 2, "viewId": 8 }`
+   - Komentarz: `vikunja.tasks.comments.create { "taskId": <id>, "comment": "..." }`
+   - Przeniesienie: `vikunja.tasks.update { "taskId": <id>, "bucketId": 7, "projectViewId": 8, "done": true }`
+
+7) Oczekiwany porządek wykonywania (fragment, może się zmieniać wg relacji)
+   - VW-26 → VW-33 → VW-27 → VW-29/VW-30/VW-31/VW-32 → VW-37 → VW-36 → VW-34 …
+
+
 ## 🚨 AKTUALNY STAN PROJEKTU (2025-08-11) - PHASE 2/3 MIGRATION COMPLETED, PHASE 4 W TOKU
 
 ### ✅ STATUS: CORE SERVICES READY FOR E2E (no analytics, no Gamma)
