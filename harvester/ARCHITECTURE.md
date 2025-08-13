@@ -73,3 +73,43 @@ graph TD
 ## 5. Podejście "Container First"
 
 Serwis od początku jest projektowany z myślą o konteneryzacji. `Dockerfile` i `docker-compose.service.yml` są kluczowymi artefaktami. Serwis posiada endpoint `/health` i jest zintegrowany z głównym `docker-compose.yml` za pomocą profilu `harvester`, co pozwala na jego opcjonalne uruchamianie.
+
+---
+
+## Uproszczona Architektura — skrót (2025-08-13)
+
+Bez scraperów i bez wewnętrznych agentów. Pipeline oparty o stabilne API:
+
+1) Równoległy fetch (HN, ArXiv, Dev.to, NewsData.io, Product Hunt)
+2) Normalizacja do `RawTrendItem`
+3) Zapis w `ChromaDB/raw_trends`
+4) Selective Triage: `Editorial /profile/score` + `Topic Manager /topics/novelty-check`
+5) Decyzja: `PROMOTE` → `Topic Manager /topics/suggestion` (z `Idempotency-Key`)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant FE as FetcherEngine
+    participant CDB as ChromaDB (raw_trends)
+    participant ES as Editorial (/profile/score)
+    participant TM as Topic Manager
+
+    FE->>HN: topstories + items
+    FE->>ARXIV: atom feed (cs.AI, cs.LG, cs.CV)
+    FE->>DEVTO: /api/articles (tags)
+    FE->>NEWSD: /api/1/news (apikey)
+    FE->>PH: GraphQL v2 (Bearer)
+    FE->>CDB: save RawTrendItem[]
+    loop for each candidate
+      FE->>ES: POST /profile/score {summary}
+      ES-->>FE: {profile_fit_score}
+      FE->>TM: POST /topics/novelty-check {title,summary}
+      TM-->>FE: {similarity_score}
+      alt profile>=0.7 && (1-sim)>=0.8
+        FE->>TM: POST /topics/suggestion (Idempotency-Key)
+        TM-->>FE: created/duplicate
+      else
+        FE-->>FE: reject
+      end
+    end
+```
