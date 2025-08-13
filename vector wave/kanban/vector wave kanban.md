@@ -83,10 +83,12 @@ kanban-plugin: board
 	   - comments:
 	   - Źródła: kolegium/docker-compose.test.yml, kolegium/AI_WRITING_FLOW_TASKS.md, kolegium/AI_WRITING_FLOW_DESIGN.md
 	   - follows: [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]
-	   - Subtasks:
-	- [ ] Uruchom CI-Light tests (docker-compose.test.yml)
-	- [ ] Sprawdź selektywne checkpointy vs Editorial (8040)
-	- [ ] Zaprotokołuj ewentualne flaki i retry
+   - Subtasks:
+    - [ ] Uruchom CI-Light tests (docker-compose.test.yml) lub wykonaj smoke endpointami Orchestratora
+    - [x] Sprawdź zdrowie Orchestratora (8042) i triage endpoints (/api/triage/policy, /api/triage/seed)
+    - [ ] Zaprotokołuj wyniki (policy snapshot, seed result) i flaki/retry
+   - notes:
+    - 2025-08-13: /api/triage/policy OK (snapshot pobrany); /api/triage/seed accepted; test suite nieodnaleziony — fallback smoke przez API
  - [ ] [P0] Orchestrator happy-path flow: research→audience→writer with selective validation calls; return content. [owner: kolegium]
 	   - comments:
 	   - Źródła: kolegium/publishing-orchestrator/README.md; integracja z Editorial Service (8040)
