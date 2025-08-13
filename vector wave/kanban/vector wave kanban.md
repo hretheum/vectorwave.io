@@ -92,7 +92,7 @@ kanban-plugin: board
 	   - follows: [P0] Kolegium AI Writing Flow CI-Light: run basic selective checkpoints against Editorial Service. [owner: kolegium]
 	   - Subtasks:
 	 - [x] Skonfiguruj minimalny temat wejściowy (content: "Test content for happy path", platform: linkedin)
-	 - [ ] Uruchom sekwencję research→audience→writer (fallback: pojedynczy checkpoint)
+    - [x] Uruchom sekwencję research→audience→writer (fallback: pojedynczy checkpoint)
 	 - [x] Zweryfikuj wywołania selektywnej walidacji do Editorial (rule_count>0, processing_time_ms zapisane)
 	 - [x] Zbierz i zapisz wynik (treść, czasy) w PROJECT_CONTEXT.md
 - [ ] [P1] Publisher smoke: enqueue → minimal dry-run via Twitter adapter (Typefully; no real publish), metrics visible. [owner: publishing]

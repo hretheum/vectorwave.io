@@ -138,6 +138,10 @@ Ten projekt jest przygotowany do pracy z agentem w Cursor IDE przy użyciu MCP (
   - CI-Light fallback (Orchestrator API):
     - `/api/triage/policy` OK (keywords.include: ai,llm,rag,embedding,agents,vector; exclude: giveaway,sponsored)
     - `/api/triage/seed` accepted
+- 2025-08-13T21:58:16Z
+  - Orchestrator checkpoints (fallback sequence):
+    - mid_writing: `rule_count=4`, `processing_time_ms≈747`, status=waiting_user
+    - post_writing: `rule_count=4`, `processing_time_ms≈159`, status=waiting_user
 
 
 ## 🚨 AKTUALNY STAN PROJEKTU (2025-08-11) - PHASE 2/3 MIGRATION COMPLETED, PHASE 4 W TOKU
