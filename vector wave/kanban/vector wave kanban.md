@@ -79,7 +79,7 @@ kanban-plugin: board
 - [ ] [P0] Orchestrator happy-path flow: research→audience→writer with selective validation calls; return content. [owner: kolegium]
    - comments:
    - Źródła: kolegium/publishing-orchestrator/README.md; integracja z Editorial Service (8040)
-- [ ] [P1] Publisher smoke: enqueue → minimal dry-run to LinkedIn adapter (no real publish), metrics visible. [owner: publishing]
+ - [ ] [P1] Publisher smoke: enqueue → minimal dry-run via Twitter adapter (Typefully; no real publish), metrics visible. [owner: publishing]
    - comments:
    - Źródła: publisher/README.md; metryki: /metrics; health: 8085
 - [ ] [P1] Topic Manager vector index: reindex + search happy path; embed fallback without OPENAI_API_KEY. [owner: platform]
