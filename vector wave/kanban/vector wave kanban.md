@@ -92,6 +92,8 @@ kanban-plugin: board
 	   - follows: VW-31, VW-28, VW-29
 	   - notes:
 	 - Kontekst: PROJECT_CONTEXT; TM bez scraperów; ujednolicenie QUICK_START.
+   - comments:
+	 - Wdrożenie standardów: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md; Indeks: docs/README.md
  
  
 - [ ] Kanban: synchronizacja z PROJECT_CONTEXT (priorytety, etykiety, relacje) (VW-32)
