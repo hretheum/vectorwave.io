@@ -10,6 +10,7 @@ volumes:
   chroma_data:
   topic_manager_data:
   vikunja_data:
+  wekan_db:
 
 services:
   chromadb:
@@ -208,4 +209,32 @@ services:
       - vikunja_data:/app/vikunja/files
     restart: unless-stopped
     user: "0:0"
+
+  # Wekan stack (MongoDB + Wekan) — alternatywny Kanban zarządzalny przez API
+  wekandb:
+    profiles: ["kanban"]
+    image: mongo:5.0
+    container_name: wekandb
+    volumes:
+      - wekan_db:/data/db
+    networks: [vector-wave]
+    restart: unless-stopped
+
+  wekan:
+    profiles: ["kanban"]
+    image: ghcr.io/wekan/wekan:latest
+    container_name: wekan
+    depends_on:
+      - wekandb
+    environment:
+      - MONGO_URL=mongodb://wekandb:27017/wekan
+      - ROOT_URL=http://localhost:8090
+      - WITH_API=true
+      - ADMIN_USER=vw-admin
+      - ADMIN_PASS=VectorWave!123
+      - ADMIN_EMAIL=vw-admin@example.com
+    ports:
+      - "8090:8080"
+    networks: [vector-wave]
+    restart: unless-stopped
 
