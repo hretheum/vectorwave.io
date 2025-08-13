@@ -95,13 +95,7 @@ kanban-plugin: board
 	   - comments:
 	 - Kontekst → PROJECT_CONTEXT.md
  
-- [ ] Doksy: cele/metryki/walidacja w README serwisów (VW-34)
-	   ↳ Parent: [^EPIC-VW-16]
-	   - follows: VW-37
-- [ ] Doksy: KPI/validation framework — definicja i checklisty (VW-37)
-	   ↳ Parent: [^EPIC-VW-16]
-	   - comments:
-	 - Źródła: tests/e2e/workflow/TEST_PLAN.md, tests/e2e/test_complete_user_workflow.py, publisher/docs/* (monitoring), kolegium/analytics-service/README.md
+ 
 
 
 ## done
@@ -129,6 +123,15 @@ kanban-plugin: board
    ↳ Parent: [^EPIC-VW-16]
 	- comments:
 	- Wdrożenie standardów: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md; Indeks: docs/README.md; Linter: scripts/docs_lint_readme.py; Znormalizowane README: editorial-service, topic-manager, publisher, presenton, kolegium/analytics-service, kolegium/gamma-ppt-generator, kolegium
+ - [x] Doksy: KPI/validation framework — definicja i checklisty (VW-37)
+   ↳ Parent: [^EPIC-VW-16]
+	- comments:
+	- Dokument: docs/KPI_VALIDATION_FRAMEWORK.md; Zastosowanie w README usług (sekcje KPIs i Walidacja)
+ - [x] Doksy: cele/metryki/walidacja w README serwisów (VW-34)
+   ↳ Parent: [^EPIC-VW-16]
+	- follows: VW-37
+	- comments:
+	- README zaktualizowane i zlinkowane do KPI framework; linter przechodzi na wszystkich usługach
 	  ↳ Parent: [^EPIC-VW-16]
 	  	- comments:
 	  	- Artefakty: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md
@@ -155,6 +158,16 @@ kanban-plugin: board
    ↳ Parent: [^EPIC-VW-16]
   	  - comments:
   	- Linter: scripts/docs_lint_readme.py (wynik: wszystkie README OK); Wdrożone standardy: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md; Znormalizowane README: editorial-service, topic-manager, publisher, presenton, kolegium/analytics-service, kolegium/gamma-ppt-generator, kolegium
+ 
+- [x] 2025-08-13 Doksy: KPI/validation framework — definicja i checklisty (VW-37)   ^EPIC-VW-16
+   ↳ Parent: [^EPIC-VW-16]
+  	  - comments:
+  	- Dokument: docs/KPI_VALIDATION_FRAMEWORK.md; zastosowane w README usług
+
+- [x] 2025-08-13 Doksy: cele/metryki/walidacja w README serwisów (VW-34)   ^EPIC-VW-16
+   ↳ Parent: [^EPIC-VW-16]
+  	  - comments:
+  	- README zaktualizowane o sekcję KPIs i Walidacja; linter OK
 - [x] 2025-08-13 Doksy: standard README/QUICK_START template i ToC (VW-31)
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
