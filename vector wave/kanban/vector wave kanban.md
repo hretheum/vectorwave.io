@@ -120,6 +120,10 @@ kanban-plugin: board
   ↳ Parent: [^EPIC-VW-16]
   	- comments:
   	- Analytics docs → kolegium/analytics-service/README.md
+- [x] Doksy: Gamma.app — stan, plan i wymagania (VW-30)
+  ↳ Parent: [^EPIC-VW-16]
+  	- comments:
+  	- Gamma plan → docs/GAMMA_INTEGRATION_PLAN.md; Service docs → kolegium/gamma-ppt-generator/README.md
 - [x] zadanie testowe dodane przez www (VW-1)
 - [x] TEST PUT (VW-2)
 
@@ -130,6 +134,11 @@ kanban-plugin: board
    ↳ Parent: [^EPIC-VW-16]
   	  - comments:
   	- Analytics docs → kolegium/analytics-service/README.md
+
+- [x] 2025-08-13 Doksy: Gamma.app — stan, plan i wymagania (VW-30)   ^EPIC-VW-16
+   ↳ Parent: [^EPIC-VW-16]
+  	  - comments:
+  	- Gamma plan → docs/GAMMA_INTEGRATION_PLAN.md; Service docs → kolegium/gamma-ppt-generator/README.md
 - [x] 2025-08-13 18:38 Doksy: przegląd całej dokumentacji (repo + submoduły) (VW-26)   ^EPIC-VW-16
 	   ↳ Parent: [^EPIC-VW-16]
 	 	  - comments:
