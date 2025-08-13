@@ -55,20 +55,30 @@ kanban-plugin: board
 	   - id: 12
 	   - blocked by: 32 (Doksy: Gamma.app — stan, plan i wymagania)
 
+ - [ ] [P1] Orchestrator: Redis readiness for sequence (REDIS_URL + compose) [owner: kolegium]
+   - comments:
+   - Przygotować usługę Redis w compose i zmienne środowiskowe (`REDIS_URL`) dla Orchestratora pod sekwencje
+   - follows: [P0] Kolegium AI Writing Flow CI-Light: run basic selective checkpoints against Editorial Service. [owner: kolegium]
+   - blocks: [P1] Orchestrator: enable sequence endpoint (/checkpoints/sequence/start) [owner: kolegium]
+   - Subtasks:
+    - [ ] Dodać `redis` do docker-compose i sieć
+    - [ ] Ustawić `REDIS_URL` w Orchestratorze i smoke połączenia
+    - [ ] (Opcjonalnie) Rozszerzyć `/health` o `sequence_ready`
+
+ - [ ] [P1] Orchestrator: Sequence API contract & examples [owner: kolegium]
+   - comments:
+   - Uzupełnić README/API_CONTRACT o minimalny payload `{content, platform}`, przykłady curl i typowe błędy
+   - follows: [P1] Orchestrator: Redis readiness for sequence (REDIS_URL + compose) [owner: kolegium]
+   - blocks: [P1] Orchestrator: enable sequence endpoint (/checkpoints/sequence/start) [owner: kolegium]
+   - Subtasks:
+    - [ ] Zaktualizować `crewai-orchestrator/API_CONTRACT.md`
+    - [ ] Dodać przykłady do `crewai-orchestrator/README.md`
+    - [ ] Dodać sekcję „typowe błędy i kody” (422/501)
+
 
 ## todo
 
-- [x] [P0] Harvester smoke: /harvest/trigger → triage-preview and selective-triage promote path to TM. [owner: data]
-	   - comments:
-	   - Źródła: harvester/README.md; ścieżka: trigger → triage-preview → selective-triage → TM /topics/suggestion
-	   - follows: [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]
-	   - Subtasks:
-	- [x] Uruchom harvester (profil harvester w compose)
-	- [x] POST /harvest/trigger (limit=10)
-	- [x] GET /harvest/status (zweryfikuj promoted/promoted_ids_count)
-	- [x] Zweryfikuj ingest do TM (Idempotency-Key; brak duplikatów)
-	   - notes:
-	- 2025-08-13: /harvest/trigger OK (duration~3.3s, fetched/saved=30); /harvest/status OK; /topics/suggestion accepted (content_type=POST, source.name=harvester)
+ 
 - [ ] [P0] Kolegium AI Writing Flow CI-Light: run basic selective checkpoints against Editorial Service. [owner: kolegium]
 	   - comments:
 	   - Źródła: kolegium/docker-compose.test.yml, kolegium/AI_WRITING_FLOW_TASKS.md, kolegium/AI_WRITING_FLOW_DESIGN.md
@@ -106,17 +116,7 @@ kanban-plugin: board
 	- [ ] Uruchom publisher (profil publishing)
 	- [ ] POST /publish z twitter.enabled=true (bez real publish)
 	- [ ] Zweryfikuj /metrics i /health
-- [x] [P1] Topic Manager vector index: reindex + search happy path; embed fallback without OPENAI_API_KEY. [owner: platform]
-	   - comments:
-	   - Źródła: topic-manager/README.md; komendy: /topics/index/*, /topics/search; fallback bez OPENAI_API_KEY
-	   - follows: [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]
-	   - Subtasks:
-	- [x] POST /topics/index/reindex (limit=200)
-	- [x] GET /topics/index/info (sprawdź diagnostykę)
-	- [x] GET /topics/search (2-3 zapytania testowe)
-	- [x] Test bez OPENAI_API_KEY (fallback)
-	   - notes:
-	- 2025-08-13: reindex OK (indexed~1; demo dane); info: ready=true, index_coverage=1.0; search OK (top 5). OPENAI_API_KEY nieustawiony w compose → fallback potwierdzony
+ 
 - [ ] [P2] Analytics Service: API skeleton v2.0.0 — health + insights smoke (no data collection yet). [owner: analytics]
 	   - comments:
 	   - Źródła: kolegium/analytics-service/README.md; health + /analytics/insights/{user_id}
