@@ -23,59 +23,31 @@ kanban-plugin: board
 - [ ] VW-7 MIG TEST
 	   - id: 7
 	   - description: assign to Todo
-- [ ] VW-14 E2E: start core stack i health (duplicate of P0 Smoke E2E)
-   - id: 14
-   - follows: [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]
-- [ ] VW-15 Harvester: trigger i triage-preview (duplicate of Todo Harvester smoke)
-   - id: 15
-   - follows: [P0] Harvester smoke: /harvest/trigger → triage-preview and selective-triage promote path to TM. [owner: data]
-- [ ] VW-17 Harvester: promote selective-triage do TM (duplicate; part of VW-15)
-   - id: 17
-   - follows: VW-15
-- [ ] VW-18 Kolegium: selective checkpoints vs Editorial Service (duplicate of Todo CI-Light)
-   - id: 18
-   - follows: [P0] Kolegium AI Writing Flow CI-Light: run basic selective checkpoints against Editorial Service. [owner: kolegium]
 - [ ] VW-19 Orchestrator→Editorial: sprawdzenie integracji
 	   - id: 19
 	   - labels: EPIC
 - [ ] VW-20 Publisher: dry‑run do LinkedIn adapter
 	   - id: 20
-- [ ] VW-21 Topic Manager: reindex + search happy path (duplicate of Todo TM vector index)
-   - id: 21
-   - follows: [P1] Topic Manager vector index: reindex + search happy path; embed fallback without OPENAI_API_KEY. [owner: platform]
-- [ ] VW-22 Analytics: API skeleton + /health (duplicate of Todo Analytics v2.0.0 skeleton)
-   - id: 22
-   - follows: [P2] Analytics Service: API skeleton v2.0.0 — health + insights smoke (no data collection yet). [owner: analytics]
-- [ ] VW-23 Docs: zaktualizować harvester i Gamma.app
+- [ ] VW-23 Docs: zaktualizować harvester i Gamma.app ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	   - id: 23
 - [ ] VW-24 Gamma: MVP (health + generate)
 	   - id: 24
-   - comments:
-   - STATUS.md: komponent nieukończony → zostawić w Backlog; dodać Subtasks
-   - Subtasks:
-    - [ ] Implement /generate i /health real mode z GAMMA_API_KEY
-    - [ ] Circuit breaker i quota awareness w health
-    - [ ] Demo mode smoke bez klucza
+	   - comments:
+	   - STATUS.md: komponent nieukończony → zostawić w Backlog; dodać Subtasks
+	   - Subtasks:
+	- [ ] Implement /generate i /health real mode z GAMMA_API_KEY
+	- [ ] Circuit breaker i quota awareness w health
+	- [ ] Demo mode smoke bez klucza
 - [ ] VW-25 Publisher: integracja z Gamma (toggle + fallback)
 	   - id: 25
-   - follows: VW-24
-   - comments:
-   - STATUS.md: brak integracji → dodać Subtasks
-   - Subtasks:
-    - [ ] Env toggle GAMMA_ENABLED + GAMMA_URL
-    - [ ] Branching Presenton/Gamma w orchestratorze publikacji
-    - [ ] Fallback path + testy kontraktowe
-- [ ] VW-8 Orchestrator happy-path flow (duplicate of Todo Orchestrator happy-path)
-   - id: 8
-   - follows: [P0] Orchestrator happy-path flow: research→audience→writer with selective validation calls; return content. [owner: kolegium]
- 
-- [ ] VW-10 Topic Manager vector index
-	   - id: 10
-	   - note: TM zaktualizowany — korzystaj z novelty-check/suggestion (brak /topics/scrape)
-	   - blocked by: 29 (Doksy: Topic Manager — bez scraperów, integracje) [done]
-   - comments:
-   - Zadanie istnieje w Todo (z dekompozycją) → przenieść do Todo lub zamknąć duplikat
+	   - follows: VW-24
+	   - comments:
+	   - STATUS.md: brak integracji → dodać Subtasks
+	   - Subtasks:
+	- [ ] Env toggle GAMMA_ENABLED + GAMMA_URL
+	- [ ] Branching Presenton/Gamma w orchestratorze publikacji
+	- [ ] Fallback path + testy kontraktowe
 - [ ] VW-11 Analytics placeholder API scaffolding
 	   - id: 11
 	   - blocked by: 31 (Doksy: Analytics Service — status i API szkic)
@@ -89,11 +61,13 @@ kanban-plugin: board
 - [ ] [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]
 	   - comments:
 	   - Źródła: README.md (Quick Start), PROJECT_CONTEXT.md, tests/e2e/workflow/TEST_PLAN.md; health: 8000/8040/8041
-	   - Subtasks:
-	- [ ] Uruchom core: chromadb, editorial-service (8040), topic-manager (8041), crewai-orchestrator
-	- [ ] Sprawdź /health: 8000 heartbeat, 8040/8041 200 OK
-	- [ ] Minimalny run orchestratora (happy-path) zwraca treść
-	- [ ] Zanotuj wynik (czas, statusy) w PROJECT_CONTEXT.md
+   - Subtasks:
+    - [x] Uruchom core: chromadb, editorial-service (8040), topic-manager (8041), crewai-orchestrator
+    - [x] Sprawdź /health: 8000 heartbeat, 8040/8041 200 OK
+    - [x] Minimalny run orchestratora (triage seed) przyjęty
+    - [ ] Zanotuj wynik (czas, statusy) w PROJECT_CONTEXT.md
+   - notes:
+    - 2025-08-13: chromadb heartbeat OK; editorial/topic-manager status=healthy; orchestrator /health=healthy (8042). Endpoint minimalnego runu nieodnaleziony (404 na /checkpoints/sequence/start). Alternatywa: smoke przez triage seed (`POST /api/triage/seed`).
 - [ ] [P0] Harvester smoke: /harvest/trigger → triage-preview and selective-triage promote path to TM. [owner: data]
 	   - comments:
 	   - Źródła: harvester/README.md; ścieżka: trigger → triage-preview → selective-triage → TM /topics/suggestion
@@ -172,32 +146,32 @@ kanban-plugin: board
 	 - [x] VW-33 Doksy: raport rozbieżności vs target-version
 	 - [x] VW-28 Doksy: Topic Manager — bez scraperów, integracje
 - [x] [P0] Remove TM scraping stub and docs mentioning /topics/scrape.
-- [x] Doksy: Topic Manager — bez scraperów, integracje (VW-28) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] Doksy: Topic Manager — bez scraperów, integracje (VW-28) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	  ↳ Parent: [^EPIC-VW-16]
 	  - comments:
 	- TM docs → topic-manager/README.md
-- [x] Doksy: Analytics Service — status i API szkic (VW-29) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] Doksy: Analytics Service — status i API szkic (VW-29) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	  ↳ Parent: [^EPIC-VW-16]
 	  	- comments:
 	  	- Analytics docs → kolegium/analytics-service/README.md
-- [x] Doksy: Gamma.app — stan, plan i wymagania (VW-30) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] Doksy: Gamma.app — stan, plan i wymagania (VW-30) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	  ↳ Parent: [^EPIC-VW-16]
 	  	- comments:
 	  	- Gamma plan → docs/GAMMA_INTEGRATION_PLAN.md; Service docs → kolegium/gamma-ppt-generator/README.md
 - [x] Doksy: standard README/QUICK_START template i ToC (VW-31)
-- [x] Kanban: synchronizacja z PROJECT_CONTEXT (priorytety, etykiety, relacje) (VW-32) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] Kanban: synchronizacja z PROJECT_CONTEXT (priorytety, etykiety, relacje) (VW-32) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	  ↳ Parent: [^EPIC-VW-16]
 	- comments:
 	- Synchronizacja: usunięto duplikaty kotwicy ^EPIC-VW-16, poprawiono „↳ Parent” i literówki; zgodnie z PROJECT_CONTEXT.md
-- [x] Doksy: ujednolicenie README i QUICK_START (VW-35) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] Doksy: ujednolicenie README i QUICK_START (VW-35) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	- comments:
 	- Wdrożenie standardów: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md; Indeks: docs/README.md; Linter: scripts/docs_lint_readme.py; Znormalizowane README: editorial-service, topic-manager, publisher, presenton, kolegium/analytics-service, kolegium/gamma-ppt-generator, kolegium
-- [x] Doksy: KPI/validation framework — definicja i checklisty (VW-37) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] Doksy: KPI/validation framework — definicja i checklisty (VW-37) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	- comments:
 	- Dokument: docs/KPI_VALIDATION_FRAMEWORK.md; Zastosowanie w README usług (sekcje KPIs i Walidacja)
-- [x] Doksy: cele/metryki/walidacja w README serwisów (VW-34) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] Doksy: cele/metryki/walidacja w README serwisów (VW-34) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	- follows: VW-37
 	- comments:
@@ -205,7 +179,7 @@ kanban-plugin: board
 	  ↳ Parent: [^EPIC-VW-16]
 	  	- comments:
 	  	- Artefakty: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md
-- [x] PROJECT_CONTEXT normalization: labels/priorities spec + SOP (VW-36) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] PROJECT_CONTEXT normalization: labels/priorities spec + SOP (VW-36) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	  ↳ Parent: [^EPIC-VW-16]
 	  	- comments:
 	  	- Zmiany: PROJECT_CONTEXT.md → sekcje Normalization + SOP; Źródła: target-version/KANBAN.md, docker-compose.yml
@@ -215,42 +189,74 @@ kanban-plugin: board
 
 ## Archive
 
-- [x] 2025-08-13 Doksy: Analytics Service — status i API szkic (VW-29) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 VW-14 E2E: start core stack i health (duplicate of P0 Smoke E2E) ^EPIC-VW-16]
+	   ↳ Parent: [^EPIC-VW-16]
+	   - comments:
+	   - Zarchiwizowano jako duplikat; realizacja w zadaniu P0 Smoke E2E (Todo)
+- [x] 2025-08-13 VW-15 Harvester: trigger i triage-preview (duplicate of Todo Harvester smoke) ^EPIC-VW-16]
+	   ↳ Parent: [^EPIC-VW-16]
+	   - comments:
+	   - Zarchiwizowano jako duplikat; realizacja w zadaniu P0 Harvester smoke (Todo)
+- [x] 2025-08-13 VW-17 Harvester: promote selective-triage do TM (duplicate; part of VW-15) ^EPIC-VW-16]
+	   ↳ Parent: [^EPIC-VW-16]
+	   - comments:
+	   - Zarchiwizowano jako duplikat; część Subtasks w Harvester smoke (Todo)
+- [x] 2025-08-13 VW-18 Kolegium: selective checkpoints vs Editorial Service (duplicate of Todo CI-Light) ^EPIC-VW-16]
+	   ↳ Parent: [^EPIC-VW-16]
+	   - comments:
+	   - Zarchiwizowano jako duplikat; realizacja w zadaniu P0 CI-Light (Todo)
+- [x] 2025-08-13 VW-21 Topic Manager: reindex + search happy path (duplicate of Todo TM vector index) ^EPIC-VW-16]
+	   ↳ Parent: [^EPIC-VW-16]
+	   - comments:
+	   - Zarchiwizowano jako duplikat; realizacja w zadaniu P1 TM vector index (Todo)
+- [x] 2025-08-13 VW-22 Analytics: API skeleton + /health (duplicate of Todo Analytics v2.0.0 skeleton) ^EPIC-VW-16]
+	   ↳ Parent: [^EPIC-VW-16]
+	   - comments:
+	   - Zarchiwizowano jako duplikat; realizacja w zadaniu P2 Analytics skeleton (Todo)
+- [x] 2025-08-13 VW-8 Orchestrator happy-path flow (duplicate of Todo Orchestrator happy-path) ^EPIC-VW-16]
+	   ↳ Parent: [^EPIC-VW-16]
+	   - comments:
+	   - Zarchiwizowano jako duplikat; realizacja w zadaniu P0 Orchestrator happy-path (Todo)
+- [x] 2025-08-13 VW-10 Topic Manager vector index (duplicate of Todo TM vector index) ^EPIC-VW-16]
+	   ↳ Parent: [^EPIC-VW-16]
+	   - comments:
+	   - Zarchiwizowano jako duplikat; realizacja w zadaniu P1 TM vector index (Todo)
+- [x] 2025-08-13 Doksy: Analytics Service — status i API szkic (VW-29) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- Analytics docs → kolegium/analytics-service/README.md
-- [x] 2025-08-13 Doksy: Gamma.app — stan, plan i wymagania (VW-30) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 Doksy: Gamma.app — stan, plan i wymagania (VW-30) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- Gamma plan → docs/GAMMA_INTEGRATION_PLAN.md; Service docs → kolegium/gamma-ppt-generator/README.md
-- [x] 2025-08-13 Doksy: ujednolicenie README i QUICK_START (VW-35) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 Doksy: ujednolicenie README i QUICK_START (VW-35) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- Linter: scripts/docs_lint_readme.py (wynik: wszystkie README OK); Wdrożone standardy: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md; Znormalizowane README: editorial-service, topic-manager, publisher, presenton, kolegium/analytics-service, kolegium/gamma-ppt-generator, kolegium
-- [x] 2025-08-13 Doksy: KPI/validation framework — definicja i checklisty (VW-37) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 Doksy: KPI/validation framework — definicja i checklisty (VW-37) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- Dokument: docs/KPI_VALIDATION_FRAMEWORK.md; zastosowane w README usług
-- [x] 2025-08-13 Doksy: cele/metryki/walidacja w README serwisów (VW-34) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 Doksy: cele/metryki/walidacja w README serwisów (VW-34) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- README zaktualizowane o sekcję KPIs i Walidacja; linter OK
-- [x] 2025-08-13 Doksy: standard README/QUICK_START template i ToC (VW-31) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 Doksy: standard README/QUICK_START template i ToC (VW-31) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- Artefakty: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md
-- [x] 2025-08-13 PROJECT_CONTEXT normalization: labels/priorities spec + SOP (VW-36) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 PROJECT_CONTEXT normalization: labels/priorities spec + SOP (VW-36) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- Zmiany: PROJECT_CONTEXT.md → sekcje Normalization + SOP; Źródła: target-version/KANBAN.md, docker-compose.yml
-- [x] 2025-08-13 18:38 Doksy: przegląd całej dokumentacji (repo + submoduły) (VW-26) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 18:38 Doksy: przegląd całej dokumentacji (repo + submoduły) (VW-26) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	 	  - comments:
 	 	- Inwentarz → docs/DOCS_INVENTORY.md
-- [x] 2025-08-13 18:38 Doksy: plan konsolidacji dokumentacji (VW-27) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 18:38 Doksy: plan konsolidacji dokumentacji (VW-27) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [
 - [x] 2025-08-13 18:38 Doksy: raport rozbieżności vs target-version (VW-33)
-- [x] 2025-08-13 Kanban: synchronizacja z PROJECT_CONTEXT (priorytety, etykiety, relacje) (VW-32) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 Kanban: synchronizacja z PROJECT_CONTEXT (priorytety, etykiety, relacje) (VW-32) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	  - comments:
 	- Synchronizacja: usunięto duplikaty kotwicy ^EPIC-VW-16, poprawiono „↳ Parent” i literówki; zgodnie z PROJECT_CONTEXT.md
@@ -267,6 +273,6 @@ kanban-plugin: board
 
 %% kanban:settings
 ```
-{"kanban-plugin":"board","list-collapse":[false,false,true,true,true,true],"show-checkboxes":true,"move-tags":false,"move-dates":false}
+{"kanban-plugin":"board","list-collapse":[false,false,false,true,true,true],"show-checkboxes":true,"move-tags":false,"move-dates":false}
 ```
 %%
