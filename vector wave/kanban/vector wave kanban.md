@@ -92,11 +92,7 @@ kanban-plugin: board
 	   - follows: VW-31, VW-28, VW-29
 	   - notes:
 	 - Kontekst: PROJECT_CONTEXT; TM bez scraperów; ujednolicenie QUICK_START.
-- [ ] Doksy: Analytics Service — status i API szkic (VW-29)
-   ↳ Parent: [^EPIC-VW-16]
-	   - blocks: VW-11
-	   - comments:
-	 - Analytics docs → kolegium/analytics-service/README.md
+ 
 - [ ] Doksy: Gamma.app — stan, plan i wymagania (VW-30)
    ↳ Parent: [^EPIC-VW-16]
 	   - blocks: VW-12
@@ -120,12 +116,20 @@ kanban-plugin: board
   ↳ Parent: [^EPIC-VW-16]
 	  - comments:
 	- TM docs → topic-manager/README.md
+- [x] Doksy: Analytics Service — status i API szkic (VW-29)
+  ↳ Parent: [^EPIC-VW-16]
+  	- comments:
+  	- Analytics docs → kolegium/analytics-service/README.md
 - [x] zadanie testowe dodane przez www (VW-1)
 - [x] TEST PUT (VW-2)
 
 
 ## Archive
 
+- [x] 2025-08-13 Doksy: Analytics Service — status i API szkic (VW-29)   ^EPIC-VW-16
+   ↳ Parent: [^EPIC-VW-16]
+  	  - comments:
+  	- Analytics docs → kolegium/analytics-service/README.md
 - [x] 2025-08-13 18:38 Doksy: przegląd całej dokumentacji (repo + submoduły) (VW-26)   ^EPIC-VW-16
 	   ↳ Parent: [^EPIC-VW-16]
 	 	  - comments:
