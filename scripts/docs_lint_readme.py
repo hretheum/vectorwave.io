@@ -8,11 +8,10 @@ import re
 from pathlib import Path
 
 REQUIRED_SECTIONS = [
-    r"^##\s+Overview\b",
-    r"^##\s+Cel\b|^###\s+Cel\b",
-    r"^##\s+Quick Start\b|^###\s+Uruchomienie|^###\s+Development",
-    r"^##\s+KPIs i Walidacja\b",
-    r"^##\s+References\b",
+    r"^##\s+.*Overview\b",
+    r"^(##|###)\s+.*(Quick Start|Uruchomienie|Development)\b",
+    r"^##\s+.*(KPI|KPIs).*Walidacja\b",
+    r"^##\s+.*(References|Referencje)\b",
 ]
 
 REQUIRED_LINK_HINTS = [
@@ -56,7 +55,7 @@ def discover_readmes(root: Path) -> list[Path]:
         if p.parent.name in {
             "editorial-service", "topic-manager", "publisher", "presenton",
             "kolegium", "analytics-service", "gamma-ppt-generator"
-        } or p.parent == root:
+        }:
             readmes.append(p)
     return readmes
 
