@@ -23,35 +23,29 @@ kanban-plugin: board
 - [ ] VW-7 MIG TEST
 	   - id: 7
 	   - description: assign to Todo
-- [ ] VW-14 E2E: start core stack i health
-	   - id: 14
-   - comments:
-   - Duplikat celu względem P0 Smoke E2E → rekomendacja: usunąć lub połączyć; jeśli zostaje, ustaw follows: P0 Smoke E2E
-- [ ] VW-15 Harvester: trigger i triage-preview
-	   - id: 15
-   - comments:
-   - Powielone w Todo jako Harvester smoke → rekomendacja: przenieść do Todo lub zamknąć duplikat
-- [ ] VW-17 Harvester: promote selective-triage do TM
-	   - id: 17
-   - comments:
-   - Część przepływu Harvester smoke → scal z VW-15 jako subtask
-- [ ] VW-18 Kolegium: selective checkpoints vs Editorial Service
-	   - id: 18
-   - comments:
-   - Pokrywa się z zadaniem w Todo (CI-Light) → ustaw follows: P0 CI-Light
+- [ ] VW-14 E2E: start core stack i health (duplicate of P0 Smoke E2E)
+   - id: 14
+   - follows: [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]
+- [ ] VW-15 Harvester: trigger i triage-preview (duplicate of Todo Harvester smoke)
+   - id: 15
+   - follows: [P0] Harvester smoke: /harvest/trigger → triage-preview and selective-triage promote path to TM. [owner: data]
+- [ ] VW-17 Harvester: promote selective-triage do TM (duplicate; part of VW-15)
+   - id: 17
+   - follows: VW-15
+- [ ] VW-18 Kolegium: selective checkpoints vs Editorial Service (duplicate of Todo CI-Light)
+   - id: 18
+   - follows: [P0] Kolegium AI Writing Flow CI-Light: run basic selective checkpoints against Editorial Service. [owner: kolegium]
 - [ ] VW-19 Orchestrator→Editorial: sprawdzenie integracji
 	   - id: 19
 	   - labels: EPIC
 - [ ] VW-20 Publisher: dry‑run do LinkedIn adapter
 	   - id: 20
-- [ ] VW-21 Topic Manager: reindex + search happy path
-	   - id: 21
-   - comments:
-   - Zadanie istnieje w Todo z dekompozycją → przenieść do Todo lub zamknąć duplikat
-- [ ] VW-22 Analytics: API skeleton + /health
-	   - id: 22
-   - comments:
-   - Zadanie istnieje w Todo jako v2.0.0 skeleton → przenieść do Todo lub zamknąć duplikat
+- [ ] VW-21 Topic Manager: reindex + search happy path (duplicate of Todo TM vector index)
+   - id: 21
+   - follows: [P1] Topic Manager vector index: reindex + search happy path; embed fallback without OPENAI_API_KEY. [owner: platform]
+- [ ] VW-22 Analytics: API skeleton + /health (duplicate of Todo Analytics v2.0.0 skeleton)
+   - id: 22
+   - follows: [P2] Analytics Service: API skeleton v2.0.0 — health + insights smoke (no data collection yet). [owner: analytics]
 - [ ] VW-23 Docs: zaktualizować harvester i Gamma.app
 	   ↳ Parent: [^EPIC-VW-16]
 	   - id: 23
@@ -72,10 +66,9 @@ kanban-plugin: board
     - [ ] Env toggle GAMMA_ENABLED + GAMMA_URL
     - [ ] Branching Presenton/Gamma w orchestratorze publikacji
     - [ ] Fallback path + testy kontraktowe
-- [ ] VW-8 Orchestrator happy-path flow
-	   - id: 8
-   - comments:
-   - Zadanie odzwierciedlone w Todo (Orchestrator happy-path) → przenieść do Todo lub zamknąć duplikat
+- [ ] VW-8 Orchestrator happy-path flow (duplicate of Todo Orchestrator happy-path)
+   - id: 8
+   - follows: [P0] Orchestrator happy-path flow: research→audience→writer with selective validation calls; return content. [owner: kolegium]
  
 - [ ] VW-10 Topic Manager vector index
 	   - id: 10
@@ -104,6 +97,7 @@ kanban-plugin: board
 - [ ] [P0] Harvester smoke: /harvest/trigger → triage-preview and selective-triage promote path to TM. [owner: data]
 	   - comments:
 	   - Źródła: harvester/README.md; ścieżka: trigger → triage-preview → selective-triage → TM /topics/suggestion
+	   - follows: [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]
 	   - Subtasks:
 	- [ ] Uruchom harvester (profil harvester w compose)
 	- [ ] POST /harvest/trigger (limit=10)
@@ -112,6 +106,7 @@ kanban-plugin: board
 - [ ] [P0] Kolegium AI Writing Flow CI-Light: run basic selective checkpoints against Editorial Service. [owner: kolegium]
 	   - comments:
 	   - Źródła: kolegium/docker-compose.test.yml, kolegium/AI_WRITING_FLOW_TASKS.md, kolegium/AI_WRITING_FLOW_DESIGN.md
+	   - follows: [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]
 	   - Subtasks:
 	- [ ] Uruchom CI-Light tests (docker-compose.test.yml)
 	- [ ] Sprawdź selektywne checkpointy vs Editorial (8040)
@@ -119,6 +114,7 @@ kanban-plugin: board
 - [ ] [P0] Orchestrator happy-path flow: research→audience→writer with selective validation calls; return content. [owner: kolegium]
 	   - comments:
 	   - Źródła: kolegium/publishing-orchestrator/README.md; integracja z Editorial Service (8040)
+	   - follows: [P0] Kolegium AI Writing Flow CI-Light: run basic selective checkpoints against Editorial Service. [owner: kolegium]
 	   - Subtasks:
 	- [ ] Skonfiguruj minimalny temat wejściowy
 	- [ ] Uruchom sekwencję research→audience→writer
@@ -135,6 +131,7 @@ kanban-plugin: board
 - [ ] [P1] Topic Manager vector index: reindex + search happy path; embed fallback without OPENAI_API_KEY. [owner: platform]
 	   - comments:
 	   - Źródła: topic-manager/README.md; komendy: /topics/index/*, /topics/search; fallback bez OPENAI_API_KEY
+	   - follows: [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]
 	   - Subtasks:
 	- [ ] POST /topics/index/reindex (limit=200)
 	- [ ] GET /topics/index/info (sprawdź diagnostykę)
@@ -143,6 +140,7 @@ kanban-plugin: board
 - [ ] [P2] Analytics Service: API skeleton v2.0.0 — health + insights smoke (no data collection yet). [owner: analytics]
 	   - comments:
 	   - Źródła: kolegium/analytics-service/README.md; health + /analytics/insights/{user_id}
+	   - follows: [P0] Orchestrator happy-path flow: research→audience→writer with selective validation calls; return content. [owner: kolegium]
 	   - Subtasks:
 	- [ ] Uruchom analytics-service (profil analytics)
 	- [ ] GET /health (P95 < 80ms)
