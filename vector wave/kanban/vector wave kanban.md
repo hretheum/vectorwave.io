@@ -97,6 +97,8 @@ kanban-plugin: board
    ↳ Parent: [^EPIC-VW-16]
    - comments:
 	 - Źródła: docs/DOCS_CONSOLIDATION_PLAN.md, docs/DOCS_INVENTORY.md, target-version/VECTOR_WAVE_TARGET_SYSTEM_ARCHITECTURE.md, istniejące README w usługach
+   - notes:
+	 - Artefakty do utworzenia: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md
  
 - [ ] Doksy: Gamma.app — stan, plan i wymagania (VW-30)
    ↳ Parent: [^EPIC-VW-16]
@@ -139,6 +141,10 @@ kanban-plugin: board
   ↳ Parent: [^EPIC-VW-16]
   	- comments:
   	- Gamma plan → docs/GAMMA_INTEGRATION_PLAN.md; Service docs → kolegium/gamma-ppt-generator/README.md
+- [x] Doksy: standard README/QUICK_START template i ToC (VW-31)
+  ↳ Parent: [^EPIC-VW-16]
+  	- comments:
+  	- Artefakty: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md
 - [x] zadanie testowe dodane przez www (VW-1)
 - [x] TEST PUT (VW-2)
 
@@ -154,6 +160,11 @@ kanban-plugin: board
    ↳ Parent: [^EPIC-VW-16]
   	  - comments:
   	- Gamma plan → docs/GAMMA_INTEGRATION_PLAN.md; Service docs → kolegium/gamma-ppt-generator/README.md
+
+- [x] 2025-08-13 Doksy: standard README/QUICK_START template i ToC (VW-31)   ^EPIC-VW-16
+   ↳ Parent: [^EPIC-VW-16]
+  	  - comments:
+  	- Artefakty: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md
 - [x] 2025-08-13 18:38 Doksy: przegląd całej dokumentacji (repo + submoduły) (VW-26)   ^EPIC-VW-16
 	   ↳ Parent: [^EPIC-VW-16]
 	 	  - comments:
