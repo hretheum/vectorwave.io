@@ -92,6 +92,11 @@ kanban-plugin: board
 	   - follows: VW-31, VW-28, VW-29
 	   - notes:
 	 - Kontekst: PROJECT_CONTEXT; TM bez scraperów; ujednolicenie QUICK_START.
+
+- [ ] Doksy: standard README/QUICK_START template i ToC (VW-31)
+   ↳ Parent: [^EPIC-VW-16]
+   - comments:
+	 - Źródła: docs/DOCS_CONSOLIDATION_PLAN.md, docs/DOCS_INVENTORY.md, target-version/VECTOR_WAVE_TARGET_SYSTEM_ARCHITECTURE.md, istniejące README w usługach
  
 - [ ] Doksy: Gamma.app — stan, plan i wymagania (VW-30)
    ↳ Parent: [^EPIC-VW-16]
@@ -103,9 +108,19 @@ kanban-plugin: board
 	   - follows: VW-36
 	   - comments:
 	 - Kontekst → PROJECT_CONTEXT.md
+
+- [ ] PROJECT_CONTEXT normalization: labels/priorities spec + SOP (VW-36)
+   ↳ Parent: [^EPIC-VW-16]
+   - comments:
+	 - Źródła: PROJECT_CONTEXT.md, target-version/KANBAN.md, docker-compose.yml (porty/usługi), stan Kanban (Vikunja/Wekan)
 - [ ] Doksy: cele/metryki/walidacja w README serwisów (VW-34)
    ↳ Parent: [^EPIC-VW-16]
 	   - follows: VW-37
+
+- [ ] Doksy: KPI/validation framework — definicja i checklisty (VW-37)
+   ↳ Parent: [^EPIC-VW-16]
+   - comments:
+	 - Źródła: tests/e2e/workflow/TEST_PLAN.md, tests/e2e/test_complete_user_workflow.py, publisher/docs/* (monitoring), kolegium/analytics-service/README.md
 
 
 ## done
