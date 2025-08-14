@@ -3,9 +3,9 @@ import re
 import json
 import os
 
-# Vikunja API configuration
-VIKUNJA_API_URL = "http://localhost:3456/api/v1"
-VIKUNJA_TOKEN = "tk_9e0971a67b4bf02e4e736bfa027372a0da7dfb08"
+# Vikunja API configuration (read from environment)
+VIKUNJA_API_URL = os.getenv("VIKUNJA_API_URL", "http://localhost:3456/api/v1")
+VIKUNJA_TOKEN = os.getenv("VIKUNJA_TOKEN", "")
 
 # Priority mapping
 PRIORITY_MAPPING = {
@@ -16,7 +16,9 @@ PRIORITY_MAPPING = {
 
 def get_all_tasks():
     """Fetches all tasks from the Vikunja API."""
-    command = f'curl -X GET -H "Authorization: Bearer {VIKUNJA_TOKEN}" {VIKUNJA_API_URL}/tasks/all'
+    if not VIKUNJA_TOKEN:
+        raise RuntimeError("Missing VIKUNJA_TOKEN in environment; aborting.")
+    command = f'curl -s -X GET -H "Authorization: Bearer {VIKUNJA_TOKEN}" {VIKUNJA_API_URL}/tasks/all'
     tasks_json = os.popen(command).read()
     return json.loads(tasks_json)
 
@@ -33,7 +35,9 @@ def update_task(task_id, title, priority):
     # Properly escape the JSON payload for the curl command
     payload_str = json.dumps(payload)
     
-    command = f'curl -X POST -H "Authorization: Bearer {VIKUNJA_TOKEN}" -H "Content-Type: application/json" -d \'{payload_str}\' {VIKUNJA_API_URL}/tasks/{task_id}'
+    if not VIKUNJA_TOKEN:
+        raise RuntimeError("Missing VIKUNJA_TOKEN in environment; aborting.")
+    command = f"curl -s -X POST -H 'Authorization: Bearer {VIKUNJA_TOKEN}' -H 'Content-Type: application/json' -d '{payload_str}' {VIKUNJA_API_URL}/tasks/{task_id}"
     os.system(command)
     print(f"Updated task {task_id}: {clean_title} with priority {priority}")
 

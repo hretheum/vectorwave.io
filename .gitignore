@@ -1,3 +1,24 @@
+# Secrets and local configs
+vector wave/.obsidian/**
+*.pem
+*.key
+*.crt
+*.p12
+*.der
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
+
+# Coverage
+.coverage
+coverage.xml
+
 # CRITICAL: Environment variables - NEVER commit these!
 .env
 .env.*
