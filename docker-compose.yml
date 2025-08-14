@@ -123,6 +123,7 @@ services:
       - GAMMA_PPT_URL=http://gamma-ppt-generator:8003
       - PRESENTON_URL=http://presenton:8089
       - LINKEDIN_PPT_GENERATOR_URL=http://linkedin-ppt:8002
+      - TYPEFULLY_API_KEY=${TYPEFULLY_API_KEY}
 
   linkedin-ppt:
     profiles: ["publishing"]
