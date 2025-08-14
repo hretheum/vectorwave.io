@@ -1,0 +1,65 @@
+name: Nightly Extended Tests
+
+on:
+  schedule:
+    - cron: '30 2 * * *'  # 02:30 UTC daily
+  workflow_dispatch:
+
+jobs:
+  nightly-aiwf:
+    name: AI Writing Flow - Nightly Suite
+    runs-on: ubuntu-latest
+    env:
+      CI: true
+      ENABLE_FULL_SUITE: '1'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Init required submodule (kolegium)
+        run: |
+          if [ -f .gitmodules ] && grep -q "path = kolegium" .gitmodules; then \
+            git config -f .gitmodules submodule.kolegium.url https://github.com/hretheum/vector-wave-editorial-crew.git || true; \
+            git submodule sync -- kolegium; \
+            git submodule update --init --depth 1 kolegium; \
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pytest pytest-cov pytest-asyncio
+          # ai_writing_flow deps
+          AIWF_PATH="kolegium/ai_writing_flow"
+          if [ -d "$AIWF_PATH" ]; then \
+            pip install -e "$AIWF_PATH" && \
+            pip install "crewai[tools]" aiohttp structlog pydantic psutil httpx requests pytest-timeout ; \
+          fi
+
+      - name: Run extended tests (exclude extreme performance/heavy)
+        run: |
+          if [ -d "kolegium/ai_writing_flow" ]; then \
+            cd kolegium/ai_writing_flow; \
+            python -m pytest -p pytest_cov -q tests \
+              -k "not heavy_load and not performance" \
+              --maxfail=1 --cov=. --cov-report=xml --cov-report=term; \
+          else \
+            echo "[Nightly] ai_writing_flow not present; skipping"; \
+          fi
+
+      - name: Upload coverage to Codecov (nightly)
+        if: ${{ hashFiles('kolegium/ai_writing_flow/coverage.xml') != '' }}
+        uses: codecov/codecov-action@v3
+        with:
+          files: |
+            ./kolegium/ai_writing_flow/coverage.xml
+          flags: nightly-aiwf
+          fail_ci_if_error: false
