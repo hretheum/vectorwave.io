@@ -4,6 +4,22 @@ import pytest
 # Global skip logic controlled via environment variables
 _ENABLE_FULL = os.getenv("ENABLE_FULL_SUITE") == "1"
 
+
+def _is_aiwf_submodule_run() -> bool:
+    """Detect if pytest is invoked from inside `kolegium/ai_writing_flow`.
+
+    In that case, do not apply root-level collection filters to avoid
+    interfering with the submodule's own pytest configuration.
+    """
+    try:
+        cwd = os.getcwd()
+        return (
+            os.path.sep + "kolegium" + os.path.sep + "ai_writing_flow" in cwd
+            or cwd.endswith(os.path.sep + "kolegium" + os.path.sep + "ai_writing_flow")
+        )
+    except Exception:
+        return False
+
 # Markers we want to skip by default in Phase 2 core profile
 _DEFAULT_SKIP_MARKERS = [
     "integration",
@@ -16,6 +32,9 @@ _DEFAULT_SKIP_MARKERS = [
 
 def pytest_collection_modifyitems(config, items):
     if _ENABLE_FULL:
+        return
+    # Do not interfere with ai_writing_flow's own test selection
+    if _is_aiwf_submodule_run():
         return
 
     skip_marker = pytest.mark.skip(reason="Skipped by default Phase 2 core profile. Set ENABLE_FULL_SUITE=1 to enable.")
@@ -35,6 +54,10 @@ def pytest_ignore_collect(path, config):
     if _ENABLE_FULL:
         return False
 
+    # Do not interfere with ai_writing_flow's own test selection
+    if _is_aiwf_submodule_run():
+        return False
+
     p = str(path)
     # Skip entire heavy test suites by default
     heavy_dirs = [
@@ -45,16 +68,7 @@ def pytest_ignore_collect(path, config):
         if d in p:
             return True
 
-    # Skip known heavy/require-external tests in ai_writing_flow
-    aiwf_tests_root = os.path.sep + "kolegium" + os.path.sep + "ai_writing_flow" + os.path.sep + "tests" + os.path.sep
-    if aiwf_tests_root in p:
-        # Allowlist minimal core tests only; skip everything else
-        allowlist = {
-            os.path.join("kolegium", "ai_writing_flow", "tests", "test_writing_crew_integration.py"),
-        }
-        # Normalize path for comparison
-        rel = p[p.find("kolegium"):] if "kolegium" in p else p
-        return rel not in allowlist
+    # Skip known heavy/require-external tests in other modules (aiwf handled by itself)
 
     # default: don't ignore
     return False
