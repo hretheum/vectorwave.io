@@ -21,7 +21,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        submodules: recursive
+        submodules: false
+
+    - name: Init required submodule (kolegium) only
+      run: |
+        if [ -f .gitmodules ] && grep -q "path = kolegium" .gitmodules; then \
+          git submodule update --init --depth 1 kolegium; \
+        fi
     
     - name: Set up Python
       uses: actions/setup-python@v4
