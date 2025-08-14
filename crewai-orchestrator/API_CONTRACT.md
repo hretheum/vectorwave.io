@@ -45,6 +45,13 @@ Agents must declare:
   - payload: `{ user_input, finalize: boolean }`
   - response: `{ status, checkpoint_id }`
 
+- POST /checkpoints/sequence/start
+  - payload: `{ content, platform }`
+  - response: `{ flow_id, status: "running" }`
+
+- GET /checkpoints/sequence/status/{flow_id}
+  - response: `{ flow_id, status: "running"|"completed"|"failed:...", current_step: string|null, checkpoints: string[] }`
+
 ## 5. Response Envelope Standard
 
 All service responses SHOULD include:
@@ -69,5 +76,8 @@ For internal use, clients may normalize `rules_applied` to `rules` for convenien
 - Circuit breaker and retries (with jitter) recommended on client side.
 
 ## 8. Versioning
+- Health
+  - `GET /health` returns `{ ..., sequence_ready: boolean }` where `sequence_ready=true` indicates Redis connectivity (from `REDIS_URL`).
+
 
 - This contract is v0.1 and may evolve. Additive changes only within minor.
