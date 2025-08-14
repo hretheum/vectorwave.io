@@ -12,7 +12,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: false
+      - name: Init required submodule (kolegium) only
+        run: |
+          if [ -f .gitmodules ] && grep -q "path = kolegium" .gitmodules; then \
+            git config -f .gitmodules submodule.kolegium.url https://github.com/hretheum/vector-wave-editorial-crew.git || true; \
+            git submodule sync -- kolegium; \
+            git submodule update --init --depth 1 kolegium; \
+          fi
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
