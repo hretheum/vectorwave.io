@@ -4,7 +4,7 @@ This service exposes orchestration endpoints for the Vector Wave platform.
 
 ## Key endpoints
 
-- `GET /health` – healthcheck
+- `GET /health` – healthcheck (fields: `status`, `service`, `version`, `uptime_seconds`, `registered_agents`, `sequence_ready`)
 - `POST /checkpoints/create` – utworzenie checkpointu (pre_writing|mid_writing|post_writing)
 - `GET /checkpoints/status/{id}` – status pojedynczego checkpointu
 - `POST /checkpoints/{id}/intervene` – interwencja użytkownika i rewalidacja
@@ -23,7 +23,7 @@ The orchestrator reads its triage policy from a YAML file. Paths are configurabl
 - `TRIAGE_POLICY_SCHEMA_PATH` (optional, default `/app/config/triage_policy.schema.json`) – JSON Schema to validate incoming `POST /triage/policy`
 - `EDITORIAL_SERVICE_URL` – internal URL to Editorial Service
 - `HARVESTER_URL` – internal URL to Harvester service (used by triage seeder)
-- `REDIS_URL` – opcjonalny URL do Redis; jeśli ustawiony, stany checkpointów i historia są persystowane
+- `REDIS_URL` – opcjonalny URL do Redis; jeśli ustawiony, stany checkpointów i historia są persystowane. Health zawiera `sequence_ready` (true jeśli połączenie z Redis OK).
 
 These are already set in the root `docker-compose.yml`.
 
