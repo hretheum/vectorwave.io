@@ -80,6 +80,7 @@ jobs:
           fi
         else
           # ai_writing_flow tests
+          if [ -f requirements-test.txt ]; then pip install -r requirements-test.txt; fi; \
           if [ -d "ai_writing_flow" ]; then \
             cd ai_writing_flow; \
             python -m pytest -p pytest_cov -q tests/test_ci_smoke.py \
