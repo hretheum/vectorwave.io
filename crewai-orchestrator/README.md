@@ -70,3 +70,13 @@ curl -s -X POST http://localhost:8042/api/triage/seed \
 - If `TRIAGE_POLICY_SCHEMA_PATH` is missing in the container, policy validation will be skipped.
 - The service uses direct HTTP to ChromaDB to fetch raw trends (via Harvester selection flow).
 - Compose injects: `EDITORIAL_SERVICE_URL`, `HARVESTER_URL`, `TRIAGE_POLICY_PATH`, `TRIAGE_POLICY_SCHEMA_PATH`.
+
+## Smoke: sequence API
+
+With the stack up (redis, editorial-service, orchestrator):
+
+```bash
+bash scripts/smoke_sequence.sh
+# or customize:
+ORCH_URL=http://localhost:8042 CONTENT="Your content" PLATFORM=linkedin bash scripts/smoke_sequence.sh
+```
