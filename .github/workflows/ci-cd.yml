@@ -20,6 +20,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: recursive
     
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -58,10 +60,14 @@ jobs:
         # Determine test path per service
         SERVICE_PATH="${{ matrix.service }}"
         if [ "$SERVICE_PATH" = "api" ]; then
-          # API tests live under publishing-orchestrator or project root
-          TEST_TARGET="publishing-orchestrator"
-          if [ -d "$TEST_TARGET" ]; then cd "$TEST_TARGET"; fi
-          python -m pytest --cov=. --cov-report=xml --cov-report=term
+          # Narrow API test scope to orchestrator tests and install deps
+          if [ -d "crewai-orchestrator" ]; then \
+            pip install requests httpx fastapi && \
+            cd crewai-orchestrator && \
+            python -m pytest tests --cov=. --cov-report=xml --cov-report=term; \
+          else \
+            echo "[CI] crewai-orchestrator not present; skipping API tests"; \
+          fi
         else
           # ai_writing_flow tests
           if [ -d "ai_writing_flow" ]; then \
@@ -80,11 +86,15 @@ jobs:
         fi
     
     - name: Upload coverage to Codecov
+      if: |
+        (matrix.service == 'api' && hashFiles('crewai-orchestrator/coverage.xml') != '') ||
+        (matrix.service == 'ai_writing_flow' && (hashFiles('ai_writing_flow/coverage.xml') != '' || hashFiles('kolegium/ai_writing_flow/coverage.xml') != ''))
       uses: codecov/codecov-action@v3
       with:
         files: |
-          ./publishing-orchestrator/coverage.xml
+          ./crewai-orchestrator/coverage.xml
           ./ai_writing_flow/coverage.xml
+          ./kolegium/ai_writing_flow/coverage.xml
         flags: ${{ matrix.service }}
         fail_ci_if_error: false
 

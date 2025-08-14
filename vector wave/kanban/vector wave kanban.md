@@ -117,11 +117,29 @@ kanban-plugin: board
 	   - Źródła: kolegium/docker-compose.test.yml, kolegium/AI_WRITING_FLOW_TASKS.md, kolegium/AI_WRITING_FLOW_DESIGN.md
 	   - follows: [P0] Smoke E2E: chromadb + editorial-service + topic-manager + crewai-orchestrator up; health checks green. [owner: platform]
 	   - Subtasks:
-	- [ ] Uruchom CI-Light tests (docker-compose.test.yml) lub wykonaj smoke endpointami Orchestratora
+	- [x] Uruchom CI-Light tests (docker-compose.test.yml) lub wykonaj smoke endpointami Orchestratora
 	- [x] Sprawdź zdrowie Orchestratora (8042) i triage endpoints (/api/triage/policy, /api/triage/seed)
 	- [x] Zaprotokołuj wyniki (policy snapshot, seed result) i flaki/retry
 	   - notes:
 	- 2025-08-13: /api/triage/policy OK (snapshot pobrany); /api/triage/seed accepted; test suite nieodnaleziony — fallback smoke przez API
+
+- [ ] [P1] AIWF: Fix test_writing_crew_integration import (VECTOR_WAVE_AUDIENCES)
+	   - comments:
+	   - Problem: kolekcja testu sypie się przez brak eksportu `VECTOR_WAVE_AUDIENCES` w `ai_writing_flow.crews.audience_crew`
+	   - Acceptance:
+	   - Przywrócić/udostępnić `VECTOR_WAVE_AUDIENCES` lub skorygować importy/fixtury, by test się zbierał i przechodził
+	   - Dodać minimalny smoke na import
+	   - Test ma przechodzić lokalnie z `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` i na CI‑Light bez wykluczeń
+	   - tracking: #3
+
+- [ ] [P1] Tests: Add pytest-timeout and pytest-asyncio to test deps (AIWF)
+	   - comments:
+	   - Cel: zredukować konieczność `-c /dev/null` i skippowania async; ustabilizować timeouts
+	   - Acceptance:
+	   - Dodać `pytest-timeout` i `pytest-asyncio` do deps testowych (AIWF ścieżka w CI; opcjonalnie requirements-test.txt)
+	   - Zweryfikować, że async testy nie są skipowane (brak PytestUnhandledCoroutineWarning)
+	   - Rozważyć powrót do standardowego uruchamiania bez `-c /dev/null`
+	   - tracking: #4
 
 
 ## done
