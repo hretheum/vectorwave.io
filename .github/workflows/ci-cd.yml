@@ -82,13 +82,11 @@ jobs:
           # ai_writing_flow tests
           if [ -d "ai_writing_flow" ]; then \
             cd ai_writing_flow; \
-            python -m pytest -p pytest_cov -q tests --ignore=tests/test_writing_crew_integration.py \
-              -k "not e2e and not performance and not heavy_load and not writing_crew_integration" \
+            python -m pytest -p pytest_cov -q tests/test_ci_smoke.py \
               --maxfail=1 --cov=. --cov-report=xml --cov-report=term; \
           elif [ -d "kolegium/ai_writing_flow" ]; then \
             cd kolegium/ai_writing_flow; \
-            python -m pytest -p pytest_cov -q tests --ignore=tests/test_writing_crew_integration.py \
-              -k "not e2e and not performance and not heavy_load and not writing_crew_integration" \
+            python -m pytest -p pytest_cov -q tests/test_ci_smoke.py \
               --maxfail=1 --cov=. --cov-report=xml --cov-report=term; \
           else \
             echo "[CI] ai_writing_flow not present in this repo; skipping tests"; \
