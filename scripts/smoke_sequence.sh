@@ -19,12 +19,20 @@ else
 fi
 
 info "Starting sequence (platform=${PLATFORM})"
-RESP=$(curl -s -X POST "${ORCH_URL}/checkpoints/sequence/start" \
-  -H 'Content-Type: application/json' \
-  -d "{\"content\":$(printf %s "$CONTENT" | jq -Rs .),\"platform\":\"${PLATFORM}\"}")
-
-FLOW_ID=$(printf '%s' "$RESP" | sed -n 's/.*"flow_id"\s*:\s*"\([^"]\+\)".*/\1/p')
-STATUS=$(printf '%s' "$RESP" | sed -n 's/.*"status"\s*:\s*"\([^"]\+\)".*/\1/p')
+if command -v jq >/dev/null 2>&1; then
+  RESP=$(curl -s -X POST "${ORCH_URL}/checkpoints/sequence/start" \
+    -H 'Content-Type: application/json' \
+    -d "{\"content\":$(printf %s "$CONTENT" | jq -Rs .),\"platform\":\"${PLATFORM}\"}")
+  echo "$RESP" | jq . >/dev/null 2>&1 || true
+  FLOW_ID=$(echo "$RESP" | jq -r '.flow_id // ""')
+  STATUS=$(echo "$RESP" | jq -r '.status // ""')
+else
+  RESP=$(curl -s -X POST "${ORCH_URL}/checkpoints/sequence/start" \
+    -H 'Content-Type: application/json' \
+    -d "{\"content\":\"${CONTENT}\",\"platform\":\"${PLATFORM}\"}")
+  FLOW_ID=$(printf '%s' "$RESP" | sed -n 's/.*"flow_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+  STATUS=$(printf '%s' "$RESP" | sed -n 's/.*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+fi
 
 if [ -z "${FLOW_ID}" ]; then
   info "Failed to parse flow_id from response: $RESP"
