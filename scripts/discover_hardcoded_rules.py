@@ -40,13 +40,19 @@ def scan_file(path: Path) -> Dict[str, Any]:
     for key, rx in PATTERNS.items():
         for match in rx.finditer(content):
             body = match.group("body")
-            values = extract_strings(body)
-            results["hits"].append({
-                "type": key,
-                "count": len(values),
-                "snippet": body[:200] + ("..." if len(body) > 200 else ""),
-                "values_preview": values[:10],
-            })
+            # Heuristics to avoid false positives:
+            # - Skip computed lists/dicts (list comprehensions, function calls)
+            # - Only count explicit literal strings
+            if "(" in body or " for " in body:
+                continue
+            values = [v for v in extract_strings(body) if v.strip()]
+            if values:
+                results["hits"].append({
+                    "type": key,
+                    "count": len(values),
+                    "snippet": body[:200] + ("..." if len(body) > 200 else ""),
+                    "values_preview": values[:10],
+                })
     return results
 
 
@@ -72,6 +78,10 @@ def main() -> int:
     catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=False))
     print(f"catalog written: {catalog_path}")
     print(f"total_hits={catalog['total_hits']}")
+
+    # Fail if any hardcoded values detected (non-empty lists/dicts with strings)
+    if catalog["total_hits"] > 0:
+        return 1
     return 0
 
 

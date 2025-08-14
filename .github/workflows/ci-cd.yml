@@ -80,12 +80,12 @@ jobs:
           # ai_writing_flow tests
           if [ -d "ai_writing_flow" ]; then \
             cd ai_writing_flow; \
-            PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -p pytest_cov -q tests \
+            PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -p pytest_cov -q tests --ignore=tests/test_writing_crew_integration.py \
               -k "not e2e and not performance and not heavy_load and not writing_crew_integration" \
               -c /dev/null --maxfail=1 --cov=. --cov-report=xml --cov-report=term; \
           elif [ -d "kolegium/ai_writing_flow" ]; then \
             cd kolegium/ai_writing_flow; \
-            PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -p pytest_cov -q tests \
+            PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -p pytest_cov -q tests --ignore=tests/test_writing_crew_integration.py \
               -k "not e2e and not performance and not heavy_load and not writing_crew_integration" \
               -c /dev/null --maxfail=1 --cov=. --cov-report=xml --cov-report=term; \
           else \

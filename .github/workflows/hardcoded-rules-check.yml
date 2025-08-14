@@ -27,10 +27,5 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Run hardcoded rules detection
         run: |
-          python scripts/discover_hardcoded_rules.py || true
-          rg -n 'forbidden_phrases|required_elements|style_patterns|default_rules|banned_words|weasel_words' kolegium/ -g '!**/{tests,mocks,backup,historical}/**' | tee /tmp/hits.txt || true
-          if [ -s /tmp/hits.txt ]; then
-            echo "Hardcoded rules detected:" >&2
-            cat /tmp/hits.txt >&2
-            exit 1
-          fi
+          set -e
+          python scripts/discover_hardcoded_rules.py
