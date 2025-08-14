@@ -54,3 +54,30 @@ Projekt składa się z kilku kluczowych mikroserwisów i submodułów Git. Każd
 | **[`linkedin/`](./linkedin/README.md)** | Submoduł ze specjalizowaną logiką dla platformy LinkedIn. |
 | **[`topic-manager/`](./topic-manager/README.md)** | Serwis do zarządzania i odkrywania nowych tematów na treści. |
 | **[`analytics-service/`](./kolegium/analytics-service/README.md)** | (W budowie) Serwis do śledzenia wydajności publikacji i uczenia się preferencji. |
+
+## 🧭 Ważne uwagi dot. Editorial Crew (kolegium)
+
+- Właściwy submoduł Editorial Crew znajduje się pod ścieżką `kolegium/`.
+- Historyczny folder `vector-wave-editorial-crew/` został usunięty jako „sierota”. Wszystkie prace nad AI Writing Flow prowadź w `kolegium/ai_writing_flow`.
+
+### Uruchamianie testów AI Writing Flow (kolegium) w trybie CI-Light
+
+- Szybki runner Dockera jest w `kolegium/docker-compose.test.yml`.
+- Domyślnie włączony jest `CI_LIGHT=1` (deterministyczne odpowiedzi bez zewnętrznych zależności).
+
+Przykłady:
+
+```bash
+# Wszystkie testy (working dir kontenera: kolegium/ai_writing_flow)
+docker compose -f kolegium/docker-compose.test.yml run --rm test-python-3.11
+
+# Wybrane testy integracyjne
+CI_LIGHT=1 TESTARGS="-q tests/test_flow_integration.py tests/test_integration_phase1.py" \
+  docker compose -f kolegium/docker-compose.test.yml run --rm test-python-3.11
+```
+
+W testach dostępne są helpery do CI-Light:
+
+```python
+from ai_writing_flow.tests.helpers.ci_light import enable_ci_light, disable_ci_light, kb_unavailable
+```

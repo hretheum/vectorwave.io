@@ -1,0 +1,7 @@
+{
+  "move-tags": true,
+  "move-dates": true,
+  "show-relative-date": true,
+  "archive-with-date": true,
+  "date-picker-week-start": 1
+}

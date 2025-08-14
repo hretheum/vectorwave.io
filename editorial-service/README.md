@@ -1,7 +1,9 @@
 # Editorial Service
 
-### Cel Serwisu
+## Overview
 Scentralizowany serwis do walidacji treści, w pełni zintegrowany z ChromaDB. Odpowiada za dostarczanie i egzekwowanie reguł stylistycznych, edytorskich i jakościowych dla wszystkich przepływów generowania treści w systemie Vector Wave.
+
+## Cel Serwisu
 
 ### Kluczowe API
 - `POST /validate/comprehensive`: Pełna walidacja (8-12 reguł), używana w zautomatyzowanych przepływach (Kolegium).
@@ -32,6 +34,25 @@ Serwis jest zaprojektowany w podejściu **container-first**.
     ```
 
 ---
+## KPIs i Walidacja
+
+- Health: `GET /health` P95 < 50ms; status 200
+- ChromaDB connectivity: heartbeat OK na start, reconnect na fail
+- Selective validation: 3–4 reguły; Comprehensive: 8–12 reguł
+- Testy: `pytest -v` > 90% pass rate lokalnie i w CI-Light
+
+Walidacja ręczna (smoke):
+```bash
+curl -s http://localhost:8040/health | jq .status
+curl -s -X POST http://localhost:8040/validate/selective -H 'Content-Type: application/json' -d '{"text":"sample"}' | jq .
+```
+
+## References
+- docs/integration/PORT_ALLOCATION.md (port 8040)
+- PROJECT_CONTEXT.md (reguły SOP/kanban)
+- target-version/VECTOR_WAVE_TARGET_SYSTEM_ARCHITECTURE.md
+- docs/KPI_VALIDATION_FRAMEWORK.md
+
 ### Istniejąca Dokumentacja (Zachowana)
 
 # Editorial Service - Dual Workflow Architecture

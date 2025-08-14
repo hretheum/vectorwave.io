@@ -452,68 +452,7 @@ async def get_topic_suggestions(limit: int = 10) -> Dict[str, List[Suggestion]]:
     return {"suggestions": suggestions}
 
 
-@app.post("/topics/scrape")
-async def trigger_auto_scraping(limit: int = 5) -> Dict[str, Any]:
-    """Trigger automated topic discovery via simple built-in stub.
 
-    In Phase 2, use a lightweight in-process stub that simulates scraping and
-    stores results in the repository when available.
-    """
-    # Lazy import to avoid hard dependency when unused
-    try:
-        from scrapers.hackernews_stub import HackerNewsTopicScraperStub  # type: ignore
-    except Exception:
-        HackerNewsTopicScraperStub = None  # type: ignore
-
-    discovered: List[Dict[str, Any]] = []
-    if HackerNewsTopicScraperStub is not None:
-        scraper = HackerNewsTopicScraperStub()
-        # Simulate async scraping
-        topics = await scraper.scrape_topics()  # type: ignore
-        for t in topics[: max(1, min(limit, 20))]:
-            topic_id = f"t_{len(TOPICS)+1:06d}"
-            model = Topic(
-                topic_id=topic_id,
-                title=t.get("title", "Untitled"),
-                description=t.get("description", ""),
-                keywords=t.get("keywords", []),
-                content_type=t.get("content_type", "POST"),
-            )
-            TOPICS[topic_id] = model
-            if REPO:
-                REPO.create(
-                    TopicModel(
-                        topic_id=topic_id,
-                        title=model.title,
-                        description=model.description,
-                        keywords=model.keywords,
-                        content_type=model.content_type,
-                    )
-                )
-            discovered.append({"topic_id": topic_id, "title": model.title})
-    else:
-        # Fallback: seed with a couple of deterministic items
-        seed = [
-            {"title": "AI Trends 2025", "description": "Latest AI trends.", "keywords": ["ai", "trends"], "content_type": "POST"},
-            {"title": "Open Source LLMs", "description": "Review of OSS LLMs.", "keywords": ["oss", "llm"], "content_type": "ARTICLE"},
-        ]
-        for t in seed[: max(1, min(limit, 20))]:
-            topic_id = f"t_{len(TOPICS)+1:06d}"
-            model = Topic(topic_id=topic_id, **t)
-            TOPICS[topic_id] = model
-            if REPO:
-                REPO.create(
-                    TopicModel(
-                        topic_id=topic_id,
-                        title=model.title,
-                        description=model.description,
-                        keywords=model.keywords,
-                        content_type=model.content_type,
-                    )
-                )
-            discovered.append({"topic_id": topic_id, "title": model.title})
-
-    return {"scraped_topics": len(discovered), "items": discovered}
 
 def _auth_dependency(authorization: Optional[str] = Header(None)):
     token_expected = os.getenv("TOPIC_MANAGER_TOKEN")

@@ -25,8 +25,7 @@ graph TD
         SCH[Scheduler (APScheduler)] --> FET[Fetcher Engine]
         FET --> NOR[Normalizer]
         NOR --> STO[Storage Service]
-        STO --> TC[Triage Crew Controller]
-        TC --> CREW[Triage Crew (AI Agents)]
+        STO --> TRI[Selective Triage Engine]
     end
 
     subgraph Core Vector Wave Services
@@ -38,12 +37,9 @@ graph TD
     API1 & API2 & API3 & API4 --> FET
 
     STO -- Zapisuje do kolekcji 'raw_trends' --> CDB
-    
-    CREW -- Czyta z 'raw_trends' --> CDB
-    CREW -- Pyta o dopasowanie do profilu --> ES
-    CREW -- Sprawdza duplikaty --> TM
-    
-    TC -- Promuje temat --> TM
+    TRI -- Pyta o dopasowanie do profilu --> ES
+    TRI -- Sprawdza duplikaty --> TM
+    TRI -- Promuje temat --> TM
 ```
 
 ## 3. Komponenty Wewnętrzne
@@ -52,12 +48,7 @@ graph TD
 -   **Fetcher Engine:** Moduł zawierający dedykowane "fetchery" dla każdego źródła API. Każdy fetcher jest odpowiedzialny za komunikację z jednym API i zwrócenie surowych danych.
 -   **Normalizer (Pydantic Models):** Zestaw modeli Pydantic, które transformują surowe dane w ujednolicony format `RawTrendItem`. Zapewnia to spójność danych przed zapisem do bazy.
 -   **Storage Service:** Prosta warstwa abstrakcji do komunikacji z ChromaDB, odpowiedzialna za zapisywanie i aktualizowanie statusu dokumentów w kolekcji `raw_trends`.
--   **Triage Crew Controller:** Komponent, który inicjuje i zarządza wykonaniem załogi agentów `Triage Crew` po zakończeniu importu danych.
--   **Triage Crew (CrewAI):**
-    -   **`SummarizerAgent`**: Tworzy zwięzłe streszczenia pozyskanych treści.
-    -   **`ProfileAssessorAgent`**: Wysyła streszczenie do `Editorial Service` w celu uzyskania oceny dopasowania do profilu.
-    -   **`NoveltyCheckAgent`**: Wysyła streszczenie do `Topic Manager` w celu weryfikacji, czy temat nie jest duplikatem.
-    -   **`DecisionMakerAgent`**: Zbiera wyniki od pozostałych agentów i podejmuje ostateczną decyzję (`PROMOTE` / `REJECT`).
+-   **Selective Triage Engine:** Lekka warstwa, która wykorzystuje istniejące usługi (`Editorial Service`, `Topic Manager`) do wyliczenia `profile_fit_score` i `novelty_score`, a następnie podejmuje decyzję (`PROMOTE` / `REJECT`) oraz opcjonalnie promuje temat przez `/topics/suggestion` z nagłówkiem `Idempotency-Key`.
 
 ## 4. Model Danych (ChromaDB)
 
@@ -82,3 +73,43 @@ graph TD
 ## 5. Podejście "Container First"
 
 Serwis od początku jest projektowany z myślą o konteneryzacji. `Dockerfile` i `docker-compose.service.yml` są kluczowymi artefaktami. Serwis posiada endpoint `/health` i jest zintegrowany z głównym `docker-compose.yml` za pomocą profilu `harvester`, co pozwala na jego opcjonalne uruchamianie.
+
+---
+
+## Uproszczona Architektura — skrót (2025-08-13)
+
+Bez scraperów i bez wewnętrznych agentów. Pipeline oparty o stabilne API:
+
+1) Równoległy fetch (HN, ArXiv, Dev.to, NewsData.io, Product Hunt)
+2) Normalizacja do `RawTrendItem`
+3) Zapis w `ChromaDB/raw_trends`
+4) Selective Triage: `Editorial /profile/score` + `Topic Manager /topics/novelty-check`
+5) Decyzja: `PROMOTE` → `Topic Manager /topics/suggestion` (z `Idempotency-Key`)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant FE as FetcherEngine
+    participant CDB as ChromaDB (raw_trends)
+    participant ES as Editorial (/profile/score)
+    participant TM as Topic Manager
+
+    FE->>HN: topstories + items
+    FE->>ARXIV: atom feed (cs.AI, cs.LG, cs.CV)
+    FE->>DEVTO: /api/articles (tags)
+    FE->>NEWSD: /api/1/news (apikey)
+    FE->>PH: GraphQL v2 (Bearer)
+    FE->>CDB: save RawTrendItem[]
+    loop for each candidate
+      FE->>ES: POST /profile/score {summary}
+      ES-->>FE: {profile_fit_score}
+      FE->>TM: POST /topics/novelty-check {title,summary}
+      TM-->>FE: {similarity_score}
+      alt profile>=0.7 && (1-sim)>=0.8
+        FE->>TM: POST /topics/suggestion (Idempotency-Key)
+        TM-->>FE: created/duplicate
+      else
+        FE-->>FE: reject
+      end
+    end
+```

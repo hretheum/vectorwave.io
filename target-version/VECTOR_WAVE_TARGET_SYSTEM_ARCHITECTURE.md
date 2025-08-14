@@ -6,7 +6,7 @@
 ### Core Requirements Compliance
 - ✅ **Complete User Workflow Architecture** compliance
 - ✅ **ZERO hardcoded rules** (all 355+ rules in ChromaDB)
-- ✅ **Topic Database** with manual + auto-scraping
+- ✅ **Topic Database** with manual management + AI suggestions (auto-acquisition handled by Harvester)
 - ✅ **Specialized Agents**: Style + Editorial + Scheduling
 - ✅ **User Decision Points**: topic selection, draft review, slot selection
 - ✅ **LinkedIn Pivot**: Manual PPT upload workflow
@@ -31,7 +31,7 @@ flowchart TB
     
     subgraph "TOPIC INTELLIGENCE LAYER"
         TDB[(📚 Topic Database<br/>ChromaDB Topics Collection)]
-        TMgr[🎯 Topic Manager<br/>Manual + Auto-Scraping]
+        TMgr[🎯 Topic Manager<br/>Manual + Suggestions (no scraping)]
         TSugg[💡 Topic Suggestion Engine<br/>AI-Powered Recommendations]
         
         TMgr --> TDB
@@ -182,10 +182,10 @@ services:
     purpose: "Vector database for all rules and content intelligence"
     collections: 5
     
-  topic-manager:
-    port: 8041
-    purpose: "Topic database management and auto-scraping"
-    dependencies: [chromadb, external-apis]
+    topic-manager:
+      port: 8041
+      purpose: "Topic database management and AI-powered suggestions (no scraping)"
+      dependencies: [chromadb]
   
   # Content Generation Layer (CrewAI-Powered)
   crewai-orchestrator:

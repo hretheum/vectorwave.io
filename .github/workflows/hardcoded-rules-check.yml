@@ -12,7 +12,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: false
+      - name: Init required submodule (kolegium) only
+        run: |
+          if [ -f .gitmodules ] && grep -q "path = kolegium" .gitmodules; then \
+            git config -f .gitmodules submodule.kolegium.url https://github.com/hretheum/vector-wave-editorial-crew.git || true; \
+            git submodule sync -- kolegium; \
+            git submodule update --init --depth 1 kolegium; \
+          fi
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -20,10 +27,5 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Run hardcoded rules detection
         run: |
-          python scripts/discover_hardcoded_rules.py || true
-          rg -n 'forbidden_phrases|required_elements|style_patterns|default_rules|banned_words|weasel_words' kolegium/ -g '!**/{tests,mocks,backup,historical}/**' | tee /tmp/hits.txt || true
-          if [ -s /tmp/hits.txt ]; then
-            echo "Hardcoded rules detected:" >&2
-            cat /tmp/hits.txt >&2
-            exit 1
-          fi
+          set -e
+          python scripts/discover_hardcoded_rules.py
