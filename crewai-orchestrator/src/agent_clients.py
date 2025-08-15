@@ -61,6 +61,9 @@ class AgentHTTPClient:
         }
         if validation_mode == "selective":
             payload["checkpoint"] = self._checkpoint_for_agent()
+        # Propagate platform context when provided (Editorial Service supports optional platform)
+        if isinstance(platform, str) and platform.strip():
+            payload["platform"] = platform.strip()
 
         async def _make_request():
             endpoint = f"{self.editorial_url}/validate/{validation_mode}"
