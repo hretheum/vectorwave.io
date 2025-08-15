@@ -82,10 +82,10 @@ kanban-plugin: board
 	   - Uzupełnić README/API_CONTRACT o minimalny payload `{content, platform}`, przykłady curl i typowe błędy
 	   - follows: [P1] Orchestrator: Redis readiness for sequence (REDIS_URL + compose) [owner: kolegium]
 	   - blocks: [P1] Orchestrator: enable sequence endpoint (/checkpoints/sequence/start) [owner: kolegium]
-	   - Subtasks:
-	- [ ] Zaktualizować `crewai-orchestrator/API_CONTRACT.md`
-	- [ ] Dodać przykłady do `crewai-orchestrator/README.md`
-	- [ ] Dodać sekcję „typowe błędy i kody” (422/501)
+   - Subtasks:
+   	- [x] Zaktualizować `crewai-orchestrator/API_CONTRACT.md`
+   	- [x] Dodać przykłady do `crewai-orchestrator/README.md`
+   	- [x] Dodać sekcję „typowe błędy i kody” (422/501)
 
 
 ## todo

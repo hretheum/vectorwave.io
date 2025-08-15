@@ -11,6 +11,9 @@ This service exposes orchestration endpoints for the Vector Wave platform.
 - `GET /checkpoints/history/{id}` – historia zdarzeń checkpointu (persisted w Redis)
 - `POST /checkpoints/sequence/start` – uruchamia sekwencję pre→mid→post dla podanego contentu
 - `GET /checkpoints/sequence/status/{flow_id}` – status sekwencji i lista checkpointów
+- `POST /flows/execute` – uruchamia pełny przepływ research→audience→writer→style→quality (in‑memory)
+- `GET /flows/status/{flow_id}` – status przepływu (progress, current_agent, chromadb_sourced, result)
+- `GET /flows/active` – lista aktywnych przepływów w formie skróconej
 - `POST /triage/seed` and `POST /api/triage/seed` – batch pre-screening and promotion of topics using triage policy
 - `GET /triage/policy` and `GET /api/triage/policy` – get current applied policy (from `TRIAGE_POLICY_PATH`)
 - `POST /triage/policy` and `POST /api/triage/policy` – update policy (validated if `TRIAGE_POLICY_SCHEMA_PATH` is available)
@@ -24,6 +27,34 @@ The orchestrator reads its triage policy from a YAML file. Paths are configurabl
 - `EDITORIAL_SERVICE_URL` – internal URL to Editorial Service
 - `HARVESTER_URL` – internal URL to Harvester service (used by triage seeder)
 - `REDIS_URL` – opcjonalny URL do Redis; jeśli ustawiony, stany checkpointów i historia są persystowane. Health zawiera `sequence_ready` (true jeśli połączenie z Redis OK).
+## Examples
+
+Start sequence and poll status:
+
+```bash
+curl -s -X POST http://localhost:8042/checkpoints/sequence/start \
+  -H 'Content-Type: application/json' \
+  -d '{"content":"Your content","platform":"linkedin"}'
+
+curl -s http://localhost:8042/checkpoints/sequence/status/<flow_id> | jq .
+```
+
+Execute full flow and check progress:
+
+```bash
+curl -s -X POST http://localhost:8042/flows/execute \
+  -H 'Content-Type: application/json' \
+  -d '{"content":"Your content","platform":"linkedin"}'
+
+curl -s http://localhost:8042/flows/status/<flow_id> | jq .
+```
+
+Common errors:
+
+- 422 Unprocessable Entity – brak `content` lub `platform`
+- 404 Not Found – nieznany `flow_id` lub `checkpoint_id`
+- 501 Not Implemented – funkcja niedostępna w danym buildzie
+
 
 These are already set in the root `docker-compose.yml`.
 
