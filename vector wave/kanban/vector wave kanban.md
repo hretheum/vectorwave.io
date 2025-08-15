@@ -77,15 +77,7 @@ kanban-plugin: board
 	- [ ] Dodać `redis` do docker-compose i sieć
 	- [ ] Ustawić `REDIS_URL` w Orchestratorze i smoke połączenia
 	- [ ] (Opcjonalnie) Rozszerzyć `/health` o `sequence_ready`
-- [ ] [P1] Orchestrator: Sequence API contract & examples [owner: kolegium]
-	   - comments:
-	   - Uzupełnić README/API_CONTRACT o minimalny payload `{content, platform}`, przykłady curl i typowe błędy
-	   - follows: [P1] Orchestrator: Redis readiness for sequence (REDIS_URL + compose) [owner: kolegium]
-	   - blocks: [P1] Orchestrator: enable sequence endpoint (/checkpoints/sequence/start) [owner: kolegium]
-   - Subtasks:
-   	- [x] Zaktualizować `crewai-orchestrator/API_CONTRACT.md`
-   	- [x] Dodać przykłady do `crewai-orchestrator/README.md`
-   	- [x] Dodać sekcję „typowe błędy i kody” (422/501)
+ 
 
 
 ## todo
@@ -145,6 +137,15 @@ kanban-plugin: board
 ## done
 
 **Complete**
+ - [x] [P1] Orchestrator: Sequence API contract & examples [owner: kolegium]
+ 	   - comments:
+ 	   - Uzupełnić README/API_CONTRACT o minimalny payload `{content, platform}`, przykłady curl i typowe błędy
+ 	   - follows: [P1] Orchestrator: Redis readiness for sequence (REDIS_URL + compose) [owner: kolegium]
+ 	   - blocks: [P1] Orchestrator: enable sequence endpoint (/checkpoints/sequence/start) [owner: kolegium]
+ 	   - Subtasks:
+ 	  	- [x] Zaktualizować `crewai-orchestrator/API_CONTRACT.md`
+ 	  	- [x] Dodać przykłady do `crewai-orchestrator/README.md`
+ 	  	- [x] Dodać sekcję „typowe błędy i kody” (422/501)
 - [x] [P0] Orchestrator happy-path flow: research→audience→writer with selective validation calls; return content. [owner: kolegium]
 	   - comments:
 	   - Źródła: kolegium/publishing-orchestrator/README.md; integracja z Editorial Service (8040)
