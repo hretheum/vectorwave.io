@@ -166,7 +166,10 @@ class TestRedisIntegration:
         """Test Redis health check failure"""
         mock_client = AsyncMock()
         mock_client.ping = AsyncMock(side_effect=Exception("Connection failed"))
-        
+
+        from src.main import app_state
+        app_state.health_checks.clear()
+
         with patch('src.main.get_redis_client', return_value=mock_client):
             result = await health_check_redis()
             
@@ -236,20 +239,20 @@ class TestApplicationLifecycle:
     async def test_lifespan_startup(self):
         """Test application startup lifecycle"""
         from src.main import app_state
-        
+
         # Mock the lifespan context manager
         with patch('src.main.register_service') as mock_register:
             # Test startup would set startup_time
-            assert "startup_time" in app_state
+            assert hasattr(app_state, "startup_time")
             # In real startup, register_service would be called
     
     def test_app_state_initialization(self):
         """Test initial application state"""
         from src.main import app_state
-        
-        assert "redis_client" in app_state
-        assert "startup_time" in app_state
-        assert "health_checks" in app_state
+
+        assert hasattr(app_state, "redis_client")
+        assert hasattr(app_state, "startup_time")
+        assert hasattr(app_state, "health_checks")
 
 
 @pytest.mark.performance 

@@ -10,6 +10,7 @@ import uuid
 from typing import Dict, Any, List, Optional, Literal
 from datetime import datetime
 from contextlib import asynccontextmanager
+from .state import AppState
 
 from fastapi import FastAPI, Response, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -78,15 +79,7 @@ service_info = Gauge(
 )
 
 # Global state
-app_state = {
-    "redis_client": None,
-    "startup_time": None,
-    "health_checks": {},
-    "chromadb_client": None,
-    "health_response_cache": None,
-    "health_cache_refresh_inflight": False,
-    "checkpoints": {},  # in-memory checkpoint store (mirrored to Redis best-effort)
-}
+app_state = AppState()
 
 # Health check caching TTL to improve performance under burst traffic (seconds)
 HEALTH_CACHE_TTL_SECONDS = float(os.getenv("HEALTH_CACHE_TTL_SECONDS", "2.0"))
@@ -188,12 +181,12 @@ async def get_redis_client():
         redis_url = os.getenv('REDIS_URL', 'redis://redis:6379')
         client = aioredis.from_url(redis_url)
         await client.ping()
-        app_state["redis_client"] = client
+        app_state.redis_client = client
         logger.info("Redis connection established", url=redis_url)
         return client
     except Exception as e:
         logger.warning("Redis connection failed", error=str(e))
-        app_state["redis_client"] = None
+        app_state.redis_client = None
         return None
 
 async def register_service():
@@ -234,7 +227,7 @@ async def health_check_redis():
     try:
         # Simple cache to avoid hammering Redis under high concurrency
         now = time.time()
-        cached = app_state["health_checks"].get("redis")
+        cached = app_state.health_checks.get("redis")
         if cached and (now - cached["ts"]) < HEALTH_CACHE_TTL_SECONDS:
             return cached["data"]
 
@@ -242,7 +235,7 @@ async def health_check_redis():
         if redis_client:
             await redis_client.ping()
             data = {"status": "healthy", "latency_ms": 0}
-            app_state["health_checks"]["redis"] = {"ts": now, "data": data}
+            app_state.health_checks["redis"] = {"ts": now, "data": data}
             return data
         return {"status": "unavailable", "error": "No connection"}
     except Exception as e:
@@ -253,16 +246,16 @@ async def health_check_chromadb():
     try:
         # Simple cache to avoid hammering Chroma under high concurrency
         now = time.time()
-        cached = app_state["health_checks"].get("chromadb")
+        cached = app_state.health_checks.get("chromadb")
         if cached and (now - cached["ts"]) < HEALTH_CACHE_TTL_SECONDS:
             return cached["data"]
 
-        if app_state.get("chromadb_client") is None:
-            app_state["chromadb_client"] = ChromaDBHTTPClient(
+        if app_state.chromadb_client is None:
+            app_state.chromadb_client = ChromaDBHTTPClient(
                 host=os.getenv('CHROMADB_HOST', 'localhost'),
                 port=int(os.getenv('CHROMADB_PORT', '8000')),
             )
-        client: ChromaDBHTTPClient = app_state["chromadb_client"]
+        client: ChromaDBHTTPClient = app_state.chromadb_client
         hb = await client.heartbeat()
         counts = await client.collections_count()
         data = {
@@ -271,7 +264,7 @@ async def health_check_chromadb():
             "host": client.host,
             "port": client.port,
         }
-        app_state["health_checks"]["chromadb"] = {"ts": now, "data": data}
+        app_state.health_checks["chromadb"] = {"ts": now, "data": data}
         return data
     except Exception as e:
         return {"status": "unavailable", "error": str(e)}
@@ -279,12 +272,12 @@ async def health_check_chromadb():
 
 async def _refresh_health_cache() -> None:
     """Background refresh of whole /health response cache (stale-while-revalidate)."""
-    if app_state.get("health_cache_refresh_inflight"):
+    if app_state.health_cache_refresh_inflight:
         return
-    app_state["health_cache_refresh_inflight"] = True
+    app_state.health_cache_refresh_inflight = True
     try:
         start_time = time.time()
-        uptime = start_time - app_state["startup_time"] if app_state["startup_time"] else 0
+        uptime = start_time - app_state.startup_time if app_state.startup_time else 0
         redis_result, chroma_result = await asyncio.gather(
             health_check_redis(), health_check_chromadb()
         )
@@ -300,14 +293,14 @@ async def _refresh_health_cache() -> None:
             checks=checks,
             timestamp=datetime.utcnow()
         )
-        app_state["health_response_cache"] = {"ts": start_time, "data": response}
+        app_state.health_response_cache = {"ts": start_time, "data": response}
     finally:
-        app_state["health_cache_refresh_inflight"] = False
+        app_state.health_cache_refresh_inflight = False
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    app_state["startup_time"] = time.time()
+    app_state.startup_time = time.time()
     logger.info("Starting Editorial Service", version="2.0.0")
     
     # Set service info metric
@@ -341,8 +334,8 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down Editorial Service")
     heartbeat_task_handle.cancel()
     
-    if app_state["redis_client"]:
-        await app_state["redis_client"].close()
+    if app_state.redis_client:
+        await app_state.redis_client.close()
 
 # Initialize FastAPI with lifespan
 app = FastAPI(
@@ -351,6 +344,9 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan
 )
+
+# Expose dataclass state via FastAPI's state
+app.state = app_state
 
 # CORS middleware
 app.add_middleware(
@@ -537,7 +533,7 @@ async def checkpoints_create(payload: CheckpointCreateRequest):
     checkpoint_id = f"cp_{uuid.uuid4().hex[:8]}"
     now = datetime.utcnow()
     # Store in memory
-    app_state["checkpoints"][checkpoint_id] = {
+    app_state.checkpoints[checkpoint_id] = {
         "checkpoint": payload.checkpoint,
         "platform": payload.platform,
         "content": payload.content,
@@ -580,7 +576,7 @@ async def checkpoints_create(payload: CheckpointCreateRequest):
 
 @app.get("/checkpoints/status/{checkpoint_id}", response_model=CheckpointStatusResponse)
 async def checkpoints_status(checkpoint_id: str):
-    state = app_state["checkpoints"].get(checkpoint_id)
+    state = app_state.checkpoints.get(checkpoint_id)
     if not state:
         return JSONResponse(status_code=404, content={"detail": "checkpoint not found"})
     return CheckpointStatusResponse(
@@ -598,7 +594,7 @@ async def checkpoints_status(checkpoint_id: str):
 
 @app.post("/checkpoints/{checkpoint_id}/intervene", response_model=CheckpointStatusResponse)
 async def checkpoints_intervene(checkpoint_id: str, payload: CheckpointInterveneRequest):
-    state = app_state["checkpoints"].get(checkpoint_id)
+    state = app_state.checkpoints.get(checkpoint_id)
     if not state:
         return JSONResponse(status_code=404, content={"detail": "checkpoint not found"})
     # Update content if provided
@@ -647,7 +643,7 @@ async def health_check():
     start_time = time.time()
 
     # Fast path: serve cached whole response if still fresh
-    cached_resp = app_state.get("health_response_cache")
+    cached_resp = app_state.health_response_cache
     if cached_resp:
         cached_ts = cached_resp.get("ts")
         if cached_ts is not None:
@@ -658,7 +654,7 @@ async def health_check():
             asyncio.create_task(_refresh_health_cache())
             return cached_resp["data"]
 
-    uptime = start_time - app_state["startup_time"] if app_state["startup_time"] else 0
+    uptime = start_time - app_state.startup_time if app_state.startup_time else 0
     
     # Perform health checks
     redis_result, chroma_result = await asyncio.gather(health_check_redis(), health_check_chromadb())
@@ -682,7 +678,7 @@ async def health_check():
     )
 
     # Store in cache
-    app_state["health_response_cache"] = {"ts": start_time, "data": response}
+    app_state.health_response_cache = {"ts": start_time, "data": response}
     return response
 
 @app.get("/metrics")
