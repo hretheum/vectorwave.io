@@ -299,27 +299,20 @@ class GammaAPIClient:
             
             logger.info(f"🎨 Sending generation request to Gamma.app: {request_data['topic']['title']}")
             
-            # Use documented endpoint first; keep a couple of fallbacks
-            candidate_paths = [
-                "/generations",             # per docs v0.2
-                "/presentations/generate",  # fallback guess
-                "/generate"                  # fallback guess
-            ]
-            last_error_resp: Dict[str, Any] = {}
-            last_status: Optional[int] = None
-            last_data: Optional[Dict[str, Any]] = None
-            for path in candidate_paths:
-                url = f"{self.base_url}{path}"
-                status_code, data = await self._post_json_with_retries(session, url, gamma_request)
-                processing_time = (time.time() - start_time) * 1000
-                last_status = status_code
-                last_data = data
-                if status_code == 200 and isinstance(data, dict):
+            # Use documented endpoint only (v0.2)
+            url = f"{self.base_url}/generations"
+            status_code, data = await self._post_json_with_retries(session, url, gamma_request)
+            processing_time = (time.time() - start_time) * 1000
+
+            # Treat 200/201/202 as successful creation/acceptance
+            if status_code in {200, 201, 202} and isinstance(data, dict):
                         # Map likely Gamma fields to our model
                         presentation_id = (
                             data.get("id")
+                            or data.get("generationId")
                             or data.get("presentation_id")
                             or data.get("data", {}).get("id")
+                            or data.get("data", {}).get("generationId")
                         )
                         preview_url = (
                             data.get("url")
@@ -351,24 +344,17 @@ class GammaAPIClient:
                             cost=estimated_cost,
                             error_message=None if (preview_url or download_urls or presentation_id) else "Gamma API returned incomplete payload"
                         )
-                else:
-                    # Try next candidate; remember last details
-                    last_error_resp = data or {}
-                    continue
-
-            # If all endpoints failed
-            processing_time = (time.time() - start_time) * 1000
+            # Non-success response: surface Gamma error
             error_code = None
             error_message = None
-            if isinstance(last_error_resp, dict):
-                error_code = last_error_resp.get("error") or last_error_resp.get("code") or last_error_resp.get("status")
-                error_message = last_error_resp.get("message") or last_error_resp.get("error_description") or last_error_resp.get("raw")
-            path_list = ",".join(candidate_paths)
+            if isinstance(data, dict):
+                error_code = data.get("error") or data.get("code") or data.get("status")
+                error_message = data.get("message") or data.get("error_description") or data.get("raw")
             return GammaAPIResponse(
                 success=False,
                 processing_time_ms=processing_time,
-                error_code=error_code or "API_NOT_FOUND",
-                error_message=error_message or f"No successful endpoint among: {path_list} (last HTTP {last_status})"
+                error_code=error_code or f"HTTP_{status_code}",
+                error_message=error_message or "Gamma API request failed"
             )
         
         except Exception as e:
@@ -415,7 +401,6 @@ class GammaAPIClient:
             "inputText": input_text or title,
             "textMode": "generate",
             "format": "presentation",
-            "themeName": request_data.get("theme") or "business",
             "numCards": request_data.get("slides_count") or 8,
             "cardSplit": "auto",
             "additionalInstructions": request_data.get("custom_instructions") or "",
@@ -431,6 +416,10 @@ class GammaAPIClient:
             "cardOptions": {},
             "sharingOptions": {}
         }
+        # Only include themeName if caller provided an explicit, non-empty theme
+        provided_theme = request_data.get("theme")
+        if isinstance(provided_theme, str) and provided_theme.strip():
+            payload["themeName"] = provided_theme.strip()
         # Remove None fields in nested dicts
         for section in ("textOptions",):
             payload[section] = {k: v for k, v in payload[section].items() if v is not None}
@@ -444,6 +433,42 @@ class GammaAPIClient:
         if self.session and not self.session.closed:
             await self.session.close()
             logger.info("🔌 Gamma API client session closed")
+
+    async def fetch_generation(self, generation_id: str) -> Tuple[int, Dict[str, Any]]:
+        """Fetch generation details by id from Gamma API."""
+        if self.demo_mode:
+            # Simulate completed demo
+            return 200, {
+                "id": generation_id,
+                "status": "completed",
+                "links": {
+                    "preview": f"https://gamma.app/docs/{generation_id}",
+                    "downloads": {
+                        "pdf": f"https://gamma.app/download/{generation_id}.pdf",
+                        "pptx": f"https://gamma.app/download/{generation_id}.pptx"
+                    }
+                }
+            }
+        session = await self._get_session()
+        url = f"{self.base_url}/generations/{generation_id}"
+        try:
+            async with session.get(url) as response:
+                status_code = response.status
+                content_type = response.headers.get("content-type", "")
+                if "application/json" in content_type:
+                    try:
+                        data = await response.json()
+                    except Exception:
+                        data = {}
+                else:
+                    try:
+                        text = await response.text()
+                        data = {"raw": text}
+                    except Exception:
+                        data = {}
+                return status_code, data
+        except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
+            return 0, {"error": "request_exception", "message": str(exc)}
     
     def get_usage_stats(self) -> Dict[str, Any]:
         """Get usage statistics"""

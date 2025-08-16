@@ -10,6 +10,7 @@ Objective: Create Gamma.app API wrapper service with circuit breaker
 import os
 import logging
 import time
+import asyncio
 from typing import Dict, Any, Optional
 from datetime import datetime
 import uuid
@@ -282,10 +283,16 @@ async def generate_presentation(
             )
         
         # Generate presentation through circuit breaker
+        # Pass only fields explicitly provided by the caller (avoid default theme)
+        try:
+            request_data = request.model_dump(exclude_unset=True, exclude_none=True)  # pydantic v2
+        except Exception:
+            request_data = request.dict(exclude_unset=True, exclude_none=True)  # pydantic v1 fallback
+
         generation_result = await service_state["circuit_breaker"].call_with_circuit_breaker(
             "gamma_api",
             service_state["gamma_client"].generate_presentation,
-            request.dict()
+            request_data
         )
 
         # If Gamma API indicates failure or missing essential data, map to failed response
@@ -317,6 +324,25 @@ async def generate_presentation(
                 error_message=error_text,
                 created_at=datetime.now()
             )
+
+        # If only generation id returned (Gamma 201), mark as pending
+        if (
+            generation_result.presentation_id and
+            not generation_result.preview_url and
+            not generation_result.download_urls
+        ):
+            response = GammaGenerationResponse(
+                generation_id=generation_id,
+                status="pending",
+                gamma_presentation_id=generation_result.presentation_id,
+                preview_url=None,
+                download_urls=None,
+                slides_count=None,
+                generation_time_ms=generation_result.processing_time_ms,
+                cost=generation_result.cost,
+                created_at=datetime.now()
+            )
+            return response
 
         # Update service stats only on success
         service_state["generation_count"] += 1
@@ -359,28 +385,102 @@ async def get_generation_status(
     generation_id: str,
     current_user: str = Depends(get_current_user)
 ):
-    """Get status of presentation generation"""
-    
+    """Get real status of presentation generation via Gamma API."""
     logger.info(f"📊 Checking generation status: {generation_id}")
-    
     try:
-        # In a production system, this would query generation status from database
-        # For now, return a placeholder response
-        
+        status_code, data = await service_state["gamma_client"].fetch_generation(generation_id)
+        if status_code in {200} and isinstance(data, dict):
+            # Normalize expected fields
+            normalized = {
+                "generation_id": generation_id,
+                "status": data.get("status") or data.get("state") or "unknown",
+                "preview_url": data.get("url") or data.get("preview_url") or data.get("links", {}).get("preview"),
+                "download_urls": data.get("downloadUrls") or data.get("download_urls") or data.get("links", {}).get("downloads"),
+                "checked_at": datetime.now().isoformat()
+            }
+            return normalized
         return {
             "generation_id": generation_id,
-            "status": "completed",
-            "message": "Generation status tracking will be implemented in production",
+            "status": f"HTTP_{status_code}",
+            "data": data,
             "checked_at": datetime.now().isoformat()
         }
-        
     except Exception as e:
         logger.error(f"Status check failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
                 "error": "status_check_failed",
-                "message": "Generation status check failed",
+                "message": str(e),
+                "generation_id": generation_id
+            }
+        )
+
+@app.get("/generation/{generation_id}/wait",
+         response_model=Dict[str, Any],
+         tags=["Generation"])
+async def wait_for_generation(
+    generation_id: str,
+    timeout_seconds: int = 120,
+    poll_interval_seconds: float = 2.0,
+    current_user: str = Depends(get_current_user)
+):
+    """Poll Gamma API until generation completes or timeout expires."""
+    logger.info(f"⏳ Waiting for generation to complete: {generation_id}")
+    start_ts = time.time()
+
+    try:
+        while (time.time() - start_ts) < timeout_seconds:
+            status_code, data = await service_state["gamma_client"].fetch_generation(generation_id)
+            if status_code in {200} and isinstance(data, dict):
+                status_text = data.get("status") or data.get("state") or "unknown"
+                preview_url = data.get("url") or data.get("preview_url") or data.get("links", {}).get("preview")
+                download_urls = data.get("downloadUrls") or data.get("download_urls") or data.get("links", {}).get("downloads")
+
+                # If completed with URLs, return immediately
+                if str(status_text).lower() == "completed" and (preview_url or download_urls):
+                    return {
+                        "generation_id": generation_id,
+                        "status": "completed",
+                        "preview_url": preview_url,
+                        "download_urls": download_urls,
+                        "checked_at": datetime.now().isoformat()
+                    }
+
+                # If failed, return failure immediately
+                if str(status_text).lower() == "failed":
+                    return {
+                        "generation_id": generation_id,
+                        "status": "failed",
+                        "data": data,
+                        "checked_at": datetime.now().isoformat()
+                    }
+
+            # Not ready yet; sleep and retry
+            try:
+                await asyncio.sleep(max(0.2, float(poll_interval_seconds)))
+            except Exception:
+                await asyncio.sleep(1.0)
+
+        # Timeout
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail={
+                "error": "generation_timeout",
+                "message": f"Generation did not complete within {timeout_seconds}s",
+                "generation_id": generation_id
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Wait failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": "wait_failed",
+                "message": str(e),
                 "generation_id": generation_id
             }
         )
