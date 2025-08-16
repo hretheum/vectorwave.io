@@ -58,16 +58,40 @@ services:
       start_period: 20s
     networks: [vector-wave]
 
+  ai-writing-flow:
+    build: ./kolegium/ai_writing_flow
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=info
+      - EDITORIAL_SERVICE_URL=http://editorial-service:8040
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - SERVICE_PORT=8003
+    depends_on:
+      editorial-service:
+        condition: service_started
+    ports:
+      - "8003:8003"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks: [vector-wave]
+
   crewai-orchestrator:
     build: ./crewai-orchestrator
     environment:
       - EDITORIAL_SERVICE_URL=http://editorial-service:8040
+      - AI_WRITING_FLOW_URL=http://ai-writing-flow:8003
       - HARVESTER_URL=http://harvester:8043
       - TRIAGE_POLICY_PATH=/app/config/triage_policy.yaml
       - TRIAGE_POLICY_SCHEMA_PATH=/app/config/triage_policy.schema.json
       - REDIS_URL=redis://redis:6379
     depends_on:
       editorial-service:
+        condition: service_started
+      ai-writing-flow:
         condition: service_started
     ports:
       - "8042:8042"
@@ -108,11 +132,14 @@ services:
     depends_on:
       editorial-service:
         condition: service_started
+      ai-writing-flow:
+        condition: service_started
     networks: [vector-wave]
     ports:
       - "8080:8080"
     environment:
       - EDITORIAL_SERVICE_URL=http://editorial-service:8040
+      - AI_WRITING_FLOW_URL=http://ai-writing-flow:8003
       - GAMMA_PPT_URL=http://gamma-ppt-generator:8003
       - PRESENTON_URL=http://presenton:8089
       - LINKEDIN_PPT_GENERATOR_URL=http://linkedin-ppt:8002
