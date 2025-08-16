@@ -54,6 +54,25 @@ Stay in monorepo for now.
 - Diverging release cadence/ownership requiring separate governance
 - Compliance/licensing constraints per service
 
+## Future Option: Submodules (when and how)
+If, at a later stage, strong isolation and separate lifecycles are required, consider git submodules per service:
+
+- When it makes sense:
+  - Service reused across multiple repos/products
+  - Separate team ownership and release cadence
+  - Compliance/licensing boundaries demanding repo isolation
+
+- How to implement safely:
+  - Pin to tags (semver) and bump via PRs in the host repo
+  - Provide `make setup` bootstrap for `git submodule update --init --recursive`
+  - Configure CI to checkout submodules recursively (e.g., GitHub Actions `submodules: recursive`)
+  - Keep service READMEs authoritative; host repo consumes versions only
+
+- Migration path from monorepo:
+  - Use `git subtree split` (preferred) or `git filter-repo` to extract service history into a new repo
+  - Add extracted repo as submodule; replace former directory with the submodule pointer
+  - Document contribution flow (changes land in service repo, then version bump in host)
+
 ## Links
 - Kanban Task 1.16 (Service extraction roadmap)
 - Kanban Task 1.21 (ADR decision gate)
