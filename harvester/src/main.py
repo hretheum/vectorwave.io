@@ -48,7 +48,11 @@ async def lifespan(app: FastAPI):
         cron = settings.HARVEST_SCHEDULE_CRON or "*/30 * * * *"
         if cron.startswith("*/"):
             interval_min = int(cron.split()[0].replace("*/", ""))
-    except Exception:
+    except ValueError as e:
+        logger.warning("Invalid HARVEST_SCHEDULE_CRON format, defaulting to 30 minutes", exc_info=e)
+        interval_min = 30
+    except Exception as e:
+        logger.error("Unexpected error parsing HARVEST_SCHEDULE_CRON", exc_info=e)
         interval_min = 30
     # Expose schedule in app state
     app.state.interval_min = interval_min
@@ -63,7 +67,11 @@ async def lifespan(app: FastAPI):
         candidates = []
         try:
             candidates = await storage.list_candidates(limit=min(max(fetched, 50), 500))
-        except Exception:
+        except RuntimeError as e:
+            logger.warning("Listing candidates failed", exc_info=e)
+            candidates = []
+        except Exception as e:
+            logger.error("Unexpected error listing candidates", exc_info=e)
             candidates = []
         # 3) Selective triage + promote for each candidate
         promoted = 0
@@ -79,14 +87,20 @@ async def lifespan(app: FastAPI):
                     if r.get("decision") == "PROMOTE":
                         promoted += 1
                         promoted_ids.append(cand.get("id"))
-                except Exception:
+                except httpx.HTTPError as e:
+                    logger.warning("Selective triage call failed", exc_info=e)
+                    triage_errors += 1
+                except Exception as e:
+                    logger.error("Unexpected error during selective triage", exc_info=e)
                     triage_errors += 1
         # 4) Update status promoted in raw_trends
         if promoted_ids:
             try:
                 await storage.update_status(promoted_ids, status="promoted")
-            except Exception:
-                pass
+            except RuntimeError as e:
+                logger.warning("Failed to update status for promoted items", exc_info=e)
+            except Exception as e:
+                logger.error("Unexpected error updating status for promoted items", exc_info=e)
         # Update last_run snapshot
         status.update({"promoted": promoted, "triage_errors": triage_errors, "promoted_ids_count": len(promoted_ids)})
         app.state.last_run = status
@@ -96,8 +110,10 @@ async def lifespan(app: FastAPI):
         while True:
             try:
                 await _run_full_cycle()
-            except Exception:
-                pass
+            except RuntimeError as e:
+                logger.warning("Harvest cycle failed, retrying", exc_info=e)
+            except Exception as e:
+                logger.error("Unexpected error during harvest cycle", exc_info=e)
             # Compute next run before sleeping
             app.state.next_run_at = (datetime.utcnow() + timedelta(minutes=interval_min)).isoformat() + "Z"
             await _asyncio.sleep(max(300, interval_min * 60))
@@ -153,26 +169,44 @@ async def health_check():
             try:
                 r = await client.get(f"http://{settings.CHROMADB_HOST}:{settings.CHROMADB_PORT}/api/v1/heartbeat")
                 deps["chromadb"]["healthy"] = (r.status_code == 200)
-            except Exception:
+            except httpx.HTTPError as e:
+                logger.warning("Chroma v1 heartbeat failed", exc_info=e)
                 try:
                     r = await client.get(f"http://{settings.CHROMADB_HOST}:{settings.CHROMADB_PORT}/api/v2/heartbeat")
                     deps["chromadb"]["healthy"] = (r.status_code == 200)
-                except Exception:
+                except httpx.HTTPError as e2:
+                    logger.warning("Chroma v2 heartbeat failed", exc_info=e2)
                     deps["chromadb"]["healthy"] = False
+                except Exception as e2:
+                    logger.error("Unexpected error contacting Chroma v2", exc_info=e2)
+                    deps["chromadb"]["healthy"] = False
+            except Exception as e:
+                logger.error("Unexpected error contacting Chroma v1", exc_info=e)
+                deps["chromadb"]["healthy"] = False
             # Editorial Service
             try:
                 r2 = await client.get(f"{settings.EDITORIAL_SERVICE_URL}/health")
                 deps["editorial_service"]["healthy"] = (r2.status_code == 200)
-            except Exception:
+            except httpx.HTTPError as e:
+                logger.warning("Editorial service health check failed", exc_info=e)
+                deps["editorial_service"]["healthy"] = False
+            except Exception as e:
+                logger.error("Unexpected error contacting editorial service", exc_info=e)
                 deps["editorial_service"]["healthy"] = False
             # Topic Manager
             try:
                 r3 = await client.get(f"{settings.TOPIC_MANAGER_URL}/health")
                 deps["topic_manager"]["healthy"] = (r3.status_code == 200)
-            except Exception:
+            except httpx.HTTPError as e:
+                logger.warning("Topic manager health check failed", exc_info=e)
                 deps["topic_manager"]["healthy"] = False
-    except Exception:
-        pass
+            except Exception as e:
+                logger.error("Unexpected error contacting topic manager", exc_info=e)
+                deps["topic_manager"]["healthy"] = False
+    except httpx.HTTPError as e:
+        logger.warning("Health check HTTP error", exc_info=e)
+    except Exception as e:
+        logger.error("Unexpected error during health check", exc_info=e)
     overall = all(v.get("healthy") for v in deps.values())
     return {
         "status": "healthy" if overall else "degraded",
@@ -201,9 +235,10 @@ async def trigger_harvest(limit: int = Query(None, ge=1, le=100)):
     saved = 0
     try:
         saved = await storage.save_items(items)
+    except ValueError as e:
+        logger.warning("Chroma save failed", extra={"event": "chroma_save_error", "data": {"error": str(e)}}, exc_info=e)
     except Exception as e:
-        # Isolate Chroma failure, still return 200 with diagnostics
-        logger.error("Chroma save failed", extra={"event": "chroma_save_error", "data": {"error": str(e)}})
+        logger.error("Chroma save failed", extra={"event": "chroma_save_error", "data": {"error": str(e)}}, exc_info=e)
     ended_at = datetime.utcnow()
     duration_ms = int((ended_at - started_at).total_seconds() * 1000)
     # Persist last run status in app state
@@ -249,8 +284,12 @@ async def selective_preview(summary: str) -> Dict[str, Any]:
                 prof_score = float(r.json().get("profile_fit_score") or 0.0)
             else:
                 HARVEST_EXT_CALLS.labels("editorial", "/profile/score", str(r.status_code)).inc()
-        except Exception:
+        except httpx.HTTPError as e:
             HARVEST_EXT_ERRORS.labels("editorial", "/profile/score").inc()
+            logger.warning("Editorial profile score call failed", exc_info=e)
+        except Exception as e:
+            HARVEST_EXT_ERRORS.labels("editorial", "/profile/score").inc()
+            logger.error("Unexpected error during editorial profile score call", exc_info=e)
         novelty_score = 0.0
         try:
             with HARVEST_EXT_LATENCY.labels("topic-manager", "/topics/novelty-check").time():
@@ -261,8 +300,12 @@ async def selective_preview(summary: str) -> Dict[str, Any]:
                 novelty_score = 1.0 - novelty_score
             else:
                 HARVEST_EXT_CALLS.labels("topic-manager", "/topics/novelty-check", str(r2.status_code)).inc()
-        except Exception:
+        except httpx.HTTPError as e:
             HARVEST_EXT_ERRORS.labels("topic-manager", "/topics/novelty-check").inc()
+            logger.warning("Topic manager novelty check failed", exc_info=e)
+        except Exception as e:
+            HARVEST_EXT_ERRORS.labels("topic-manager", "/topics/novelty-check").inc()
+            logger.error("Unexpected error during topic manager novelty check", exc_info=e)
     pth = settings.SELECTIVE_PROFILE_THRESHOLD
     nth = settings.SELECTIVE_NOVELTY_THRESHOLD
     decision = "PROMOTE" if (prof_score >= pth and novelty_score >= nth) else "REJECT"
@@ -291,8 +334,12 @@ async def selective_triage(summary: str, content_type: str = "POST") -> Dict[str
                 prof_score = float(r.json().get("profile_fit_score") or 0.0)
             else:
                 HARVEST_EXT_CALLS.labels("editorial", "/profile/score", str(r.status_code)).inc()
-        except Exception:
+        except httpx.HTTPError as e:
             HARVEST_EXT_ERRORS.labels("editorial", "/profile/score").inc()
+            logger.warning("Editorial profile score call failed", exc_info=e)
+        except Exception as e:
+            HARVEST_EXT_ERRORS.labels("editorial", "/profile/score").inc()
+            logger.error("Unexpected error during editorial profile score call", exc_info=e)
         novelty_sim = 0.0
         try:
             with HARVEST_EXT_LATENCY.labels("topic-manager", "/topics/novelty-check").time():
@@ -302,8 +349,12 @@ async def selective_triage(summary: str, content_type: str = "POST") -> Dict[str
                 novelty_sim = float(r2.json().get("similarity_score") or 0.0)
             else:
                 HARVEST_EXT_CALLS.labels("topic-manager", "/topics/novelty-check", str(r2.status_code)).inc()
-        except Exception:
+        except httpx.HTTPError as e:
             HARVEST_EXT_ERRORS.labels("topic-manager", "/topics/novelty-check").inc()
+            logger.warning("Topic manager novelty check failed", exc_info=e)
+        except Exception as e:
+            HARVEST_EXT_ERRORS.labels("topic-manager", "/topics/novelty-check").inc()
+            logger.error("Unexpected error during topic manager novelty check", exc_info=e)
         novelty_score = 1.0 - novelty_sim
         pth = settings.SELECTIVE_PROFILE_THRESHOLD
         nth = settings.SELECTIVE_NOVELTY_THRESHOLD
@@ -327,8 +378,13 @@ async def selective_triage(summary: str, content_type: str = "POST") -> Dict[str
                 else:
                     HARVEST_EXT_CALLS.labels("topic-manager", "/topics/suggestion", str(r3.status_code)).inc()
                     result["suggestion_error"] = {"status": r3.status_code, "body": r3.text}
+            except httpx.HTTPError as e:
+                HARVEST_EXT_ERRORS.labels("topic-manager", "/topics/suggestion").inc()
+                logger.warning("Topic manager suggestion call failed", exc_info=e)
+                result["suggestion_error"] = {"error": str(e)}
             except Exception as e:
                 HARVEST_EXT_ERRORS.labels("topic-manager", "/topics/suggestion").inc()
+                logger.error("Unexpected error during topic manager suggestion call", exc_info=e)
                 result["suggestion_error"] = {"error": str(e)}
         return result
 
