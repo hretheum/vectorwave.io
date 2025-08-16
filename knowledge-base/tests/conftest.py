@@ -1,7 +1,8 @@
 """Pytest configuration and shared fixtures for Knowledge Base tests"""
 
-import asyncio
+import os
 import pytest
+import asyncio
 import uuid
 from typing import Dict, Any, List
 from unittest.mock import AsyncMock, MagicMock
