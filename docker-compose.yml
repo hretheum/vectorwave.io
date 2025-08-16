@@ -216,7 +216,7 @@ services:
 
   gamma-ppt-generator:
     profiles: ["gamma"]
-    build: ./kolegium/gamma-ppt-generator
+    build: ./gamma-ppt-service
     env_file:
       - /Users/hretheum/dev/bezrobocie/vector-wave/.env
     ports:
