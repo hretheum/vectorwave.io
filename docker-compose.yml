@@ -112,7 +112,7 @@ services:
 
   publishing-orchestrator:
     profiles: ["publishing"]
-    build: ./kolegium/publishing-orchestrator
+    build: ./publishing-orchestrator-service
     depends_on:
       editorial-service:
         condition: service_started

@@ -1,0 +1,13 @@
+__pycache__/
+.venv/
+venv/
+*.log
+*.pyc
+*.pyo
+*.pyd
+.cache/
+htmlcov/
+.coverage*
+/tests/
+**/tests/
+**/*.coverage*
