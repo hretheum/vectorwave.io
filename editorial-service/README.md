@@ -206,30 +206,17 @@ Ten service implementuje **container-first approach** zgodny z najlepszymi prakt
 
 ## 🚀 Quick Start
 
-### Development Environment
+### Uruchomienie
 
 ```bash
-# 1. Uruchom stack development
-docker-compose -f docker-compose.dev.yml up --build
+# 1. Zbuduj i uruchom serwis wraz z ChromaDB
+docker compose up --build editorial-service chromadb
 
 # 2. Sprawdź health endpoints
 curl http://localhost:8040/health
 curl http://localhost:8000/api/v1/heartbeat  # ChromaDB
 
-# 3. Hot-reload development
-# Pliki src/ są zamontowane jako volumes - zmiany od razu widoczne
-```
-
-### Production Environment
-
-```bash
-# 1. Build production image
-docker-compose -f docker-compose.prod.yml build
-
-# 2. Deploy with resource limits
-docker-compose -f docker-compose.prod.yml up -d
-
-# 3. Monitor resources
+# 3. Monitoruj zasoby (opcjonalnie)
 docker stats editorial-service chromadb
 ```
 

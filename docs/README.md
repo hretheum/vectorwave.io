@@ -3,7 +3,7 @@
 Ten indeks prowadzi do kluczowych dokumentów, standardów i przewodników.
 
 ## Spis
-- Quick Start: ../QUICK_START.md
+ - [Quick Start](../QUICK_START.md)
 - Kontekst projektu: ../PROJECT_CONTEXT.md
 - Plan konsolidacji dokumentacji: ./DOCS_CONSOLIDATION_PLAN.md
 - Inwentarz dokumentów: ./DOCS_INVENTORY.md
