@@ -34,10 +34,42 @@ class LinearFlowEngine:
         platform: str,
         content_type: str = "article",
         prefer_comprehensive: Optional[Dict[str, bool]] = None,
+        direct_content: bool = True,
     ) -> Dict[str, Any]:
+        # If direct_content=false, use AI Writing Flow instead of traditional agents
+        if not direct_content:
+            # Generate topic data from content
+            topic_data = {
+                "title": content.split('\n')[0] if '\n' in content else content[:50],
+                "description": content,
+                "content_type": content_type.upper(),
+                "content_ownership": "ORIGINAL",
+            }
+            
+            # Call AI Writing Flow
+            aiwf_result = await self.clients.ai_writing_flow.generate(
+                topic_data=topic_data,
+                platform=platform,
+                mode="selective"
+            )
+            
+            if aiwf_result:
+                return {
+                    "steps": [{
+                        "agent": "ai_writing_flow",
+                        "mode": "selective",
+                        "result": aiwf_result
+                    }],
+                    "final_content": aiwf_result.get("content", content),
+                    "ai_writing_flow_used": True,
+                    "validation_results": aiwf_result.get("validation_results", {}),
+                    "checkpoints_passed": aiwf_result.get("checkpoints_passed", {})
+                }
+        
+        # Traditional flow with direct_content=true
         prefer = prefer_comprehensive or {}
         current_content = content
-        results: Dict[str, Any] = {"steps": []}
+        results: Dict[str, Any] = {"steps": [], "ai_writing_flow_used": False}
 
         for agent in self.ORDER:
             mode = "comprehensive" if prefer.get(agent, agent in ("research", "audience", "style", "quality")) else "selective"
@@ -52,7 +84,8 @@ class LinearFlowEngine:
         return results
 
     # --- Stateful execution API ---
-    async def execute_flow(self, content: str, platform: str, content_type: str = "article") -> str:
+    async def execute_flow(self, content: str, platform: str, content_type: str = "article", 
+                          direct_content: bool = True) -> str:
         flow_id = f"flow_{uuid.uuid4().hex[:8]}"
         self.active[flow_id] = FlowState(
             flow_id=flow_id,
@@ -63,11 +96,44 @@ class LinearFlowEngine:
             created_at=time.time(),
             updated_at=time.time(),
             result=None,
+            ai_writing_flow_used=not direct_content,
         )
 
         async def _runner():
             state = self.active[flow_id]
             try:
+                # Use AI Writing Flow if direct_content=false
+                if not direct_content:
+                    state.current_agent = "ai_writing_flow"
+                    state.progress = 10.0
+                    state.updated_at = time.time()
+                    
+                    topic_data = {
+                        "title": content.split('\n')[0] if '\n' in content else content[:50],
+                        "description": content,
+                        "content_type": content_type.upper(),
+                        "content_ownership": "ORIGINAL",
+                    }
+                    
+                    aiwf_result = await self.clients.ai_writing_flow.generate(
+                        topic_data=topic_data,
+                        platform=platform,
+                        mode="selective"
+                    )
+                    
+                    state.progress = 100.0
+                    state.status = "completed"
+                    state.result = {
+                        "steps": [{"agent": "ai_writing_flow", "mode": "selective", "result": aiwf_result}],
+                        "final_content": aiwf_result.get("content", content) if aiwf_result else content,
+                        "ai_writing_flow_used": True,
+                        "validation_results": aiwf_result.get("validation_results", {}) if aiwf_result else {},
+                        "checkpoints_passed": aiwf_result.get("checkpoints_passed", {}) if aiwf_result else {}
+                    }
+                    state.updated_at = time.time()
+                    return
+                
+                # Traditional flow with direct_content=true
                 steps_total = len(self.ORDER)
                 current_content = content
                 results: List[Dict[str, Any]] = []
@@ -91,7 +157,7 @@ class LinearFlowEngine:
                         current_content = self._apply_suggestions(current_content, suggestions)
                 state.progress = 100.0
                 state.status = "completed"
-                state.result = {"steps": results, "final_content": current_content}
+                state.result = {"steps": results, "final_content": current_content, "ai_writing_flow_used": False}
                 state.updated_at = time.time()
             except Exception as e:
                 state.status = "failed"
@@ -130,6 +196,7 @@ class FlowState:
     updated_at: float
     result: Optional[Dict[str, Any]] = None
     error_message: Optional[str] = None
+    ai_writing_flow_used: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -142,6 +209,7 @@ class FlowState:
             "updated_at": self.updated_at,
             "result": self.result,
             "error_message": self.error_message,
+            "ai_writing_flow_used": self.ai_writing_flow_used,
         }
 
     def to_compact(self) -> Dict[str, Any]:

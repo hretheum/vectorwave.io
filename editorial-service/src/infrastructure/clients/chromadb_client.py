@@ -7,9 +7,13 @@ from __future__ import annotations
 
 import os
 import time
+import asyncio
 from typing import Any, Dict, Optional
 
 import httpx
+import structlog
+
+logger = structlog.get_logger()
 
 
 class ChromaDBHTTPClient:
@@ -22,6 +26,61 @@ class ChromaDBHTTPClient:
         self.base_url_v1: str = f"http://{self.host}:{self.port}/api/v1"
         self.base_url_v2: str = f"http://{self.host}:{self.port}/api/v2"
         self._last_healthy: Optional[float] = None
+        self._initialized: bool = False
+        self._connection_attempts: int = 0
+        self._connection_failures: int = 0
+        
+    async def wait_for_connection(self, max_retries: int = 10, initial_delay: float = 2.0) -> bool:
+        """Wait for ChromaDB to be available with exponential backoff.
+        
+        Args:
+            max_retries: Maximum number of retry attempts
+            initial_delay: Initial delay between retries in seconds
+            
+        Returns:
+            True if connection established, False otherwise
+        """
+        delay = initial_delay
+        
+        for attempt in range(max_retries):
+            self._connection_attempts += 1
+            logger.info(
+                "Attempting ChromaDB connection",
+                attempt=attempt + 1,
+                max_retries=max_retries,
+                host=self.host,
+                port=self.port
+            )
+            
+            result = await self.heartbeat()
+            if result.get("status") == "healthy":
+                logger.info(
+                    "ChromaDB connection established",
+                    attempts=attempt + 1,
+                    latency_ms=result.get("latency_ms")
+                )
+                self._initialized = True
+                return True
+                
+            self._connection_failures += 1
+            logger.warning(
+                "ChromaDB connection failed, retrying",
+                attempt=attempt + 1,
+                delay=delay,
+                error=result.get("error")
+            )
+            
+            if attempt < max_retries - 1:
+                await asyncio.sleep(delay)
+                delay = min(delay * 2, 30.0)  # Exponential backoff, max 30s
+                
+        logger.error(
+            "ChromaDB connection failed after all retries",
+            attempts=max_retries,
+            host=self.host,
+            port=self.port
+        )
+        return False
 
     async def heartbeat(self) -> Dict[str, Any]:
         """Call ChromaDB heartbeat endpoint and return status + latency."""
@@ -39,6 +98,7 @@ class ChromaDBHTTPClient:
                     return {
                         "status": "healthy",
                         "latency_ms": round(latency_ms, 2),
+                        "api_version": "v2",
                     }
                 # If v2 not available or returns non-200, try v1
                 resp = await client.get(url_v1)
@@ -48,6 +108,7 @@ class ChromaDBHTTPClient:
                     return {
                         "status": "healthy",
                         "latency_ms": round(latency_ms, 2),
+                        "api_version": "v1",
                     }
                 return {
                     "status": "unhealthy",
@@ -79,4 +140,13 @@ class ChromaDBHTTPClient:
             "port": self.port,
             "base_url_v1": self.base_url_v1,
             "base_url_v2": self.base_url_v2,
+        }
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get connection statistics."""
+        return {
+            "initialized": self._initialized,
+            "connection_attempts": self._connection_attempts,
+            "connection_failures": self._connection_failures,
+            "last_healthy": self._last_healthy,
         }

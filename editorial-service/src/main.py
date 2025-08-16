@@ -77,6 +77,27 @@ service_info = Gauge(
     ['version', 'environment']
 )
 
+# ChromaDB metrics
+chromadb_connect_attempts_total = Counter(
+    'chromadb_connect_attempts_total',
+    'Total ChromaDB connection attempts'
+)
+
+chromadb_connect_failures_total = Counter(
+    'chromadb_connect_failures_total',
+    'Total ChromaDB connection failures'
+)
+
+chromadb_heartbeat_latency_ms = Histogram(
+    'chromadb_heartbeat_latency_ms',
+    'ChromaDB heartbeat latency in milliseconds'
+)
+
+chromadb_connection_status = Gauge(
+    'chromadb_connection_status',
+    'ChromaDB connection status (1=healthy, 0=unhealthy)'
+)
+
 # Global state
 app_state = {
     "redis_client": None,
@@ -258,22 +279,38 @@ async def health_check_chromadb():
             return cached["data"]
 
         if app_state.get("chromadb_client") is None:
-            app_state["chromadb_client"] = ChromaDBHTTPClient(
-                host=os.getenv('CHROMADB_HOST', 'localhost'),
-                port=int(os.getenv('CHROMADB_PORT', '8000')),
-            )
+            # If client doesn't exist during health check, it means initialization failed
+            return {"status": "unavailable", "error": "ChromaDB client not initialized"}
+            
         client: ChromaDBHTTPClient = app_state["chromadb_client"]
+        
+        # Only report healthy if client is initialized
+        if not client._initialized:
+            return {"status": "unavailable", "error": "ChromaDB connection not established"}
+            
         hb = await client.heartbeat()
+        
+        # Update metrics
+        if hb.get("latency_ms"):
+            chromadb_heartbeat_latency_ms.observe(hb["latency_ms"])
+        
+        if hb.get("status") == "healthy":
+            chromadb_connection_status.set(1)
+        else:
+            chromadb_connection_status.set(0)
+            
         counts = await client.collections_count()
         data = {
             **hb,
             "collections": counts.get("collections", 0),
             "host": client.host,
             "port": client.port,
+            "initialized": client._initialized,
         }
         app_state["health_checks"]["chromadb"] = {"ts": now, "data": data}
         return data
     except Exception as e:
+        chromadb_connection_status.set(0)
         return {"status": "unavailable", "error": str(e)}
 
 
@@ -313,6 +350,41 @@ async def lifespan(app: FastAPI):
     # Set service info metric
     environment = os.getenv('ENVIRONMENT', 'development')
     service_info.labels(version="2.0.0", environment=environment).set(1)
+    
+    # Initialize ChromaDB client with retry/backoff
+    logger.info("Initializing ChromaDB connection")
+    chromadb_host = os.getenv('CHROMADB_HOST', 'chromadb')
+    chromadb_port = int(os.getenv('CHROMADB_PORT', '8000'))
+    chromadb_max_retries = int(os.getenv('CHROMADB_MAX_RETRIES', '10'))
+    chromadb_retry_delay = float(os.getenv('CHROMADB_RETRY_DELAY', '2.0'))
+    
+    chromadb_client = ChromaDBHTTPClient(host=chromadb_host, port=chromadb_port)
+    
+    # Wait for ChromaDB to be available
+    connected = await chromadb_client.wait_for_connection(
+        max_retries=chromadb_max_retries,
+        initial_delay=chromadb_retry_delay
+    )
+    
+    if connected:
+        logger.info("ChromaDB connection established successfully")
+        app_state["chromadb_client"] = chromadb_client
+        
+        # Update metrics
+        stats = chromadb_client.get_stats()
+        chromadb_connect_attempts_total.inc(stats["connection_attempts"])
+        chromadb_connect_failures_total.inc(stats["connection_failures"])
+        chromadb_connection_status.set(1)
+    else:
+        logger.error("Failed to establish ChromaDB connection after retries")
+        # Store the client anyway but mark as not initialized
+        app_state["chromadb_client"] = chromadb_client
+        
+        # Update metrics
+        stats = chromadb_client.get_stats()
+        chromadb_connect_attempts_total.inc(stats["connection_attempts"])
+        chromadb_connect_failures_total.inc(stats["connection_failures"])
+        chromadb_connection_status.set(0)
     
     # Register in service discovery
     await register_service()
