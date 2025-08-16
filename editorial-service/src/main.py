@@ -263,7 +263,15 @@ async def health_check_chromadb():
                 port=int(os.getenv('CHROMADB_PORT', '8000')),
             )
         client: ChromaDBHTTPClient = app_state["chromadb_client"]
-        hb = await client.heartbeat()
+        # Retry/backoff for heartbeat on cold start
+        attempts = int(os.getenv("CHROMADB_HEALTH_ATTEMPTS", "5"))
+        backoff = float(os.getenv("CHROMADB_HEALTH_BACKOFF", "0.5"))
+        hb = {"status": "unavailable", "latency_ms": 0.0, "error": "not_attempted"}
+        for i in range(max(1, attempts)):
+            hb = await client.heartbeat()
+            if hb.get("status") == "healthy":
+                break
+            await asyncio.sleep(backoff * (i + 1))
         counts = await client.collections_count()
         data = {
             **hb,

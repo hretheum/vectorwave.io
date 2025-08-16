@@ -1,0 +1,224 @@
+{
+  "main": {
+    "id": "0d33b6d941b039c0",
+    "type": "split",
+    "children": [
+      {
+        "id": "f65f61f816a47efa",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "57e4f61396332223",
+            "type": "leaf",
+            "state": {
+              "type": "kanban",
+              "state": {
+                "file": "kanban/vector wave kanban.md",
+                "kanbanViewState": {
+                  "kanban-plugin": "board",
+                  "list-collapse": [
+                    true,
+                    true,
+                    false,
+                    true,
+                    true,
+                    true
+                  ]
+                }
+              },
+              "icon": "lucide-trello",
+              "title": "vector wave kanban"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "0a076f619ce238dd",
+    "type": "split",
+    "children": [
+      {
+        "id": "6ac9cc31f20b7c4b",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "2e0f9905926fa705",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Przeglądarka plików"
+            }
+          },
+          {
+            "id": "d9d62857be4b9bbc",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Szukaj"
+            }
+          },
+          {
+            "id": "60c95cfe13ffcd2d",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Ulubione"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "8f03f12d5297a274",
+    "type": "split",
+    "children": [
+      {
+        "id": "7fba49f20704b622",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "de58cee635901497",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Bez nazwy.canvas",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Linki zwrotne do Bez nazwy"
+            }
+          },
+          {
+            "id": "cfd0e4bcdd236f43",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Bez nazwy.canvas",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Łącza wychodzące z Bez nazwy"
+            }
+          },
+          {
+            "id": "2c8f7acf8e5e7aaa",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tagi"
+            }
+          },
+          {
+            "id": "50b79b9e21347fc0",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Bez nazwy.canvas",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Konspekt Bez nazwy"
+            }
+          },
+          {
+            "id": "ccd914b6e3ccb67c",
+            "type": "leaf",
+            "state": {
+              "type": "smart-connections-view",
+              "state": {},
+              "icon": "lucide-ghost",
+              "title": "smart-connections-view"
+            }
+          }
+        ],
+        "currentTab": 4
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "bases:Stwórz nową bazę danych": false,
+      "switcher:Otwórz okno szybkiego wyboru": false,
+      "graph:Otwórz graf": false,
+      "canvas:Stwórz nową tablicę": false,
+      "daily-notes:Otwórz codzienną notatkę": false,
+      "templates:Wstaw szablon": false,
+      "command-palette:Otwórz listę poleceń": false,
+      "markdown-importer:Otwórz importer Markdown": false,
+      "zk-prefixer:Utwórz nową niepowtarzalną notatkę": false,
+      "obsidian-kanban:Create new board": false,
+      "smart-connections:Open: Smart Chat": false,
+      "smart-connections:Smart Connections: Open connections view": false,
+      "smart-connections:Smart Connections: Open random connection": true,
+      "templater-obsidian:Templater": false
+    }
+  },
+  "active": "57e4f61396332223",
+  "lastOpenFiles": [
+    "Cookbook/Recipes/Anna Dembska na Instagramie  L jak Lohikeitto, czyli 12 zupa z mojej serii „ABC ZUP”. 🥔🥕🐟To tradycyjna fińska zupa łososiowa, która jest jednocześnie prosta, sycąca i aromatyczna.Składniki 1 środkowa część pora2 marchewki4 ziemniaki1 łyżka ma.md",
+    "Cookbook/Recipes/𝗠𝗔𝗫 𝗝𝗔𝗥𝗠𝗘𝗬 na Instagramie  Aubergine with confit garlic and lemon ricotta, salsa verde. This ended up looking like a snozzcumber from The BFG but it tasted damn good. Great as a side dish. Will be trying some different variations.Recipe.md",
+    "Cookbook/Recipes/Tomek Czajkowski na Instagramie  To jest mój hit lata 😎🌞🍉 Chińskie zimnie noodle w intensywnie sezamowym sosie i oleju chilli. Dodatkowy patent na upały to arbuz. Sprawdźcie jak to wszystko razem pięknie działa 🥰👌Link do przepisu macie w BI.md",
+    "Cookbook/Recipes/KUKBUK magazyn & portal online na Instagramie  🫛Zielona fasolka, która ma więcej charakteru niż niejedno danie główne. Pikantna, słona, lekko słodka i pełna umami - dokładnie taka, jak lubimy 🥢Składniki500 g fasolki szparagowej1 ząbek czosnku1.md",
+    "Cookbook/Recipes/Karola Smyk Zdrowe przepisy na Instagramie  ZUPA KREM Z CUKINII I KUKURYDZY z mleczkiem koksowym, imbirem, cytryną podana z BURRATĄ i ŁOSOSIEM 😍👌👌👌taka prosta do zrobienia, a tak niewiarygodnie dobra!Polecam każdemu! To najlepszy sposób na t.md",
+    "Cookbook/Recipes/Russell Clamp🍴Healthy Recipes na Instagramie  Sea Bass Pan Sauce Dirty Meunière3 tbsp butter1 tbsp capers1 tbsp caper brine1 clove garlic, minced3 anchovy fillets4-6 pieces of fresh lemon2 tsp of lemon juice2 tbsp fresh parsley1. I’m going to b.md",
+    "Cookbook/Recipes/Joseph oxley na Instagramie  Mizo Orzo PastaAlways a fan of dishes with ingredients so flavourful that only a handful are needed. And this one definitely fits the bill. I’ve used shiitake mushrooms here but any will work and if you like an extra.md",
+    "Cookbook/Recipes/MARIUSZ MAC na Instagramie  śniadanko raz! 🥚- awokado- jajka- dijon- mayo- creme fraiche- koperek- korniszony lub kiszone- dymkado tego ikra. bardzo miła kanapka!choppedsandwich pastajajeczna jajka jajecznica eggsalad eggsandwich.md",
+    "Cookbook/Recipes/@olivia_onehe na Instagramie  How to Make Honeycomb Candy Mix 50g sugar + 25g water in a microwave-safe bowl.DO NOT STIR. Just swirl gently if needed.Microwave on high for 3 minutes.Check the color — if not caramel brown, heat in 10-sec interval.md",
+    "Cookbook/Recipes/KUKBUK magazyn & portal online na Instagramie  współpraca reklamowa z @dolinadobra.pl Zapomnij na chwilę o klasycznym kotlecie schabowym. Przed Tobą jego japońska wersja – tonkatsu, czyli ultra chrupiący, soczysty filet od @dolinadobra.pl w złoc.md",
+    "Cookbook/Recipes/chicken shoarma.md",
+    "Cookbook/Recipes/Ben Chelin na Instagramie  One-Pan Chicken Shawarma with Roasted Garlic Sauce🔥Comment “Recipe” and I’ll send you the full recipe card for free!!All the flavor, none of the fuss. Weeknight shawarma is officially a thing… smoky, tangy, and loaded.md",
+    "Cookbook/Recipes/Anthea Malialis na Instagramie  Beef Stroganoff Jacket Potato – The Ultimate Comfort Food! 🥔🥩Crispy-on-the-outside, fluffy-on-the-inside jacket potato, loaded with tender ribeye steak and a rich, creamy stroganoff sauce. Topped with crispy oni.md",
+    "kanban/vector wave kanban.md",
+    "Cookbook/Recipes",
+    "Cookbook",
+    "Bez nazwy.canvas",
+    "2025-08-13.md",
+    "README.md",
+    "utwórz łącze.md",
+    "Bez nazwy.md",
+    "kanban"
+  ]
+}

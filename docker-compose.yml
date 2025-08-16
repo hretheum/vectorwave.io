@@ -32,8 +32,15 @@ services:
 
   redis:
     image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks: [vector-wave]
 
   editorial-service:
@@ -63,6 +70,7 @@ services:
     environment:
       - EDITORIAL_SERVICE_URL=http://editorial-service:8040
       - HARVESTER_URL=http://harvester:8043
+      - AI_WRITING_FLOW_URL=http://ai-writing-flow-service:8044
       - TRIAGE_POLICY_PATH=/app/config/triage_policy.yaml
       - TRIAGE_POLICY_SCHEMA_PATH=/app/config/triage_policy.schema.json
       - REDIS_URL=redis://redis:6379
@@ -104,18 +112,21 @@ services:
 
   publishing-orchestrator:
     profiles: ["publishing"]
-    build: ./kolegium/publishing-orchestrator
+    build: ./publishing-orchestrator-service
     depends_on:
       editorial-service:
         condition: service_started
     networks: [vector-wave]
     ports:
-      - "8080:8080"
+      - "8085:8080"
     environment:
       - EDITORIAL_SERVICE_URL=http://editorial-service:8040
+      - AI_WRITING_FLOW_URL=http://ai-writing-flow-service:8044
       - GAMMA_PPT_URL=http://gamma-ppt-generator:8003
       - PRESENTON_URL=http://presenton:8089
       - LINKEDIN_PPT_GENERATOR_URL=http://linkedin-ppt:8002
+      - TYPEFULLY_API_KEY=${TYPEFULLY_API_KEY}
+      - GAMMA_ENABLED=true
 
   linkedin-ppt:
     profiles: ["publishing"]
@@ -152,6 +163,21 @@ services:
         condition: service_healthy
     ports:
       - "8081:8081"
+    networks: [vector-wave]
+
+  ai-writing-flow-service:
+    build: ./ai-writing-flow-service
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8044
+    ports:
+      - "8044:8044"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8044/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     networks: [vector-wave]
 
   harvester:
@@ -191,8 +217,11 @@ services:
   gamma-ppt-generator:
     profiles: ["gamma"]
     build: ./kolegium/gamma-ppt-generator
-    environment:
-      - GAMMA_API_KEY=${GAMMA_API_KEY:-}
+    env_file:
+      - /Users/hretheum/dev/bezrobocie/vector-wave/.env
+    ports:
+      - "8003:8003"
+    networks: [vector-wave]
 
   vikunja:
     profiles: ["kanban"]
