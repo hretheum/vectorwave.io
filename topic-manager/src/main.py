@@ -7,6 +7,8 @@ import asyncio
 import os
 from dotenv import load_dotenv
 import asyncio as _asyncio
+from .infrastructure.chromadb_client import ChromaDBHTTPClient
+from .infrastructure.embeddings import resolve_provider
 
 # Load env once at startup (safe if missing)
 load_dotenv()
@@ -21,17 +23,12 @@ async def _background_reindex_task():
         interval_min = 10
     while True:
         try:
-            await topics_index_reindex(limit=200, reset=False)  # type: ignore
+            await topics_index_reindex(limit=200, reset=False, repo=app.state.repo)  # type: ignore
         except Exception:
             pass
         await _asyncio.sleep(max(60, interval_min * 60))
 
 app = FastAPI(title="Topic Manager", version="1.0.0")
-
-@app.on_event("startup")
-async def _start_background_tasks():
-    # Fire-and-forget background reindex loop
-    _asyncio.create_task(_background_reindex_task())
 
 
 class Topic(BaseModel):
@@ -116,6 +113,73 @@ class TopicsIndexVerifyResponse(BaseModel):
     sample_size: int
     details: Optional[Dict[str, Any]] = None
 
+
+class TopicRepository:
+    def __init__(self) -> None:
+        self._topics: Dict[str, Topic] = {}
+        self._idempotency: Dict[str, str] = {}
+
+    def list(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        q: Optional[str] = None,
+        content_type: Optional[str] = None,
+        title_contains: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        order: str = "asc",
+    ) -> List[Topic]:
+        items = list(self._topics.values())
+        if q:
+            ql = q.lower()
+            items = [
+                t
+                for t in items
+                if ql in t.title.lower()
+                or ql in t.description.lower()
+                or any(ql in k.lower() for k in t.keywords)
+            ]
+        if content_type:
+            items = [t for t in items if t.content_type.lower() == content_type.lower()]
+        if title_contains:
+            sub = title_contains.lower()
+            items = [t for t in items if sub in t.title.lower()]
+        reverse = order.lower() == "desc"
+        if sort_by in {"topic_id", "title", "content_type"}:
+            items.sort(key=lambda t: getattr(t, sort_by), reverse=reverse)
+        return items[offset : offset + limit]
+
+    def count(self, q: Optional[str] = None, content_type: Optional[str] = None) -> int:
+        return len(self.list(limit=10 ** 9, offset=0, q=q, content_type=content_type))
+
+    def get(self, topic_id: str) -> Optional[Topic]:
+        return self._topics.get(topic_id)
+
+    def save(self, topic: Topic) -> str:
+        if not topic.topic_id:
+            topic.topic_id = f"t_{len(self._topics)+1:06d}"
+        self._topics[topic.topic_id] = topic
+        return topic.topic_id
+
+    def delete(self, topic_id: str) -> bool:
+        return self._topics.pop(topic_id, None) is not None
+
+    def check_idempotency(self, key: str) -> Optional[str]:
+        return self._idempotency.get(key)
+
+    def store_idempotency(self, key: str, topic_id: str) -> None:
+        self._idempotency[key] = topic_id
+
+
+def get_repo() -> TopicRepository:
+    return app.state.repo
+
+
+@app.on_event("startup")
+async def _startup() -> None:
+    app.state.repo = TopicRepository()
+    _asyncio.create_task(_background_reindex_task())
+
 _CHROMA = None
 _INDEX_COLLECTION = "topics_index"
 _EMBEDDINGS = None
@@ -125,10 +189,6 @@ async def _get_chroma():
     global _CHROMA
     if _CHROMA is None:
         try:
-            try:
-                from infrastructure.chromadb_client import ChromaDBHTTPClient  # type: ignore
-            except Exception:
-                from src.infrastructure.chromadb_client import ChromaDBHTTPClient  # type: ignore
             _CHROMA = ChromaDBHTTPClient(
                 host=os.getenv("CHROMADB_HOST", "chromadb"),
                 port=int(os.getenv("CHROMADB_PORT", "8000")),
@@ -141,10 +201,6 @@ async def _get_embeddings():
     global _EMBEDDINGS
     if _EMBEDDINGS is None:
         try:
-            try:
-                from infrastructure.embeddings import resolve_provider  # type: ignore
-            except Exception:
-                from src.infrastructure.embeddings import resolve_provider  # type: ignore
             _EMBEDDINGS = resolve_provider()
         except Exception:
             _EMBEDDINGS = None
@@ -162,20 +218,12 @@ def _cheap_embedding(text: str, dim: int = 64) -> List[float]:
     return [v / norm for v in vec]
 
 @app.get("/topics/index/info")
-async def topics_index_info() -> TopicsIndexInfo:
+async def topics_index_info(repo: TopicRepository = Depends(get_repo)) -> TopicsIndexInfo:
     chroma = await _get_chroma()
     status: Optional[Dict[str, Any]] = None
     total = 0
     ready = False
-    # Compute total topics from repository or memory
-    total_topics = 0
-    if REPO:
-        try:
-            total_topics = REPO.count()
-        except Exception:
-            total_topics = 0
-    else:
-        total_topics = len(TOPICS)
+    total_topics = repo.count()
     reported_count: Optional[int] = None
     if chroma is not None:
         status = await chroma.heartbeat()
@@ -204,14 +252,11 @@ async def topics_index_info() -> TopicsIndexInfo:
     )
 
 @app.post("/topics/index/verify")
-async def topics_index_verify(sample_size: int = Query(10, ge=1, le=100)) -> TopicsIndexVerifyResponse:
-    # Collect IDs from repo or memory
-    ids: List[str] = []
-    if REPO:
-        items = REPO.list(limit=sample_size, offset=0)
-        ids = [t.topic_id for t in items]
-    else:
-        ids = list(TOPICS.keys())[:sample_size]
+async def topics_index_verify(
+    sample_size: int = Query(10, ge=1, le=100),
+    repo: TopicRepository = Depends(get_repo),
+) -> TopicsIndexVerifyResponse:
+    ids = [t.topic_id for t in repo.list(limit=sample_size, offset=0)]
     chroma = await _get_chroma()
     if not chroma:
         raise HTTPException(status_code=503, detail={"code": "chromadb_unavailable", "detail": "Chroma client not initialized"})
@@ -234,7 +279,11 @@ async def topics_index_verify(sample_size: int = Query(10, ge=1, le=100)) -> Top
     )
 
 @app.post("/topics/index/reindex")
-async def topics_index_reindex(limit: int = 200, reset: bool = False) -> Dict[str, Any]:
+async def topics_index_reindex(
+    limit: int = 200,
+    reset: bool = False,
+    repo: TopicRepository = Depends(get_repo),
+) -> Dict[str, Any]:
     chroma = await _get_chroma()
     if chroma is None:
         raise HTTPException(status_code=503, detail={"code": "chromadb_unavailable", "detail": "Chroma client not initialized"})
@@ -247,15 +296,8 @@ async def topics_index_reindex(limit: int = 200, reset: bool = False) -> Dict[st
     if not ok:
         raise HTTPException(status_code=500, detail={"code": "chromadb_collection_error", "detail": "Cannot ensure topics_index"})
 
-    # Collect topics from repo (preferred) or memory
-    items: List[Topic] = []
-    if REPO:
-        items = [
-            Topic(topic_id=t.topic_id, title=t.title, description=t.description, keywords=t.keywords, content_type=t.content_type)
-            for t in REPO.list(limit=limit, offset=0)
-        ]
-    else:
-        items = list(TOPICS.values())[:limit]
+    # Collect topics from repository
+    items: List[Topic] = repo.list(limit=limit, offset=0)
 
     if not items:
         return {"indexed": 0}
@@ -351,21 +393,6 @@ async def topics_search(
             break
     return TopicsSearchResponse(query=q, items=items, count=len(items), took_ms=took_ms)
 
-
-
-TOPICS: Dict[str, Topic] = {}
-DB_PATH: Optional[str] = None
-REPO = None
-IDEMPOTENCY_CACHE: Dict[str, str] = {}
-try:
-    from repository import SQLiteTopicRepository, TopicModel
-    import os
-    DB_PATH = os.getenv("TOPIC_MANAGER_DB", ":memory:")
-    REPO = SQLiteTopicRepository(DB_PATH)
-except Exception:
-    REPO = None
-
-
 class ErrorResponse(BaseModel):
     code: str
     detail: Any
@@ -390,15 +417,8 @@ async def http_exception_handler(request, exc: HTTPException):
 
 
 @app.get("/health")
-async def health():
-    db_connected = False
-    if REPO is not None:
-        try:
-            _ = REPO.list(limit=1, offset=0)
-            db_connected = True
-        except Exception:
-            db_connected = False
-    # Best-effort integration signals
+async def health(repo: TopicRepository = Depends(get_repo)):
+    db_connected = True if repo is not None else False
     embeddings_ready = False
     embeddings_provider: Optional[str] = None
     try:
@@ -420,7 +440,7 @@ async def health():
         "service": "topic-manager",
         "version": "1.0.0",
         "db_connected": db_connected,
-        "db_path": DB_PATH or "N/A",
+        "db_path": "memory",
         "embeddings_ready": embeddings_ready,
         "embeddings_provider": embeddings_provider,
         "chromadb": chroma_status,
@@ -428,12 +448,8 @@ async def health():
 
 
 @app.post("/topics/manual")
-async def add_manual_topic(topic: Topic):
-    topic_id = f"t_{len(TOPICS)+1:06d}"
-    topic.topic_id = topic_id
-    TOPICS[topic_id] = topic
-    if REPO:
-        REPO.create(TopicModel(topic_id=topic_id, title=topic.title, description=topic.description, keywords=topic.keywords, content_type=topic.content_type))
+async def add_manual_topic(topic: Topic, repo: TopicRepository = Depends(get_repo)):
+    topic_id = repo.save(topic)
     return {"status": "created", "topic_id": topic_id}
 
 
@@ -479,19 +495,13 @@ def _title_similarity(a: str, b: str) -> float:
     return inter / union if union else 0.0
 
 
-def _find_nearest(title: str, limit: int = 3) -> List[Tuple[str, float, str]]:
+def _find_nearest(title: str, limit: int = 3, repo: Optional[TopicRepository] = None) -> List[Tuple[str, float, str]]:
+    repo = repo or app.state.repo
     pairs: List[Tuple[str, float, str]] = []
-    # Check in-memory first
-    for t_id, t in TOPICS.items():
+    for t in repo.list(limit=200, offset=0):
         sim = _title_similarity(title, t.title)
         if sim > 0:
-            pairs.append((t_id, sim, t.title))
-    # If repo available, list a page to compare
-    if REPO:
-        for t in REPO.list(limit=200, offset=0):
-            sim = _title_similarity(title, t.title)
-            if sim > 0:
-                pairs.append((t.topic_id, sim, t.title))
+            pairs.append((t.topic_id or "", sim, t.title))
     pairs.sort(key=lambda x: x[1], reverse=True)
     seen = set()
     nearest = []
@@ -506,10 +516,14 @@ def _find_nearest(title: str, limit: int = 3) -> List[Tuple[str, float, str]]:
 
 
 @app.post("/topics/novelty-check")
-async def novelty_check(req: NoveltyCheckRequest, _: bool = Depends(_auth_dependency)) -> NoveltyCheckResponse:
+async def novelty_check(
+    req: NoveltyCheckRequest,
+    _: bool = Depends(_auth_dependency),
+    repo: TopicRepository = Depends(get_repo),
+) -> NoveltyCheckResponse:
     title = req.normalized_title or req.title
     threshold = float(os.getenv("NOVELTY_SIMILARITY_THRESHOLD", "0.85"))
-    nearest = _find_nearest(title, limit=3)
+    nearest = _find_nearest(title, limit=3, repo=repo)
     top_score = nearest[0][1] if nearest else 0.0
     decision = "DUPLICATE" if top_score >= threshold else "NOVEL"
     return NoveltyCheckResponse(
@@ -525,51 +539,36 @@ async def ingest_suggestion(
     req: SuggestionIngestRequest,
     idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
     _: bool = Depends(_auth_dependency),
+    repo: TopicRepository = Depends(get_repo),
 ) -> SuggestionIngestResponse:
     if not idempotency_key:
         raise HTTPException(status_code=400, detail={"code": "missing_idempotency", "detail": "Idempotency-Key header required"})
-    if idempotency_key in IDEMPOTENCY_CACHE:
-        return SuggestionIngestResponse(status="duplicate", existing_topic_id=IDEMPOTENCY_CACHE[idempotency_key])
+    existing = repo.check_idempotency(idempotency_key)
+    if existing:
+        return SuggestionIngestResponse(status="duplicate", existing_topic_id=existing)
 
     # Simple dedupe by normalized title fallback
     norm_title = (req.summary or req.title).strip().lower()
     existing_id: Optional[str] = None
-    for tid, t in TOPICS.items():
+    for t in repo.list(limit=200, offset=0):
         if t.title.strip().lower() == norm_title or t.title.strip().lower() == req.title.strip().lower():
-            existing_id = tid
+            existing_id = t.topic_id
             break
-    if not existing_id and REPO:
-        # scan page
-        for t in REPO.list(limit=200, offset=0):
-            if t.title.strip().lower() == norm_title or t.title.strip().lower() == req.title.strip().lower():
-                existing_id = t.topic_id
-                break
 
     if existing_id:
-        IDEMPOTENCY_CACHE[idempotency_key] = existing_id
+        repo.store_idempotency(idempotency_key, existing_id)
         return SuggestionIngestResponse(status="duplicate", existing_topic_id=existing_id)
 
     # Create new topic
-    topic_id = f"t_{len(TOPICS)+1:06d}"
     new_topic = Topic(
-        topic_id=topic_id,
+        topic_id=None,
         title=req.title,
         description=req.summary or "",
         keywords=req.keywords,
         content_type=req.content_type,
     )
-    TOPICS[topic_id] = new_topic
-    if REPO:
-        REPO.create(
-            TopicModel(
-                topic_id=topic_id,
-                title=new_topic.title,
-                description=new_topic.description,
-                keywords=new_topic.keywords,
-                content_type=new_topic.content_type,
-            )
-        )
-    IDEMPOTENCY_CACHE[idempotency_key] = topic_id
+    topic_id = repo.save(new_topic)
+    repo.store_idempotency(idempotency_key, topic_id)
 
     # Best-effort: add to vector index if available
     try:
@@ -593,33 +592,25 @@ async def ingest_suggestion(
     return SuggestionIngestResponse(status="created", topic_id=topic_id)
 
 @app.get("/topics/{topic_id}")
-async def get_topic(topic_id: str):
-    t = TOPICS.get(topic_id) or (REPO.get(topic_id) if REPO else None)
+async def get_topic(topic_id: str, repo: TopicRepository = Depends(get_repo)):
+    t = repo.get(topic_id)
     if not t:
         raise HTTPException(status_code=404, detail="not_found")
     return t
 
 
 @app.put("/topics/{topic_id}")
-async def update_topic(topic_id: str, topic: Topic):
-    if topic_id not in TOPICS and not (REPO and REPO.get(topic_id)):
+async def update_topic(topic_id: str, topic: Topic, repo: TopicRepository = Depends(get_repo)):
+    if not repo.get(topic_id):
         raise HTTPException(status_code=404, detail="not_found")
-    # Preserve ID
     topic.topic_id = topic_id
-    TOPICS[topic_id] = topic
-    if REPO:
-        REPO.update(TopicModel(topic_id=topic_id, title=topic.title, description=topic.description, keywords=topic.keywords, content_type=topic.content_type))
+    repo.save(topic)
     return {"status": "updated", "topic_id": topic_id}
 
 
 @app.delete("/topics/{topic_id}")
-async def delete_topic(topic_id: str):
-    if topic_id in TOPICS:
-        del TOPICS[topic_id]
-        if REPO:
-            REPO.delete(topic_id)
-        return {"status": "deleted", "topic_id": topic_id}
-    if REPO and REPO.delete(topic_id):
+async def delete_topic(topic_id: str, repo: TopicRepository = Depends(get_repo)):
+    if repo.delete(topic_id):
         return {"status": "deleted", "topic_id": topic_id}
     raise HTTPException(status_code=404, detail="not_found")
 
@@ -634,31 +625,16 @@ async def list_topics(
     title_contains: Optional[str] = None,
     sort_by: Optional[str] = Query(None, pattern="^(topic_id|title|content_type)$"),
     order: str = Query("asc", pattern="^(asc|desc)$"),
+    repo: TopicRepository = Depends(get_repo),
 ):
-    # Combine in-memory and repo for now; in future switch to repo-only when persistence enabled
-    items = list(TOPICS.values())
-    if REPO:
-        items = [
-            Topic(
-                topic_id=t.topic_id,
-                title=t.title,
-                description=t.description,
-                keywords=t.keywords,
-                content_type=t.content_type,
-                platform_assignment=None,
-            )
-            for t in REPO.list(limit=limit, offset=offset, q=q, content_type=content_type, sort_by=sort_by, order=order)
-        ]
-        total = REPO.count(q=q, content_type=content_type)
-    else:
-        if q:
-            ql = q.lower()
-            items = [t for t in items if ql in t.title.lower() or ql in t.description.lower() or any(ql in k.lower() for k in t.keywords)]
-        if content_type:
-            items = [t for t in items if t.content_type.lower() == content_type.lower()]
-        if title_contains:
-            sub = title_contains.lower()
-            items = [t for t in items if sub in t.title.lower()]
-        total = len(items)
-        items = items[offset: offset + limit]
+    items = repo.list(
+        limit=limit,
+        offset=offset,
+        q=q,
+        content_type=content_type,
+        title_contains=title_contains,
+        sort_by=sort_by,
+        order=order,
+    )
+    total = repo.count(q=q, content_type=content_type)
     return {"items": [i.model_dump() for i in items], "count": len(items), "total": total, "limit": limit, "offset": offset}
