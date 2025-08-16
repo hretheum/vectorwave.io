@@ -11,6 +11,7 @@ from api import router as api_router
 from flows_api import router as flows_router
 from checkpoints_api import router as checkpoints_router
 from monitoring_api import router as monitoring_router
+from aiwf_client import AIWritingFlowClient
 
 app = FastAPI(
     title="CrewAI Orchestrator Service",
@@ -30,6 +31,13 @@ app.include_router(api_router)
 app.include_router(flows_router)
 app.include_router(checkpoints_router)
 app.include_router(monitoring_router)
+
+# Minimal proxy to AI Writing Flow for smoke/E2E
+_aiwf_client = AIWritingFlowClient(os.getenv("AI_WRITING_FLOW_URL", "http://ai-writing-flow-service:8044"))
+
+@app.get("/aiwf/health")
+async def aiwf_health_proxy():
+    return await _aiwf_client.health()
 
 class AgentInfo(BaseModel):
     agent_id: str
