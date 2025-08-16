@@ -43,11 +43,13 @@ services:
       - LOG_LEVEL=debug
       - CHROMADB_HOST=chromadb
       - CHROMADB_PORT=8000
+      - CHROMADB_MAX_RETRIES=15
+      - CHROMADB_RETRY_DELAY=2.0
       - REDIS_URL=redis://redis:6379
       - SERVICE_PORT=8040
     depends_on:
       chromadb:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "8040:8040"
     healthcheck:
