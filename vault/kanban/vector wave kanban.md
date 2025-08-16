@@ -126,10 +126,10 @@ kanban-plugin: board
 	   - follows: Task 1.1; [P0] Orchestrator happy-path flow
 	   - blocks: E2E /publish z `direct_content=false`
 	   - Subtasks:
-	   - [ ] 1.6.0 Wyodrębnij `ai-writing-flow-service/` z `kolegium/ai_writing_flow` (Dockerfile, .dockerignore, uvicorn `ai_writing_flow.main:create_enhanced_app`, port 8044)
-	   - [ ] 1.6.1 Compose: dodać usługę `ai-writing-flow-service` (port 8044), `networks: [vector-wave]`, health `/health`
-	   - [ ] 1.6.2 Orchestrator: ustawić `AI_WRITING_FLOW_URL=http://ai-writing-flow-service:8044`
-	   - [ ] 1.6.3 Kontrakt payloadu: ujednolicić (flat vs `topic.*`) między Orchestrator → AIWF
+	   - [x] 1.6.0 Wyodrębnij `ai-writing-flow-service/` z `kolegium/ai_writing_flow` (Dockerfile, .dockerignore, uvicorn `ai_writing_flow.main:create_enhanced_app`, port 8044)
+	   - [x] 1.6.1 Compose: dodać usługę `ai-writing-flow-service` (port 8044), `networks: [vector-wave]`, health `/health`
+	   - [x] 1.6.2 Orchestrator: ustawić `AI_WRITING_FLOW_URL=http://ai-writing-flow-service:8044`
+	   - [x] 1.6.3 Kontrakt payloadu: ujednolicić (flat vs `topic.*`) między Orchestrator → AIWF
 	   - [ ] 1.6.4 Health-gate + retry/backoff dla wywołań AIWF
 	   - [ ] 1.6.5 Smoke: `GET /health` i `POST /generate` (selective path)
 	   - [ ] 1.6.6 E2E: `POST /publish` z `direct_content=false` (content przez AIWF)

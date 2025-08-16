@@ -12,6 +12,7 @@ from flows_api import router as flows_router
 from checkpoints_api import router as checkpoints_router
 from monitoring_api import router as monitoring_router
 from aiwf_client import AIWritingFlowClient
+from typing import Dict, Any
 
 app = FastAPI(
     title="CrewAI Orchestrator Service",
@@ -38,6 +39,15 @@ _aiwf_client = AIWritingFlowClient(os.getenv("AI_WRITING_FLOW_URL", "http://ai-w
 @app.get("/aiwf/health")
 async def aiwf_health_proxy():
     return await _aiwf_client.health()
+
+
+@app.post("/aiwf/generate/multi-platform")
+async def aiwf_generate_multi_platform(payload: Dict[str, Any]):
+    """Proxy to AI Writing Flow /v2/generate/multi-platform with validated payload."""
+    return await _aiwf_client.generate_multi_platform(payload)
+
+# Ensure route is registered even if decorator scan misses it
+app.add_api_route("/aiwf/generate/multi-platform", aiwf_generate_multi_platform, methods=["POST"])
 
 class AgentInfo(BaseModel):
     agent_id: str
