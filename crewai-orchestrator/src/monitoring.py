@@ -18,6 +18,9 @@ class AgentMetrics:
     p95_latency_ms: float = 0.0
     breaker_state: str = "closed"
     last_error: Optional[str] = None
+    last_error_code: Optional[str] = None
+    last_error_category: Optional[str] = None
+    last_error_http_status: Optional[int] = None
     updated_at: float = field(default_factory=lambda: time.time())
 
     def as_dict(self) -> Dict[str, Any]:
@@ -32,6 +35,9 @@ class AgentMetrics:
             "p95_latency_ms": round(self.p95_latency_ms, 2),
             "breaker_state": self.breaker_state,
             "last_error": self.last_error,
+            "last_error_code": self.last_error_code,
+            "last_error_category": self.last_error_category,
+            "last_error_http_status": self.last_error_http_status,
             "updated_at": self.updated_at,
         }
 
@@ -58,6 +64,14 @@ class AgentPerformanceMonitor:
             if not success:
                 m.failures_total += 1
                 m.last_error = error
+                # If error is a serialized taxonomy dict, enrich fields
+                if isinstance(error, dict):  # type: ignore[unreachable]
+                    try:
+                        m.last_error_code = error.get("code")
+                        m.last_error_category = error.get("category")
+                        m.last_error_http_status = error.get("http_status")
+                    except Exception:
+                        pass
             m.last_latency_ms = latency_ms
             m.sum_latency_ms += latency_ms
             m.max_latency_ms = max(m.max_latency_ms, latency_ms)

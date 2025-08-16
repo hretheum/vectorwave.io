@@ -1,8 +1,9 @@
 import httpx
 import time
 import os
+import asyncio
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Callable, Awaitable
 
 
 class CircuitBreakerState(Enum):
@@ -45,10 +46,35 @@ class AgentHTTPClient:
     def __init__(self, agent_type: str, editorial_service_url: str = "http://localhost:8040", monitor=None) -> None:
         self.agent_type = agent_type
         self.editorial_url = editorial_service_url.rstrip("/")
-        self.client = httpx.AsyncClient(timeout=30.0)
-        self.circuit_breaker = CircuitBreaker()
+        # Timeouts configurable via ENV
+        connect_timeout = float(os.getenv("EDITORIAL_CONNECT_TIMEOUT", "5.0"))
+        read_timeout = float(os.getenv("EDITORIAL_READ_TIMEOUT", "10.0"))
+        write_timeout = float(os.getenv("EDITORIAL_WRITE_TIMEOUT", "5.0"))
+        pool_timeout = float(os.getenv("EDITORIAL_POOL_TIMEOUT", "5.0"))
+        default_timeout = max(connect_timeout, read_timeout, write_timeout, pool_timeout)
+        self.client = httpx.AsyncClient(
+            timeout=httpx.Timeout(
+                timeout=default_timeout,
+                connect=connect_timeout,
+                read=read_timeout,
+                write=write_timeout,
+                pool=pool_timeout,
+            )
+        )
+        # Circuit breaker thresholds configurable via ENV
+        cb_fail_threshold = int(os.getenv("EDITORIAL_CB_FAILURE_THRESHOLD", "5"))
+        cb_recovery_seconds = float(os.getenv("EDITORIAL_CB_RECOVERY_SECONDS", "60.0"))
+        self.circuit_breaker = CircuitBreaker(
+            failure_threshold=cb_fail_threshold, recovery_timeout=cb_recovery_seconds
+        )
         self._supports_validation: Optional[bool] = None
         self._monitor = monitor
+
+        # Retry/backoff policy
+        self._retry_max_attempts = int(os.getenv("EDITORIAL_RETRY_MAX_ATTEMPTS", "3"))
+        self._retry_initial_delay = float(os.getenv("EDITORIAL_RETRY_INITIAL_DELAY", "0.2"))
+        self._retry_backoff = float(os.getenv("EDITORIAL_RETRY_BACKOFF", "2.0"))
+        self._retry_max_delay = float(os.getenv("EDITORIAL_RETRY_MAX_DELAY", "2.0"))
 
     async def validate_content(self, content: str, platform: str, validation_mode: str = "comprehensive") -> Dict[str, Any]:
         # Ensure Editorial Service exposes validation endpoints
@@ -67,20 +93,64 @@ class AgentHTTPClient:
 
         async def _make_request():
             endpoint = f"{self.editorial_url}/validate/{validation_mode}"
-            start = time.time()
-            resp = await self.client.post(endpoint, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-            if self._monitor:
-                await self._monitor.record_call(self.agent_type, (time.time() - start) * 1000, success=True)
-            return data
+
+            async def _do_post():
+                start = time.time()
+                resp = await self.client.post(endpoint, json=payload)
+                resp.raise_for_status()
+                data = resp.json()
+                if self._monitor:
+                    await self._monitor.record_call(self.agent_type, (time.time() - start) * 1000, success=True)
+                return data
+
+            return await self._with_retries(_do_post)
 
         try:
             return await self.circuit_breaker.call(_make_request)
         except Exception as e:
+            # Map error taxonomy for monitoring
+            err_payload = self.map_error_taxonomy(e)
             if self._monitor:
-                await self._monitor.record_call(self.agent_type, 0.0, success=False, error=str(e))
+                await self._monitor.record_call(self.agent_type, 0.0, success=False, error=str(err_payload))
             raise
+
+    async def _with_retries(self, func: Callable[[], Awaitable[Any]]) -> Any:
+        """Execute async callable with exponential backoff retry policy.
+
+        Retries on transient HTTP errors: timeouts, connection errors,
+        and 5xx/429 status codes when available via exception response.
+        """
+        delay_seconds = self._retry_initial_delay
+        attempt = 1
+        last_exc: Optional[Exception] = None
+        while attempt <= self._retry_max_attempts:
+            try:
+                return await func()
+            except Exception as e:  # noqa: BLE001
+                last_exc = e
+                retryable = False
+                # httpx exceptions
+                if isinstance(e, httpx.TimeoutException) or isinstance(e, httpx.ConnectError) or isinstance(e, httpx.NetworkError):
+                    retryable = True
+                # Errors with response (e.g., HTTPStatusError)
+                elif hasattr(e, "response"):
+                    try:
+                        status_code = int(getattr(e.response, "status_code", 0))  # type: ignore[attr-defined]
+                    except Exception:
+                        status_code = 0
+                    if status_code in {502, 503, 504, 429}:
+                        retryable = True
+
+                if not retryable or attempt == self._retry_max_attempts:
+                    break
+
+                await asyncio.sleep(delay_seconds)
+                delay_seconds = min(self._retry_max_delay, delay_seconds * self._retry_backoff)
+                attempt += 1
+
+        # Exhausted retries or non-retryable error
+        assert last_exc is not None
+        raise last_exc
 
     async def _ensure_validation_supported(self) -> None:
         if self._supports_validation is not None:
@@ -100,6 +170,43 @@ class AgentHTTPClient:
         except Exception:
             self._supports_validation = False
             raise
+
+    def map_error_taxonomy(self, exc: Exception) -> Dict[str, Any]:
+        """Map exceptions from Editorial calls to a normalized error taxonomy.
+
+        Returns dict with: code, category, retryable, http_status (when available), detail.
+        """
+        code = "INTERNAL_ERROR"
+        category = "internal"
+        retryable = False
+        http_status = None
+        detail = str(exc)
+
+        if isinstance(exc, httpx.TimeoutException):
+            code, category, retryable = "EDITORIAL_TIMEOUT", "network", True
+        elif isinstance(exc, httpx.ConnectError):
+            code, category, retryable = "EDITORIAL_CONNECT_ERROR", "network", True
+        elif isinstance(exc, httpx.NetworkError):
+            code, category, retryable = "EDITORIAL_NETWORK_ERROR", "network", True
+        elif hasattr(exc, "response"):
+            try:
+                http_status = int(getattr(exc.response, "status_code", 0))  # type: ignore[attr-defined]
+            except Exception:
+                http_status = None
+            if http_status in {500, 502, 503, 504}:
+                code, category, retryable = "EDITORIAL_UPSTREAM_ERROR", "upstream", True
+            elif http_status == 429:
+                code, category, retryable = "EDITORIAL_RATE_LIMIT", "upstream", True
+            elif http_status and 400 <= http_status < 500:
+                code, category, retryable = "EDITORIAL_BAD_REQUEST", "client", False
+
+        return {
+            "code": code,
+            "category": category,
+            "retryable": retryable,
+            "http_status": http_status,
+            "detail": detail,
+        }
 
     def _checkpoint_for_agent(self) -> str:
         mapping = {

@@ -18,3 +18,10 @@ async def metrics() -> Dict[str, Any]:
 
 # Expose metrics under /monitoring/agents/performance
 router.add_api_route("/monitoring/agents/performance", metrics, methods=["GET"])
+
+async def circuit_breaker_status() -> Dict[str, Any]:
+    clients = _get_clients()
+    return clients.cb_status()
+
+# Expose circuit breaker snapshot
+router.add_api_route("/monitoring/agents/circuit-breaker", circuit_breaker_status, methods=["GET"])

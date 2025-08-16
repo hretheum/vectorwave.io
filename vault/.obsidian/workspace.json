@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "f65f61f816a47efa",
+        "id": "ffc6f1b9e6607136",
         "type": "tabs",
         "children": [
           {
-            "id": "57e4f61396332223",
+            "id": "192529b39f7b1ed5",
             "type": "leaf",
             "state": {
               "type": "kanban",
@@ -17,9 +17,10 @@
                 "kanbanViewState": {
                   "kanban-plugin": "board",
                   "list-collapse": [
-                    true,
+                    false,
                     true,
                     false,
+                    true,
                     true,
                     true,
                     true
@@ -87,7 +88,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "8f03f12d5297a274",
@@ -122,12 +124,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Bez nazwy.canvas",
+                "file": "kanban/vector wave kanban.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Łącza wychodzące z Bez nazwy"
+              "title": "Łącza wychodzące z vector wave kanban"
             }
           },
           {
@@ -151,13 +153,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Bez nazwy.canvas",
+                "file": "kanban/vector wave kanban.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Konspekt Bez nazwy"
+              "title": "Konspekt vector wave kanban"
             }
           },
           {
@@ -166,16 +168,16 @@
             "state": {
               "type": "smart-connections-view",
               "state": {},
-              "icon": "lucide-ghost",
-              "title": "smart-connections-view"
+              "icon": "smart-connections",
+              "title": "Smart Connections"
             }
           }
         ],
-        "currentTab": 4
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
-    "width": 300,
+    "width": 412.5,
     "collapsed": true
   },
   "left-ribbon": {
@@ -196,22 +198,22 @@
       "templater-obsidian:Templater": false
     }
   },
-  "active": "57e4f61396332223",
+  "active": "192529b39f7b1ed5",
   "lastOpenFiles": [
+    "kanban/vector wave kanban.md",
+    "Cookbook/Recipes/Tomek Czajkowski na Instagramie  To jest mój hit lata 😎🌞🍉 Chińskie zimnie noodle w intensywnie sezamowym sosie i oleju chilli. Dodatkowy patent na upały to arbuz. Sprawdźcie jak to wszystko razem pięknie działa 🥰👌Link do przepisu macie w BI.md",
+    "Cookbook/Recipes/@olivia_onehe na Instagramie  How to Make Honeycomb Candy Mix 50g sugar + 25g water in a microwave-safe bowl.DO NOT STIR. Just swirl gently if needed.Microwave on high for 3 minutes.Check the color — if not caramel brown, heat in 10-sec interval.md",
+    "Cookbook/Recipes/KUKBUK magazyn & portal online na Instagramie  🫛Zielona fasolka, która ma więcej charakteru niż niejedno danie główne. Pikantna, słona, lekko słodka i pełna umami - dokładnie taka, jak lubimy 🥢Składniki500 g fasolki szparagowej1 ząbek czosnku1.md",
     "Cookbook/Recipes/Anna Dembska na Instagramie  L jak Lohikeitto, czyli 12 zupa z mojej serii „ABC ZUP”. 🥔🥕🐟To tradycyjna fińska zupa łososiowa, która jest jednocześnie prosta, sycąca i aromatyczna.Składniki 1 środkowa część pora2 marchewki4 ziemniaki1 łyżka ma.md",
     "Cookbook/Recipes/𝗠𝗔𝗫 𝗝𝗔𝗥𝗠𝗘𝗬 na Instagramie  Aubergine with confit garlic and lemon ricotta, salsa verde. This ended up looking like a snozzcumber from The BFG but it tasted damn good. Great as a side dish. Will be trying some different variations.Recipe.md",
-    "Cookbook/Recipes/Tomek Czajkowski na Instagramie  To jest mój hit lata 😎🌞🍉 Chińskie zimnie noodle w intensywnie sezamowym sosie i oleju chilli. Dodatkowy patent na upały to arbuz. Sprawdźcie jak to wszystko razem pięknie działa 🥰👌Link do przepisu macie w BI.md",
-    "Cookbook/Recipes/KUKBUK magazyn & portal online na Instagramie  🫛Zielona fasolka, która ma więcej charakteru niż niejedno danie główne. Pikantna, słona, lekko słodka i pełna umami - dokładnie taka, jak lubimy 🥢Składniki500 g fasolki szparagowej1 ząbek czosnku1.md",
     "Cookbook/Recipes/Karola Smyk Zdrowe przepisy na Instagramie  ZUPA KREM Z CUKINII I KUKURYDZY z mleczkiem koksowym, imbirem, cytryną podana z BURRATĄ i ŁOSOSIEM 😍👌👌👌taka prosta do zrobienia, a tak niewiarygodnie dobra!Polecam każdemu! To najlepszy sposób na t.md",
     "Cookbook/Recipes/Russell Clamp🍴Healthy Recipes na Instagramie  Sea Bass Pan Sauce Dirty Meunière3 tbsp butter1 tbsp capers1 tbsp caper brine1 clove garlic, minced3 anchovy fillets4-6 pieces of fresh lemon2 tsp of lemon juice2 tbsp fresh parsley1. I’m going to b.md",
     "Cookbook/Recipes/Joseph oxley na Instagramie  Mizo Orzo PastaAlways a fan of dishes with ingredients so flavourful that only a handful are needed. And this one definitely fits the bill. I’ve used shiitake mushrooms here but any will work and if you like an extra.md",
     "Cookbook/Recipes/MARIUSZ MAC na Instagramie  śniadanko raz! 🥚- awokado- jajka- dijon- mayo- creme fraiche- koperek- korniszony lub kiszone- dymkado tego ikra. bardzo miła kanapka!choppedsandwich pastajajeczna jajka jajecznica eggsalad eggsandwich.md",
-    "Cookbook/Recipes/@olivia_onehe na Instagramie  How to Make Honeycomb Candy Mix 50g sugar + 25g water in a microwave-safe bowl.DO NOT STIR. Just swirl gently if needed.Microwave on high for 3 minutes.Check the color — if not caramel brown, heat in 10-sec interval.md",
     "Cookbook/Recipes/KUKBUK magazyn & portal online na Instagramie  współpraca reklamowa z @dolinadobra.pl Zapomnij na chwilę o klasycznym kotlecie schabowym. Przed Tobą jego japońska wersja – tonkatsu, czyli ultra chrupiący, soczysty filet od @dolinadobra.pl w złoc.md",
     "Cookbook/Recipes/chicken shoarma.md",
     "Cookbook/Recipes/Ben Chelin na Instagramie  One-Pan Chicken Shawarma with Roasted Garlic Sauce🔥Comment “Recipe” and I’ll send you the full recipe card for free!!All the flavor, none of the fuss. Weeknight shawarma is officially a thing… smoky, tangy, and loaded.md",
     "Cookbook/Recipes/Anthea Malialis na Instagramie  Beef Stroganoff Jacket Potato – The Ultimate Comfort Food! 🥔🥩Crispy-on-the-outside, fluffy-on-the-inside jacket potato, loaded with tender ribeye steak and a rich, creamy stroganoff sauce. Topped with crispy oni.md",
-    "kanban/vector wave kanban.md",
     "Cookbook/Recipes",
     "Cookbook",
     "Bez nazwy.canvas",

@@ -23,7 +23,7 @@ services:
     volumes:
       - chroma_data:/chroma/chroma
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8000/api/v2/heartbeat"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -152,7 +152,7 @@ services:
 
   analytics-service:
     profiles: ["analytics"]
-    build: ./kolegium/analytics-service
+    build: ./analytics-service
     environment:
       - ENVIRONMENT=development
       - LOG_LEVEL=debug
