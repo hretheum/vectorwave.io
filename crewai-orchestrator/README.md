@@ -18,6 +18,23 @@ This service exposes orchestration endpoints for the Vector Wave platform.
 - `GET /triage/policy` and `GET /api/triage/policy` – get current applied policy (from `TRIAGE_POLICY_PATH`)
 - `POST /triage/policy` and `POST /api/triage/policy` – update policy (validated if `TRIAGE_POLICY_SCHEMA_PATH` is available)
 
+### AI Writing Flow proxy
+
+- `GET /aiwf/health` – proxy health of AI Writing Flow (`AI_WRITING_FLOW_URL`)
+- `POST /aiwf/generate/multi-platform` – proxy to AIWF `/v2/generate/multi-platform` with health‑gate and retry/backoff
+
+Example payload:
+
+```bash
+curl -s -X POST http://localhost:8042/aiwf/generate/multi-platform \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "topic": {"title": "Test", "description": "desc", "keywords": ["ai"], "target_audience": "engineers"},
+    "platforms": {"linkedin": {"enabled": true, "direct_content": true}},
+    "priority": 5
+  }' | jq .
+```
+
 ## Configuration
 
 The orchestrator reads its triage policy from a YAML file. Paths are configurable via environment variables.
@@ -27,6 +44,7 @@ The orchestrator reads its triage policy from a YAML file. Paths are configurabl
 - `EDITORIAL_SERVICE_URL` – internal URL to Editorial Service
 - `HARVESTER_URL` – internal URL to Harvester service (used by triage seeder)
 - `REDIS_URL` – opcjonalny URL do Redis; jeśli ustawiony, stany checkpointów i historia są persystowane. Health zawiera `sequence_ready` (true jeśli połączenie z Redis OK).
+- `AI_WRITING_FLOW_URL` – URL do AI Writing Flow (w compose: `http://ai-writing-flow-service:8044`)
 ## Examples
 
 Start sequence and poll status:

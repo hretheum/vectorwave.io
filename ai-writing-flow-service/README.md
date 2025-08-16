@@ -1,3 +1,49 @@
+# AI Writing Flow Service
+
+FastAPI service exposing legacy and enhanced endpoints for multi‑platform content generation.
+
+## Run (compose)
+
+The root docker‑compose defines the service as `ai-writing-flow-service` on port 8044:
+
+```bash
+docker compose up -d ai-writing-flow-service
+curl -s http://localhost:8044/health | jq .
+```
+
+## Endpoints
+
+- `GET /health` – overall service health (legacy + enhanced components)
+- `GET /` – root info with links
+- Enhanced API (mounted under `/v2`):
+  - `POST /v2/generate/multi-platform` – generate content for multiple platforms
+  - `POST /v2/generate/linkedin-prompt` – prepare LinkedIn carousel prompt
+  - `GET /v2/metrics` – runtime metrics
+  - `GET /v2/platforms` – supported platforms and configs
+  - `GET /v2/docs` – Swagger UI for enhanced API
+
+## Quick smoke
+
+```bash
+curl -s -X POST http://localhost:8044/v2/generate/multi-platform \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "topic": {"title": "AIWF smoke", "description": "desc", "keywords": ["ai"], "target_audience": "engineers"},
+    "platforms": {"linkedin": {"enabled": true, "direct_content": true}},
+    "priority": 5
+  }' | jq .
+```
+
+Expected: 200 with `platform_content.linkedin.*`.
+
+## Configuration
+
+No required envs for local compose. The container listens on 0.0.0.0:8044.
+
+## Notes
+
+- The legacy endpoint `POST /generate` remains for backward compatibility.
+- The service aggregates metrics across requests (`/health` and `/v2/metrics`).
 # AI Writing Flow
 
 ### Cel Serwisu
