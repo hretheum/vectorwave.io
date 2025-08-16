@@ -5,6 +5,7 @@ import json
 from typing import Any, Dict, List, Optional, Union
 from dataclasses import dataclass
 import structlog
+import fnmatch
 
 from .memory_cache import MemoryCache
 from .redis_cache import RedisCache
@@ -232,12 +233,12 @@ class CacheManager:
             # Redis supports pattern deletion
             if self.redis_cache:
                 deleted_count = await self.redis_cache.delete_pattern(cache_pattern)
-            
+
             # For memory cache, we need to get keys and delete individually
             if self.memory_cache:
                 keys = await self.memory_cache.keys()
                 for key in keys:
-                    if cache_pattern.replace("*", "") in key:
+                    if fnmatch.fnmatch(key, cache_pattern):
                         await self.memory_cache.delete(key)
                         deleted_count += 1
             
