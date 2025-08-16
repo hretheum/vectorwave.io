@@ -121,6 +121,7 @@ services:
       - "8085:8080"
     environment:
       - EDITORIAL_SERVICE_URL=http://editorial-service:8040
+      - AI_WRITING_FLOW_URL=http://ai-writing-flow-service:8044
       - GAMMA_PPT_URL=http://gamma-ppt-generator:8003
       - PRESENTON_URL=http://presenton:8089
       - LINKEDIN_PPT_GENERATOR_URL=http://linkedin-ppt:8002

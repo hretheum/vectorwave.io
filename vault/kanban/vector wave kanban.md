@@ -132,7 +132,7 @@ kanban-plugin: board
 	   - [x] 1.6.3 Kontrakt payloadu: ujednolicić (flat vs `topic.*`) między Orchestrator → AIWF
 	   - [x] 1.6.4 Health-gate + retry/backoff dla wywołań AIWF
 	   - [x] 1.6.5 Smoke: `GET /health` i `POST /generate` (selective path)
-	   - [ ] 1.6.6 E2E: `POST /publish` z `direct_content=false` (content przez AIWF)
+	   - [x] 1.6.6 E2E: `POST /publish` z `direct_content=false` (content przez AIWF)
 
 
 ## done
