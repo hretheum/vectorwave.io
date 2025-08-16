@@ -130,7 +130,7 @@ services:
 
   linkedin-ppt:
     profiles: ["publishing"]
-    build: ./kolegium/linkedin_ppt_generator
+    build: ./linkedin-ppt-service
     networks: [vector-wave]
     ports:
       - "8002:8002"

@@ -24,15 +24,6 @@ kanban-plugin: board
 	   - [ ] 1.16.1 Standard katalogu usługi (Dockerfile, .dockerignore, README, QUICK_START, health, metrics)
 	   - [ ] 1.16.2 Szablon compose dla nowej usługi (ports, healthcheck, depends_on, networks)
 	   - [ ] 1.16.3 Wytyczne ENV/konfiguracji per usługa (konwencje nazw, domyślne wartości)
-- [ ] Task 1.18: [P2] LinkedIn PPT Generator: wydzielenie z `kolegium/linkedin_ppt_generator` → `linkedin-ppt-service/`
-	   - comments:
-	   - Stabilny adapter do Presenton/Gamma, endpointy health/generate, izolacja od `kolegium/*`.
-	   - follows: Task 1.17; Task 1.15 (Presenton fallback hardening)
-	   - Subtasks:
-	   - [ ] 1.18.1 Utwórz `linkedin-ppt-service/` + Dockerfile, `.dockerignore`
-	   - [ ] 1.18.2 Compose: dodaj usługę (8002), health `/health`, `PRESENTON_SERVICE_URL`
-	   - [ ] 1.18.3 Smoke: `GET /health`, `POST /generate` (demo payload)
-	   - [ ] 1.18.4 Dokumentacja kontraktu (payload/odpowiedź)
 - [ ] Task 1.19: [P2] Analytics Service: wydzielenie z `kolegium/analytics-service` → `analytics-service/`
 	   - comments:
 	   - API skeleton w dedykowanym katalogu usługi, health/insights, szybki build.
@@ -109,7 +100,20 @@ kanban-plugin: board
 
 ## in progress
 
-- [ ] Task 1.17: [P1] Publishing Orchestrator: wydzielenie z `kolegium/publishing-orchestrator` → `publishing-orchestrator-service/`
+- [x] Task 1.18: [P2] LinkedIn PPT Generator: wydzielenie z `kolegium/linkedin_ppt_generator` → `linkedin-ppt-service/`
+	   - comments:
+	   - Stabilny adapter do Presenton/Gamma, endpointy health/generate, izolacja od `kolegium/*`.
+	   - follows: Task 1.17; Task 1.15 (Presenton fallback hardening)
+	   - Subtasks:
+	   - [x] 1.18.1 Utwórz `linkedin-ppt-service/` + Dockerfile, `.dockerignore`
+	   - [x] 1.18.2 Compose: dodaj usługę (8002), health `/health`, `PRESENTON_SERVICE_URL`
+	   - [x] 1.18.3 Smoke: `GET /health`, `POST /generate` (demo payload)
+	   - [x] 1.18.4 Dokumentacja kontraktu (payload/odpowiedź)
+
+
+## done
+
+- [x] Task 1.17: [P1] Publishing Orchestrator: wydzielenie z `kolegium/publishing-orchestrator` → `publishing-orchestrator-service/`
 	   - comments:
 	   - Oddzielenie builda od katalogu `kolegium/*`, stabilny endpoint (8085), health, dokumentacja i smoke.
 	   - follows: Task 1.6; [P1] Orchestrator→Editorial integration (Done)
@@ -120,10 +124,6 @@ kanban-plugin: board
 	   - [x] 1.17.3 Compose: dodaj usługę (8085), health `/health`, `depends_on` (editorial, redis)
 	   - [x] 1.17.4 ENV: `EDITORIAL_SERVICE_URL`, `GAMMA_PPT_URL`, `PRESENTON_URL`, toggles; dokumentacja
 	   - [x] 1.17.5 Smoke: `GET /health`, `/queue/status`, podstawowe ścieżki orchestracji
-
-
-## done
-
 - [x] Task 1.6: [P1] AI Writing Flow Integration (Phase 6) [owner: kolegium]
 	   - comments:
 	   - Cel: uruchomić AI Writing Flow w compose i spiąć z Orchestrator → pełny workflow redakcyjny na localhost
@@ -271,74 +271,74 @@ kanban-plugin: board
 
 ## Archive
 
-- [x] 2025-08-13 VW-14 E2E: start core stack i health (duplicate of P0 Smoke E2E) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 VW-14 E2E: start core stack i health (duplicate of P0 Smoke E2E) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	   - comments:
 	   - Zarchiwizowano jako duplikat; realizacja w zadaniu P0 Smoke E2E (Todo)
-- [x] 2025-08-13 VW-15 Harvester: trigger i triage-preview (duplicate of Todo Harvester smoke) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 VW-15 Harvester: trigger i triage-preview (duplicate of Todo Harvester smoke) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	   - comments:
 	   - Zarchiwizowano jako duplikat; realizacja w zadaniu P0 Harvester smoke (Todo)
-- [x] 2025-08-13 VW-17 Harvester: promote selective-triage do TM (duplicate; part of VW-15) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 VW-17 Harvester: promote selective-triage do TM (duplicate; part of VW-15) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	   - comments:
 	   - Zarchiwizowano jako duplikat; część Subtasks w Harvester smoke (Todo)
-- [x] 2025-08-13 VW-18 Kolegium: selective checkpoints vs Editorial Service (duplicate of Todo CI-Light) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 VW-18 Kolegium: selective checkpoints vs Editorial Service (duplicate of Todo CI-Light) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	   - comments:
 	   - Zarchiwizowano jako duplikat; realizacja w zadaniu P0 CI-Light (Todo)
-- [x] 2025-08-13 VW-21 Topic Manager: reindex + search happy path (duplicate of Todo TM vector index) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 VW-21 Topic Manager: reindex + search happy path (duplicate of Todo TM vector index) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	   - comments:
 	   - Zarchiwizowano jako duplikat; realizacja w zadaniu P1 TM vector index (Todo)
-- [x] 2025-08-13 VW-22 Analytics: API skeleton + /health (duplicate of Todo Analytics v2.0.0 skeleton) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 VW-22 Analytics: API skeleton + /health (duplicate of Todo Analytics v2.0.0 skeleton) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	   - comments:
 	   - Zarchiwizowano jako duplikat; realizacja w zadaniu P2 Analytics skeleton (Todo)
-- [x] 2025-08-13 VW-8 Orchestrator happy-path flow (duplicate of Todo Orchestrator happy-path) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 VW-8 Orchestrator happy-path flow (duplicate of Todo Orchestrator happy-path) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	   - comments:
 	   - Zarchiwizowano jako duplikat; realizacja w zadaniu P0 Orchestrator happy-path (Todo)
-- [x] 2025-08-13 VW-10 Topic Manager vector index (duplicate of Todo TM vector index) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 VW-10 Topic Manager vector index (duplicate of Todo TM vector index) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	   - comments:
 	   - Zarchiwizowano jako duplikat; realizacja w zadaniu P1 TM vector index (Todo)
-- [x] 2025-08-13 Doksy: Analytics Service — status i API szkic (VW-29) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 Doksy: Analytics Service — status i API szkic (VW-29) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- Analytics docs → kolegium/analytics-service/README.md
-- [x] 2025-08-13 Doksy: Gamma.app — stan, plan i wymagania (VW-30) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 Doksy: Gamma.app — stan, plan i wymagania (VW-30) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- Gamma plan → docs/GAMMA_INTEGRATION_PLAN.md; Service docs → kolegium/gamma-ppt-generator/README.md
-- [x] 2025-08-13 Doksy: ujednolicenie README i QUICK_START (VW-35) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 Doksy: ujednolicenie README i QUICK_START (VW-35) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- Linter: scripts/docs_lint_readme.py (wynik: wszystkie README OK); Wdrożone standardy: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md; Znormalizowane README: editorial-service, topic-manager, publisher, presenton, kolegium/analytics-service, kolegium/gamma-ppt-generator, kolegium
-- [x] 2025-08-13 Doksy: KPI/validation framework — definicja i checklisty (VW-37) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 Doksy: KPI/validation framework — definicja i checklisty (VW-37) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- Dokument: docs/KPI_VALIDATION_FRAMEWORK.md; zastosowane w README usług
-- [x] 2025-08-13 Doksy: cele/metryki/walidacja w README serwisów (VW-34) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 Doksy: cele/metryki/walidacja w README serwisów (VW-34) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- README zaktualizowane o sekcję KPIs i Walidacja; linter OK
-- [x] 2025-08-13 Doksy: standard README/QUICK_START template i ToC (VW-31) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 Doksy: standard README/QUICK_START template i ToC (VW-31) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- Artefakty: docs/README_TEMPLATE.md, docs/QUICK_START_TEMPLATE.md, docs/DOCS_TOC_STANDARD.md
-- [x] 2025-08-13 PROJECT_CONTEXT normalization: labels/priorities spec + SOP (VW-36) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 PROJECT_CONTEXT normalization: labels/priorities spec + SOP (VW-36) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	  	  - comments:
 	  	- Zmiany: PROJECT_CONTEXT.md → sekcje Normalization + SOP; Źródła: target-version/KANBAN.md, docker-compose.yml
-- [x] 2025-08-13 18:38 Doksy: przegląd całej dokumentacji (repo + submoduły) (VW-26) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 18:38 Doksy: przegląd całej dokumentacji (repo + submoduły) (VW-26) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	 	  - comments:
 	 	- Inwentarz → docs/DOCS_INVENTORY.md
-- [x] 2025-08-13 18:38 Doksy: plan konsolidacji dokumentacji (VW-27) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 18:38 Doksy: plan konsolidacji dokumentacji (VW-27) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [
 - [x] 2025-08-13 18:38 Doksy: raport rozbieżności vs target-version (VW-33)
-- [x] 2025-08-13 Kanban: synchronizacja z PROJECT_CONTEXT (priorytety, etykiety, relacje) (VW-32) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
+- [x] 2025-08-13 Kanban: synchronizacja z PROJECT_CONTEXT (priorytety, etykiety, relacje) (VW-32) ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16] ^EPIC-VW-16]
 	   ↳ Parent: [^EPIC-VW-16]
 	  - comments:
 	- Synchronizacja: usunięto duplikaty kotwicy ^EPIC-VW-16, poprawiono „↳ Parent” i literówki; zgodnie z PROJECT_CONTEXT.md
@@ -378,6 +378,6 @@ kanban-plugin: board
 
 %% kanban:settings
 ```
-{"kanban-plugin":"board","list-collapse":[false,false,false,false,true,true,false],"show-checkboxes":true,"move-tags":true,"move-dates":false,"full-list-lane-width":true,"inline-metadata-position":"footer","lane-width":400}
+{"kanban-plugin":"board","list-collapse":[false,false,false,true,true,true,true],"show-checkboxes":true,"move-tags":true,"move-dates":false,"full-list-lane-width":true,"inline-metadata-position":"footer","lane-width":400}
 ```
 %%
