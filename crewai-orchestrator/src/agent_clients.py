@@ -109,8 +109,57 @@ class AgentHTTPClient:
         return mapping.get(self.agent_type, "mid-writing")
 
 
+class AIWritingFlowClient:
+    """Client for AI Writing Flow service integration"""
+    def __init__(self, base_url: str = "http://ai-writing-flow:8003") -> None:
+        self.base_url = base_url.rstrip("/")
+        self.client = httpx.AsyncClient(timeout=30.0)
+        self.circuit_breaker = CircuitBreaker()
+        self._healthy: Optional[bool] = None
+        
+    async def health_check(self) -> Dict[str, Any]:
+        """Check AI Writing Flow health"""
+        try:
+            resp = await self.client.get(f"{self.base_url}/health")
+            if resp.status_code == 200:
+                data = resp.json()
+                self._healthy = data.get("status") == "healthy"
+                return data
+            self._healthy = False
+            return {"status": "unhealthy", "code": resp.status_code}
+        except Exception as e:
+            self._healthy = False
+            return {"status": "unavailable", "error": str(e)}
+    
+    async def generate(self, topic_data: Dict[str, Any], platform: str = "linkedin", 
+                      mode: str = "selective", direct_content: bool = False) -> Dict[str, Any]:
+        """Generate content using AI Writing Flow"""
+        if direct_content:
+            # If direct_content=true, bypass AI Writing Flow
+            return None
+            
+        payload = {
+            "topic": topic_data,
+            "platform": platform,
+            "mode": mode,
+            "checkpoints_enabled": mode == "selective",
+            "skip_research": topic_data.get("content_ownership") == "ORIGINAL"
+        }
+        
+        async def _make_request():
+            resp = await self.client.post(f"{self.base_url}/generate", json=payload)
+            resp.raise_for_status()
+            return resp.json()
+        
+        try:
+            return await self.circuit_breaker.call(_make_request)
+        except Exception as e:
+            raise RuntimeError(f"AI Writing Flow generation failed: {e}")
+
+
 class CrewAIAgentClients:
-    def __init__(self, editorial_service_url: str = "http://localhost:8040") -> None:
+    def __init__(self, editorial_service_url: str = "http://localhost:8040",
+                 ai_writing_flow_url: str = None) -> None:
         # Build agents first
         self.agents: Dict[str, AgentHTTPClient] = {
             "research": AgentHTTPClient("research", editorial_service_url, None),
@@ -124,6 +173,10 @@ class CrewAIAgentClients:
         self.monitor = AgentPerformanceMonitor(self)
         for client in self.agents.values():
             client._monitor = self.monitor
+        
+        # Initialize AI Writing Flow client
+        aiwf_url = ai_writing_flow_url or os.getenv("AI_WRITING_FLOW_URL", "http://ai-writing-flow:8003")
+        self.ai_writing_flow = AIWritingFlowClient(aiwf_url)
 
     def get_agent(self, agent_type: str) -> AgentHTTPClient:
         if agent_type not in self.agents:
