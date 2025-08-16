@@ -1,6 +1,7 @@
 import os, uuid
 from fastapi.testclient import TestClient
 from harvester.src.main import app
+from harvester.src.config import settings
 
 
 def test_selective_triage_promote_flow(monkeypatch):
@@ -9,8 +10,8 @@ def test_selective_triage_promote_flow(monkeypatch):
     client = TestClient(app)
 
     # Make thresholds easy to pass in local run
-    monkeypatch.setenv("SELECTIVE_PROFILE_THRESHOLD", "0.0")
-    monkeypatch.setenv("SELECTIVE_NOVELTY_THRESHOLD", "0.0")
+    settings.SELECTIVE_PROFILE_THRESHOLD = 0.0
+    settings.SELECTIVE_NOVELTY_THRESHOLD = 0.0
 
     r = client.post("/triage/selective", params={"summary": "AI trend about vector db embeddings", "content_type": "POST"})
     assert r.status_code == 200
