@@ -34,20 +34,28 @@ Enhanced multi-platform publishing orchestration with Editorial Service integrat
 
 ## Quick Start
 
-### Using Docker
+### Using Docker Compose (root of monorepo)
 
 ```bash
-# Build and start orchestrator
-docker-compose up -d --build
+# Start stack (or only the orchestrator service)
+docker compose up -d publishing-orchestrator
 
-# Check health
-curl http://localhost:8050/health
+# Health
+curl -s http://localhost:8085/health | jq .
 
-# View logs
-docker-compose logs -f publishing-orchestrator
+# Queue status
+curl -s http://localhost:8085/queue/status | jq .
+
+# Publish (AIWF generation path)
+curl -s -X POST http://localhost:8085/publish \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "topic": {"title": "E2E publish", "description": "desc", "keywords": ["ai"], "target_audience": "engineers"},
+    "platforms": {"linkedin": {"enabled": true, "account_id": "test", "direct_content": false}}
+  }' | jq .
 ```
 
-### Local Development
+### Local Development (standalone)
 
 ```bash
 # Install dependencies
@@ -56,7 +64,7 @@ pip install -r requirements.txt
 # Run server
 cd src && python main.py
 
-# Server runs on http://localhost:8050
+# Server runs on http://localhost:8080
 ```
 
 ## API Endpoints
