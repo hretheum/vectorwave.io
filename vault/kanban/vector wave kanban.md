@@ -130,8 +130,8 @@ kanban-plugin: board
 	   - [x] 1.6.1 Compose: dodać usługę `ai-writing-flow-service` (port 8044), `networks: [vector-wave]`, health `/health`
 	   - [x] 1.6.2 Orchestrator: ustawić `AI_WRITING_FLOW_URL=http://ai-writing-flow-service:8044`
 	   - [x] 1.6.3 Kontrakt payloadu: ujednolicić (flat vs `topic.*`) między Orchestrator → AIWF
-	   - [ ] 1.6.4 Health-gate + retry/backoff dla wywołań AIWF
-	   - [ ] 1.6.5 Smoke: `GET /health` i `POST /generate` (selective path)
+	   - [x] 1.6.4 Health-gate + retry/backoff dla wywołań AIWF
+	   - [x] 1.6.5 Smoke: `GET /health` i `POST /generate` (selective path)
 	   - [ ] 1.6.6 E2E: `POST /publish` z `direct_content=false` (content przez AIWF)
 
 

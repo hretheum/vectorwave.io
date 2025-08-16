@@ -21,6 +21,13 @@ class AIWritingFlowClient:
         return await self._with_retries(lambda: self.client.get(f"{self.base_url}/health"))
 
     async def generate_multi_platform(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        # Health gate: ensure upstream is healthy before posting
+        try:
+            health = await self.health()
+            if not isinstance(health, dict) or health.get("status") != "healthy":
+                raise httpx.HTTPStatusError("AI Writing Flow unhealthy", request=None, response=None)  # type: ignore[arg-type]
+        except Exception as e:
+            raise e
         return await self._with_retries(lambda: self.client.post(f"{self.base_url}/v2/generate/multi-platform", json=payload))
 
     async def _with_retries(self, call):
