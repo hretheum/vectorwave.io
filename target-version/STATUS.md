@@ -55,3 +55,40 @@ Analiza tej funkcjonalności, opisanej w `VECTOR_WAVE_MIGRATION_ROADMAP.md`, wyk
     *   **Średni**: Rozpocząć prace nad warstwą UI i `Analytics Service`.
 
 **Ocena ogólna: Projekt jest w doskonałej kondycji technicznej, jeśli chodzi o zrealizowany zakres. Należy jednak jasno określić priorytety dla niezrealizowanych jeszcze funkcjonalności, takich jak Gamma.app, i zaktualizować roadmapę.**
+
+---
+
+## 5. Frontend UX i przepływy Topics/Publishing — rekomendacje (2025-08-17)
+
+### 5.1. Topics: „Details” (topics/[id]) — co pokazywać
+- Tytuł, content_type, źródło (manual/harvester), timestamps
+- Opis i keywords
+- Status wektorowego indeksu: czy w indexie, ostatni reindex, „similar to” (3–5 najbliższych)
+- Triage snapshot (ostatni run):
+  - Editorial profile_fit_score + werdykt
+  - Novelty (similarity, nearest, threshold) + werdykt NOVEL/DUPLICATE
+  - Decyzja PROMOTE/REJECT wg progów
+- Walidacja redakcyjna: compliant/violations/suggestions
+- Assety: URL-e PDF/PPT (jeśli powstały), manual upload checklist
+- CTA: „Analizuj potencjał”, „Wygeneruj draft”, „Dodaj do publikacji”
+
+### 5.2. Analizuj potencjał — ten sam triage co w Harvesterze
+- Usługi: Editorial `/profile/score`, Topic Manager `/topics/novelty-check`, `POST /topics/suggestion` (Idempotency-Key) + `POST /topics/index/reindex`
+- Dwa tryby: preview (bez promocji) i full (z promocją) na bazie tych samych progów (`SELECTIVE_PROFILE_THRESHOLD`, `SELECTIVE_NOVELTY_THRESHOLD`)
+- UI: loader + wynik (score/novelty/nearest/decision), po PROMOTE — odświeżenie listy i indeksu
+
+### 5.3. Generowanie draftu — przez Orchestrator
+- Przepływ: Orchestrator `/publish` (single-platform, direct_content=false) → AI Writing Flow → variations → walidacja Editorial → (opcjonalnie) Gamma/Presenton dla LinkedIn → package manual upload
+- UI: otwiera edytor z draftem, pokazuje warnings (np. `aiwf_fallback`) i assety (pdf/ppt)
+
+### 5.4. Dodawanie tematów i import z plików
+- Manual: `POST /topics/manual` → reindex → nowy kafelek
+- Import plików (multi-file): zapis do `content/raw/...` → selective triage + promote → reindex → nowe kafelki
+
+### 5.5. Seed po starcie (feature flags)
+- HARVEST_ON_BOOT=true, HARVEST_BOOT_MAX_AGE_HOURS=6, PROMOTE_ON_BOOT=true (już wdrożone w harvester)
+- Na starcie: jeśli brak topics lub ostatni run > 6h → `harvest/trigger` + `topics/index/reindex`
+
+### 5.6. Impl. notatki
+- UI powinien wykonywać akcje serwerowo przez proxy (Next API) do usług; SSR dla `/topics` łączy się bezpośrednio z TM w sieci docker
+- Drafty rekomendowane przez Orchestrator (spójny fallback i walidacja)

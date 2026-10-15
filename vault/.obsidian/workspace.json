@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "ffc6f1b9e6607136",
+        "id": "5b2e00e40ab2fc1d",
         "type": "tabs",
         "children": [
           {
-            "id": "192529b39f7b1ed5",
+            "id": "8d222322dd84f8df",
             "type": "leaf",
             "state": {
               "type": "kanban",
@@ -17,9 +17,10 @@
                 "kanbanViewState": {
                   "kanban-plugin": "board",
                   "list-collapse": [
-                    false,
                     true,
                     false,
+                    false,
+                    true,
                     true,
                     true,
                     true,
@@ -198,7 +199,7 @@
       "templater-obsidian:Templater": false
     }
   },
-  "active": "192529b39f7b1ed5",
+  "active": "8d222322dd84f8df",
   "lastOpenFiles": [
     "kanban/vector wave kanban.md",
     "Cookbook/Recipes/Tomek Czajkowski na Instagramie  To jest mój hit lata 😎🌞🍉 Chińskie zimnie noodle w intensywnie sezamowym sosie i oleju chilli. Dodatkowy patent na upały to arbuz. Sprawdźcie jak to wszystko razem pięknie działa 🥰👌Link do przepisu macie w BI.md",

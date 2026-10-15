@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     # Schedule for the harvester to run (cron format)
     HARVEST_SCHEDULE_CRON: str = "0 */6 * * *" # Every 6 hours
 
+    # Auto-seed on boot feature flags
+    HARVEST_ON_BOOT: bool = True
+    HARVEST_BOOT_MAX_AGE_HOURS: int = 6
+    PROMOTE_ON_BOOT: bool = True
+
     # API Keys
     DEV_TO_API_KEY: str | None = None
     NEWS_DATA_API_KEY: str | None = None

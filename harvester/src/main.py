@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 import json
 from prometheus_client import Counter, Gauge, Histogram, CollectorRegistry, generate_latest, CONTENT_TYPE_LATEST
 from fastapi import Response, Query
+from datetime import timezone
 
 # Configure logging (structured JSON lines)
 logger = logging.getLogger("harvester")
@@ -53,6 +54,56 @@ async def lifespan(app: FastAPI):
     # Expose schedule in app state
     app.state.interval_min = interval_min
     app.state.next_run_at = (datetime.utcnow() + timedelta(minutes=interval_min)).isoformat() + "Z"
+
+    # Auto-seed on boot (best-effort, gated by flags)
+    async def _auto_seed_if_needed():
+        try:
+            if not settings.HARVEST_ON_BOOT:
+                return
+            # Check Topic Manager index info
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                info = None
+                try:
+                    r = await client.get(f"{settings.TOPIC_MANAGER_URL}/topics/index/info")
+                    if r.status_code == 200:
+                        info = r.json()
+                except Exception:
+                    info = None
+
+            need_seed = False
+            if not info or int(info.get("total_topics") or 0) == 0:
+                need_seed = True
+            else:
+                # If we have topics, decide by last_run age
+                last = app.state.last_run or {}
+                last_ts = last.get("ended_at") or last.get("started_at")
+                stale = True
+                try:
+                    if last_ts:
+                        ts = datetime.fromisoformat(str(last_ts).replace("Z", "+00:00"))
+                        age_h = (datetime.now(timezone.utc) - ts.astimezone(timezone.utc)).total_seconds() / 3600.0
+                        stale = age_h >= float(settings.HARVEST_BOOT_MAX_AGE_HOURS)
+                except Exception:
+                    stale = True
+                need_seed = stale
+
+            if not need_seed:
+                return
+
+            # Trigger a small harvest and reindex
+            status = await trigger_harvest(limit=min(settings.HARVEST_FETCH_LIMIT, 50))  # type: ignore
+            if settings.PROMOTE_ON_BOOT:
+                try:
+                    async with httpx.AsyncClient(timeout=10.0) as client:
+                        await client.post(f"{settings.TOPIC_MANAGER_URL}/topics/index/reindex", json={"limit": 200, "reset": False})
+                except Exception:
+                    pass
+            app.state.last_run = status
+        except Exception:
+            pass
+
+    # Fire-and-forget auto seed
+    _asyncio.create_task(_auto_seed_if_needed())
 
     async def _run_full_cycle():
         # 1) Fetch and save
@@ -225,6 +276,57 @@ async def trigger_harvest(limit: int = Query(None, ge=1, le=100)):
     for src, err in errors.items():
         HARVEST_ERRORS.labels(src).inc()
     return run_status
+
+@app.post("/harvest/full-cycle")
+async def harvest_full_cycle(limit: int = Query(50, ge=1, le=500)):
+    """Run one full cycle now: fetch → selective triage → promote → update storage flags.
+
+    Returns a summary useful for UI seeding.
+    """
+    # 1) Fetch
+    fetch_status = await trigger_harvest(limit)  # type: ignore
+    fetched = int(fetch_status.get("fetched", 0) or 0)
+    # 2) Candidates from storage
+    storage = StorageService(settings.CHROMADB_HOST, settings.CHROMADB_PORT, settings.CHROMADB_COLLECTION)
+    candidates = []
+    try:
+        candidates = await storage.list_candidates(limit=min(max(fetched, 50), 500))
+    except Exception:
+        candidates = []
+    # 3) Triage + promote
+    promoted = 0
+    triage_errors = 0
+    promoted_ids: list[str] = []
+    async with httpx.AsyncClient(timeout=12.0) as _:
+        for cand in candidates:
+            summary = cand.get("document") or (cand.get("metadata") or {}).get("title") or ""
+            if not summary:
+                continue
+            try:
+                r = await selective_triage(summary=summary, content_type="POST")  # type: ignore
+                if r.get("decision") == "PROMOTE":
+                    promoted += 1
+                    promoted_ids.append(cand.get("id"))
+            except Exception:
+                triage_errors += 1
+    # 4) Mark promoted in storage
+    if promoted_ids:
+        try:
+            await storage.update_status(promoted_ids, status="promoted")
+        except Exception:
+            pass
+    # 5) Update app state
+    summary = {
+        "fetched": fetched,
+        "saved": int(fetch_status.get("saved", 0) or 0),
+        "promoted": promoted,
+        "triage_errors": triage_errors,
+    }
+    try:
+        app.state.last_run = {**getattr(app.state, "last_run", {}), **summary}
+    except Exception:
+        pass
+    return {"status": "completed", **summary}
 
 @app.post("/triage/selective-preview")
 async def selective_preview(summary: str) -> Dict[str, Any]:

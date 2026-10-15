@@ -678,3 +678,34 @@ node publisher/scripts/test-session-management.js
 All new development follows target-version/ specifications.
 
 *Ostatnia aktualizacja: 2025-08-08 - Phase 1 Documentation Consolidation*
+
+---
+
+## UX Plan: Topics & Publishing (2025-08-17)
+
+### Details (topics/[id])
+- Treść: meta (title, content_type, source), opis, keywords, index status (ready/recent/nearest), triage snapshot (profile_fit, novelty, decision), validation snapshot, assets, CTA
+
+### Analyze Potential
+- Tryb preview (bez promocji) i full (z promocją), te same progi co Harvester
+- Proxy do: Editorial `/profile/score`, TM `/topics/novelty-check` i `/topics/suggestion` + reindex
+
+### Generate Draft
+- Orchestrator `/publish` (single-platform) → AIWF → Editorial → (opcjonalnie) Gamma/Presenton; zwrot draftu + warnings + assets
+
+### Add Topic / File Import
+- Manual `POST /topics/manual` + reindex; Import: upload → triage+promote → reindex
+
+### Seed on boot
+- HARVEST_ON_BOOT/HARVEST_BOOT_MAX_AGE_HOURS/PROMOTE_ON_BOOT — zautomatyzowane w harvester
+
+### Kanban/DAG (nowe zadania)
+- UI-7: Topics details (topics/[id])
+- UI-8: Analyze potential (preview/full)
+- UI-9: Dashboard→details (ensure topic_id)
+- UI-10: Generate draft (topics+dashboard)
+- UI-11: Add topic (manual)
+- UI-12: Import files (multi-file → triage+promote)
+- UI-14: E2E (frontend-inclusive)
+
+Relacje: UI-6 → (UI-7..UI-12), UI-7 prerequisite dla UI-9/UI-10; UI-14 zależne od UI-6..UI-12

@@ -142,6 +142,23 @@ services:
       - "8082:8082"
     networks: [vector-wave]
 
+  vector-wave-ui:
+    profiles: ["ui"]
+    build: ./kolegium/vector-wave-ui
+    environment:
+      - NEXT_PUBLIC_API_URL=http://crewai-orchestrator:8042
+      - NEXT_PUBLIC_OLD_API_URL=http://editorial-service:8040
+      - HOST=0.0.0.0
+      - PORT=3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      editorial-service:
+        condition: service_started
+      crewai-orchestrator:
+        condition: service_started
+    networks: [vector-wave]
+
   linkedin-ppt:
     profiles: ["publishing"]
     build: ./linkedin-ppt-service
@@ -194,6 +211,7 @@ services:
     environment:
       - HOST=0.0.0.0
       - PORT=8044
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     ports:
       - "8044:8044"
     healthcheck:
@@ -224,6 +242,9 @@ services:
       - HARVEST_FETCH_LIMIT=${HARVEST_FETCH_LIMIT:-50}
       - SELECTIVE_PROFILE_THRESHOLD=${SELECTIVE_PROFILE_THRESHOLD:-0.7}
       - SELECTIVE_NOVELTY_THRESHOLD=${SELECTIVE_NOVELTY_THRESHOLD:-0.8}
+      - HARVEST_ON_BOOT=${HARVEST_ON_BOOT:-true}
+      - HARVEST_BOOT_MAX_AGE_HOURS=${HARVEST_BOOT_MAX_AGE_HOURS:-6}
+      - PROMOTE_ON_BOOT=${PROMOTE_ON_BOOT:-true}
     depends_on:
       - chromadb
       - editorial-service

@@ -1,0 +1,123 @@
+version: '3.8'
+
+# POC Test Environment - Cookbook AI
+# Simplified version for POC tasks
+
+services:
+  # Core Database
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: cookbook_poc
+      POSTGRES_USER: poc_user
+      POSTGRES_PASSWORD: poc_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U poc_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Cache Layer
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Vector Database for Recipe Search
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  # Recipe Service (for Task A & C)
+  recipe-service:
+    build: 
+      context: ./services/recipe-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql://poc_user:poc_password@postgres:5432/cookbook_poc
+      REDIS_URL: redis://redis:6379
+      QDRANT_URL: http://qdrant:6333
+      ENVIRONMENT: development
+    depends_on:
+      - postgres
+      - redis
+      - qdrant
+    volumes:
+      - ./services/recipe-service:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Agent Service (for Task B)
+  agent-service:
+    build:
+      context: ./services/agent-service
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8000"
+    environment:
+      RECIPE_SERVICE_URL: http://recipe-service:8000
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ENVIRONMENT: development
+    depends_on:
+      - recipe-service
+    volumes:
+      - ./services/agent-service:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8000"
+    environment:
+      RECIPE_SERVICE_URL: http://recipe-service:8000
+      AGENT_SERVICE_URL: http://agent-service:8000
+      ENVIRONMENT: development
+    depends_on:
+      - recipe-service
+      - agent-service
+    volumes:
+      - ./services/api-gateway:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Observability - Jaeger
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # Collector
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+
+  # Metrics - Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+
+volumes:
+  postgres_data:
+  qdrant_data:
+
+networks:
+  default:
+    name: cookbook-poc-network

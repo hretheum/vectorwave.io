@@ -1,0 +1,74 @@
+# POC Vibe Coding - Git Ignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.pylint.d/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+docker-compose.override.yml
+.env
+.env.local
+
+# Data
+postgres_data/
+redis_data/
+qdrant_data/
+*.db
+*.sqlite
+
+# Results
+participant_assignments.json
+participant_assignments.md
+poc_results.json
+poc_analysis_report.txt
+poc_analysis_visualizations.png
+*.csv
+
+# Logs
+*.log
+logs/
+jaeger-data/
+prometheus-data/
+
+# Sensitive
+*_api_key*
+*_secret*
+credentials/
+
+# Temporary
+tmp/
+temp/
+scratch/
+.cache/
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+
+# Keep
+!poc_results_example.json
+!.gitkeep

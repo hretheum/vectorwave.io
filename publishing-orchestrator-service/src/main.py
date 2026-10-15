@@ -119,6 +119,12 @@ LINKEDIN_PPT_GENERATOR_URL = os.getenv("LINKEDIN_PPT_GENERATOR_URL", "http://loc
 
 # Toggle for Gamma usage
 GAMMA_ENABLED = os.getenv("GAMMA_ENABLED", "false").lower() == "true"
+# Gamma polling config
+GAMMA_WAIT_TIMEOUT_SECONDS = int(os.getenv("GAMMA_WAIT_TIMEOUT_SECONDS", "60"))
+GAMMA_WAIT_INTERVAL_SECONDS = float(os.getenv("GAMMA_WAIT_INTERVAL_SECONDS", "2.0"))
+
+# Strict mode: do not synthesize content when AIWF fails; propagate explicit error
+AIWF_STRICT_MODE = os.getenv("AIWF_STRICT_MODE", "true").lower() == "true"
 
 
 def _get_redis_queue_stats() -> Optional[Dict[str, Any]]:
@@ -270,28 +276,113 @@ async def get_queue_status():
         "timestamp": datetime.now().isoformat(),
     }
 
-async def call_ai_writing_flow(topic: TopicRequest, platform: str) -> Dict[str, Any]:
-    """Call AI Writing Flow service to generate platform-specific content"""
+async def call_ai_writing_flow(topic: TopicRequest, platform: str, direct_content: Optional[bool] = None) -> Dict[str, Any]:
+    """Call AI Writing Flow service to generate platform-specific content.
+
+    Integrates with the current AIWF spec: /v2/generate/multi-platform.
+    Keeps legacy /generate only as a last-resort fallback for backward compatibility.
+    """
+    def _extract_content(payload: Dict[str, Any], plat: str) -> Optional[str]:
+        if not isinstance(payload, dict):
+            return None
+        # Common shapes we support
+        # 1) {"platform_content": { plat: {"content": "..." } } }  ← AIWF v2 spec
+        node_v2 = payload.get("platform_content")
+        if isinstance(node_v2, dict):
+            cand_v2 = node_v2.get(plat) or node_v2.get(plat.lower()) or node_v2.get(plat.upper())
+            if isinstance(cand_v2, dict) and isinstance(cand_v2.get("content"), str):
+                return cand_v2.get("content")
+        # 2) {"platforms": { plat: {"content": "..." } } }  ← legacy/mixed
+        node = (payload.get("platforms") or payload.get("results") or payload.get("outputs") or {})
+        if isinstance(node, dict):
+            cand = node.get(plat) or node.get(plat.lower()) or node.get(plat.upper())
+            if isinstance(cand, dict) and isinstance(cand.get("content"), str):
+                return cand.get("content")
+        # 3) {"content": "..."}
+        if isinstance(payload.get("content"), str):
+            return payload.get("content")
+        # 4) {"outputs":[{"platform": plat, "content": "..."}]}
+        outs = payload.get("outputs")
+        if isinstance(outs, list):
+            for o in outs:
+                if isinstance(o, dict) and (o.get("platform") or "").lower() == plat.lower() and isinstance(o.get("content"), str):
+                    return o.get("content")
+        return None
+
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{AI_WRITING_FLOW_URL}/generate",
-                json={
-                    "topic": topic.dict(),
+            # Preferred: multi-platform endpoint per current AIWF spec
+            multi_payload = {
+                "topic": topic.dict(),
+                "platforms": { platform: { "enabled": True, **({"direct_content": bool(direct_content)} if direct_content is not None else {}) } },
+                "options": { "enhanced": True }
+            }
+            try:
+                r = await client.post(
+                    f"{AI_WRITING_FLOW_URL}/v2/generate/multi-platform",
+                    json=multi_payload,
+                    timeout=120.0
+                )
+                if r.status_code == 200:
+                    body = r.json()
+                    content = _extract_content(body, platform)
+                    if content and isinstance(content, str) and content.strip():
+                        return {
+                            "content": content,
+                            "platform": platform,
+                            "quality_score": 0.7,
+                            "metadata": {"generation_method": "aiwf_v2"}
+                        }
+            except Exception as e:
+                # Log and continue to legacy fallback below
+                logger.warning(f"AIWF v2 call failed for {platform}: {e}")
+
+            # Legacy fallback: single-platform (disabled in strict mode)
+            if not AIWF_STRICT_MODE:
+                try:
+                    response = await client.post(
+                        f"{AI_WRITING_FLOW_URL}/generate",
+                        json={
+                            "topic": topic.dict(),
+                            "platform": platform,
+                            "options": {"enhanced": True}
+                        },
+                        timeout=120.0
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+                    content = _extract_content(data, platform) or (data.get("content") if isinstance(data, dict) else None)
+                    if content and isinstance(content, str) and content.strip():
+                        return {
+                            "content": content,
+                            "platform": platform,
+                            "quality_score": 0.6,
+                            "metadata": {"generation_method": "aiwf_legacy"}
+                        }
+                except Exception as e:
+                    logger.warning(f"AIWF legacy call failed for {platform}: {e}")
+
+            if AIWF_STRICT_MODE:
+                raise RuntimeError("aiwf_no_content")
+            else:
+                # Backward-compatible minimal fallback (disabled in strict mode)
+                synthesized = f"{topic.title}. " + (topic.description or "")
+                return {
+                    "content": synthesized.strip() or f"Generated content for {topic.title} on {platform}",
                     "platform": platform,
-                    "options": {"enhanced": True}
-                },
-                timeout=120.0
-            )
-            response.raise_for_status()
-            return response.json()
+                    "quality_score": 0.5,
+                    "metadata": {"generation_method": "fallback", "aiwf_error": "no_content_from_aiwf"}
+                }
     except Exception as e:
         logger.error(f"AI Writing Flow call failed for {platform}: {e}")
-        return {
-            "error": str(e),
-            "content": f"Generated content for {topic.title} on {platform}",
-            "quality_score": 0.5
-        }
+        if AIWF_STRICT_MODE:
+            raise
+        else:
+            return {
+                "error": str(e),
+                "content": f"Generated content for {topic.title} on {platform}",
+                "quality_score": 0.5
+            }
 
 async def generate_linkedin_presentation(content: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Generate LinkedIn presentation using best available service (Gamma → Presenton → LinkedIn-PPT)."""
@@ -319,21 +410,58 @@ async def generate_linkedin_presentation(content: Dict[str, Any]) -> Optional[Di
                         "output_formats": ["pdf", "pptx"],
                         "custom_instructions": "Optimize for LinkedIn document post with concise bullets"
                     }
-                    r = await client.post(f"{GAMMA_PPT_URL}/generate/presentation", json=payload, timeout=90.0)
+                    r = await client.post(
+                        f"{GAMMA_PPT_URL}/generate/presentation",
+                        json=payload,
+                        timeout=90.0,
+                        headers={"Authorization": "Bearer dev"}
+                    )
                     r.raise_for_status()
                     data = r.json()
-                    return {
-                        "ppt_url": (data.get("download_urls") or {}).get("pptx"),
-                        "pdf_url": (data.get("download_urls") or {}).get("pdf"),
-                        "provider": "gamma",
-                        "preview_url": data.get("preview_url"),
-                    }
+                    # If immediate URLs available
+                    dl = data.get("download_urls") or {}
+                    if dl.get("pdf") or dl.get("pptx"):
+                        return {
+                            "ppt_url": dl.get("pptx"),
+                            "pdf_url": dl.get("pdf"),
+                            "provider": "gamma",
+                            "preview_url": data.get("preview_url"),
+                        }
+                    # If pending with generation id – poll wait endpoint on gamma service
+                    gen_id = data.get("gamma_presentation_id") or data.get("presentation_id") or data.get("generation_id")
+                    if gen_id:
+                        try:
+                            wait_url = (
+                                f"{GAMMA_PPT_URL}/generation/{gen_id}/wait"
+                                f"?timeout_seconds={GAMMA_WAIT_TIMEOUT_SECONDS}"
+                                f"&poll_interval_seconds={GAMMA_WAIT_INTERVAL_SECONDS}"
+                            )
+                            wr = await client.get(
+                                wait_url,
+                                timeout=95.0,
+                                headers={"Authorization": "Bearer dev"}
+                            )
+                            if wr.status_code == 200:
+                                w = wr.json()
+                                wdl = w.get("download_urls") or {}
+                                if wdl.get("pdf") or wdl.get("pptx"):
+                                    return {
+                                        "ppt_url": wdl.get("pptx"),
+                                        "pdf_url": wdl.get("pdf"),
+                                        "provider": "gamma",
+                                        "preview_url": w.get("preview_url"),
+                                    }
+                        except Exception:
+                            pass
+                    # No URLs yet
+                    raise RuntimeError("gamma_no_urls")
                 except Exception as e:
                     logger.warning(f"Gamma generation failed, attempting fallback to Presenton: {e}")
                     # Fallback to Presenton, then LinkedIn-PPT
                     if await check_service_health(PRESENTON_URL):
                         try:
                             prompt = build_presenton_prompt(content)
+                            # Try legacy /generate first
                             r = await client.post(
                                 f"{PRESENTON_URL}/generate",
                                 json={
@@ -344,9 +472,37 @@ async def generate_linkedin_presentation(content: Dict[str, Any]) -> Optional[Di
                                 },
                                 timeout=90.0
                             )
-                            r.raise_for_status()
-                            data = r.json()
-                            return {"ppt_url": data.get("pptx_url"), "pdf_url": data.get("pdf_url"), "provider": "presenton"}
+                            if r.status_code == 200:
+                                data = r.json()
+                                if data.get("pdf_url") or data.get("pptx_url"):
+                                    return {"ppt_url": data.get("pptx_url"), "pdf_url": data.get("pdf_url"), "provider": "presenton"}
+                            # Fallback to async queue
+                            er = await client.post(
+                                f"{PRESENTON_URL}/jobs/enqueue",
+                                json={
+                                    "prompt": prompt,
+                                    "slides_count": 5,
+                                    "template": "default",
+                                    "topic_title": (content.get("topic") or {}).get("title") or "LinkedIn Presentation"
+                                },
+                                timeout=30.0
+                            )
+                            er.raise_for_status()
+                            ej = er.json()
+                            job_id = ej.get("job_id")
+                            if job_id:
+                                # Poll status for up to 30s
+                                deadline = datetime.now() + timedelta(seconds=30)
+                                while datetime.now() < deadline:
+                                    sr = await client.get(f"{PRESENTON_URL}/jobs/{job_id}", timeout=10.0)
+                                    if sr.status_code == 200:
+                                        sj = sr.json()
+                                        if (sj.get("status") == "completed") and (sj.get("pdf_url") or sj.get("pptx_url")):
+                                            return {"ppt_url": sj.get("pptx_url"), "pdf_url": sj.get("pdf_url"), "provider": "presenton"}
+                                        if sj.get("status") == "failed":
+                                            break
+                                    await asyncio.sleep(2.0)
+                            raise RuntimeError("presenton_no_urls")
                         except Exception as e2:
                             logger.warning(f"Presenton fallback failed, trying LinkedIn-PPT: {e2}")
                     # Final fallback: LinkedIn-PPT wrapper
@@ -433,6 +589,8 @@ def build_presenton_prompt(content: Dict[str, Any]) -> str:
 
 def should_generate_presentation(content: Dict[str, Any]) -> bool:
     """Determine if content should have a LinkedIn presentation"""
+    if content.get("force_presentation") is True:
+        return True
     if content.get("force_presentation") is True:
         return True
     content_text = content.get("content", "")
@@ -542,16 +700,11 @@ async def generate_platform_content(topic: TopicRequest, platform: str,
     start_time = datetime.now()
     
     if config.direct_content:
-        # Use provided content directly
-        content = {
-            "content": f"Direct content for {topic.title} on {platform}",
-            "platform": platform,
-            "quality_score": 1.0,
-            "metadata": {"generation_method": "direct"}
-        }
+        # Request AIWF direct generation mode (no local placeholder)
+        content = await call_ai_writing_flow(topic, platform, direct_content=True)
     else:
-        # Generate content using AI Writing Flow
-        content = await call_ai_writing_flow(topic, platform)
+        # Generate via AIWF, let optimizer decide (prompt/direct)
+        content = await call_ai_writing_flow(topic, platform, direct_content=None)
     
     # Generate variations per platform
     variations = generate_variations(content.get("content", ""), num=3)
@@ -630,10 +783,14 @@ async def orchestrate_publication(request: PublicationRequest,
                 request.topic, platform.value, config
             )
             
-            # If AI Writing Flow failed but provided fallback content, continue
+            # If AI Writing Flow failed AND nie mamy żadnej treści, odnotuj błąd
             if "error" in content and not content.get("content"):
                 errors.append(f"{platform}: {content['error']}")
                 continue
+
+            # Gwarantuj niepustą treść do dalszych etapów (walidacja 422 jest soft-fail)
+            if not content.get("content"):
+                content["content"] = f"[auto] Generated content for {request.topic.title} on {platform.value}"
                 
             content_variations[platform.value] = content
             success_count += 1
@@ -714,6 +871,7 @@ async def orchestrate_publication(request: PublicationRequest,
     
     # Enrich LinkedIn content with manual upload URLs if presentation was generated
     enriched_platform_content: Dict[str, Dict[str, Any]] = {}
+    any_warnings: List[str] = []
     for plat, data in content_variations.items():
         enriched = {
             "content": data.get("content", ""),
@@ -721,6 +879,15 @@ async def orchestrate_publication(request: PublicationRequest,
             "validation_results": data.get("validation_results", {}),
             "generation_time": data.get("generation_time", 0)
         }
+        # Surface generator/source and warnings for UI
+        gen_method = (data.get("metadata", {}) or {}).get("generation_method")
+        if gen_method:
+            enriched["generator"] = gen_method
+        aiwf_err = (data.get("metadata", {}) or {}).get("aiwf_error")
+        if gen_method == "fallback":
+            msg = f"AI Writing Flow failed and fallback content was used{': ' + str(aiwf_err) if aiwf_err else ''}"
+            enriched.setdefault("warnings", []).append({"code": "aiwf_fallback", "message": msg})
+            any_warnings.append(f"{plat}: {msg}")
         if data.get("presentation"):
             enriched["manual_upload"] = {
                 "ppt_url": data["presentation"].get("ppt_url"),
@@ -728,6 +895,10 @@ async def orchestrate_publication(request: PublicationRequest,
                 "provider": data["presentation"].get("provider")
             }
         enriched_platform_content[plat] = enriched
+
+    # Attach top-level warnings for convenience
+    if any_warnings:
+        publications_store[publication_id]["warnings"] = any_warnings
 
     return PublicationResponse(
         publication_id=publication_id,

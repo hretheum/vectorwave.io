@@ -275,3 +275,16 @@ For production deployment, integrate with:
 - PostgreSQL for persistence
 - Prometheus for metrics
 - Grafana for dashboards
+
+## UI Feedback (Client Hints)
+
+When AI Writing Flow fails to produce content and the orchestrator uses a fallback generator, the response includes explicit hints for UI:
+
+- Per‑platform fields (example for LinkedIn under `platform_content.linkedin`):
+  - `generator`: string, e.g. `"fallback"` when fallback content was used
+  - `warnings`: array of objects, e.g. `[{"code":"aiwf_fallback","message":"AI Writing Flow failed and fallback content was used: ..."}]`
+
+- Top‑level field:
+  - `warnings`: array of strings (summary), present when any platform produced warnings
+
+These fields allow the UI to surface informative banners/toasts that a fallback path was taken and diagnostics may be required in AI Writing Flow.
